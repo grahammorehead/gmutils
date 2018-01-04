@@ -264,7 +264,7 @@ class Model(Object):
 
 if __name__ == '__main__':
     try:
-        parser = argparser({'desc': "Tools to model patterns in text using keras and TF: deep_model.py"})
+        parser = argparser({'desc': "Tools to model patterns in text using keras and TF: model.py"})
         #  --  Tool-specific command-line args may be added here
         args = parser.parse_args()   # Get inputs and options
 
@@ -277,7 +277,3 @@ if __name__ == '__main__':
         
 ################################################################################
 ################################################################################
-    
-                
-
-            
