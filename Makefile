@@ -8,6 +8,7 @@ install_mac1:
 	brew install https://raw.githubusercontent.com/Homebrew/homebrew-core/ec545d45d4512ace3570782283df4ecda6bb0044/Formula/python3.rb
 	wget https://bootstrap.pypa.io/get-pip.py
 	sudo python3 get-pip.py
+	pip install --upgrade pip
 	brew install Graphviz
 	brew install graphviz
 	brew link graphviz
