@@ -9,11 +9,10 @@ install_mac1:
 	wget https://bootstrap.pypa.io/get-pip.py
 	sudo python3 get-pip.py
 	pip install --upgrade pip
-	brew install Graphviz
 	brew install graphviz
 	brew link graphviz
-	# By hand:
-	# python3 -m venv ~/envs/sample
+	# By hand: (Using Python 3)
+	# python -m venv ~/envs/sample
 
 install_mac2:
 	pip install -r requirements.txt
