@@ -88,7 +88,8 @@ class Object(object):
                 if not self.get(param):
                     self.set(param, default[param])
 
-
+        self.mkdirs()  # Some settings require that a given directory exists
+                    
         
     def set(self, key, val):
         """
@@ -123,6 +124,15 @@ class Object(object):
         
     def __str__(self):
         return str( self.__repr__() )
+
+
+    def mkdirs(self):
+        """
+        For some options, a directory is called for.  Ensure that each of these exist.
+
+        """
+        mkdir(self.get('output_dir'))
+        mkdir(self.get('model_dir'))
         
     
     def get_config(self, options=None):

@@ -15,7 +15,7 @@ from objects import *
 
 
 ################################################################################
-##  DEFAULTS   ###
+# CONFIG
 
 default = {
     'batch_size'         : 100,
@@ -26,7 +26,7 @@ default = {
 
   
 ################################################################################
-##   OBJECTS   ###
+# OBJECTS
 
 class Model(Object):
     """
@@ -63,34 +63,9 @@ class Model(Object):
         X, Y = dataset.get_training_XY(self.get('signal'))
         X = self.embed(X)
 
-        # If requested, balance the data
-        if self.get('smote'):
-            X, Y = self.balance_with_synthetic_minority_oversampling(X, Y)
-        elif self.get('majunder'):
-            X, Y = self.balance_with_majority_undersampling(X, Y)
 
-        train, dev        = split_data(X, Y, [0.8, 0.2])
-        train_X, train_Y  = train
-        dev_X,   dev_Y    = dev
-        dev_data          = (dev_X, dev_Y)
+
         
-        ## Build the underlying estimators and aggregate them into a voting classifier
-        #    according to option 'estimators'
-        sys.stderr.write('Training model ...\n')
-
-        cweights = class_weight.compute_class_weight('balanced', np.unique(train_Y), train_Y)
-        cweights = dict(zip(xrange(len(cweights)), cweights))
-        print("Class weights:", cweights)
-
-        sys.stderr.write("Training model ...\n")
-        self.model.fit(
-            train_X,
-            train_Y,
-            validation_data  = dev_data,
-            epochs           = self.get('nb_epoch'),
-            batch_size       = self.get('batch_size'),
-            class_weight     = cweights
-            )
         sys.stderr.write("Done Training.\n")
 
 

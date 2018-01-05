@@ -8,9 +8,8 @@ import numpy as np
 import pandas as pd
 from sklearn.model_selection import train_test_split
 
-from utils import err, argparser, read_dir
-from objects import DSObject
-from normalize import clean_spaces
+from utils import *
+from objects import Object
 
 
 ################################################################################
@@ -34,6 +33,9 @@ class Dataset(Object):
 
     test : panda dataframe
         subset of the dataframe used for testing
+
+    validate : panda dataframe
+        another subset created upon request
 
     """
     def __init__(self, options=None):
@@ -75,15 +77,18 @@ class Dataset(Object):
             trainAndTest : Use a portion of the lines for training (0.1 by default)
                 and the rest for tesing.  Training/Testing lines will be selected at random
         """
-        if self.get('train'):                # 100% for training
+        if self.get('train'):                # 100% for Training
             #                                # For more on 'self.get(option_name)' see objects.py Object class
             self.train = self.data
 
-        elif self.get('test'):               # 100% for testing
+        elif self.get('test'):               # 100% for Testing
             self.test = self.data
 
-        elif self.get('trainAndTest'):       # 100% for testing
-            self.train, self.test = train_test_split(self.data, test_size=0.09)
+        elif self.get('trainAndTest'):       # Training AND Testing
+            if self.get('validation'):
+                self.train, self.test                   = train_test_split(self.data, test_size=0.09)
+            else:
+                self.train, self.test, self.validation  = train_test_split(self.data, test_size=0.08, validation_size=0.01)
             self.print_set_sizes()
 
         else:

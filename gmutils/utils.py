@@ -15,11 +15,15 @@ import numpy as np
 import scipy
 import pandas as pd
 from sklearn.externals import joblib
+from sklearn.model_selection import ShuffleSplit
 
 # If using spaCy for NLP
 import spacy
 spacy_nlp = spacy.load('en_core_web_lg')    # download separately: https://spacy.io/models/
 
+
+################################################################################
+# FUNCTIONS
 
 def isTrue(options, key):
     """
@@ -80,14 +84,16 @@ def argparser(options={}):
     
     parser = argparse.ArgumentParser(description=desc)
 
-    parser.add_argument('--debug',   help='Debug Mode', required=False, action='store_true')
-    parser.add_argument('--verbose', help='Verbose mode', required=False, action='store_true')
+    parser.add_argument('--debug',           help='Debug Mode', required=False, action='store_true')
+    parser.add_argument('--verbose',         help='Verbose mode', required=False, action='store_true')
+    parser.add_argument('--test',            help='Run a test (if a model, test on the input dataset)', required=False, action='store_true')
 
     # Argument-taking flags
-    parser.add_argument('--dir', nargs='?',   action='append', help='A folder having files to be read', required=False)
-    parser.add_argument('--file', nargs='?',  action='append', help='A file to be read', required=False)
-    parser.add_argument('--str', nargs='?',   action='append', help='A string to be read', required=False)
-    parser.add_argument('--df',      nargs='?', action='append', help='Panda Dataframe CSV to be read', required=False)
+    parser.add_argument('--dir',             help='A folder having files to be read', required=False, nargs='?', action='append', )
+    parser.add_argument('--file',            help='A file to be read', required=False, nargs='?', action='append', )
+    parser.add_argument('--str',             help='A string to be read', required=False, nargs='?', action='append', )
+    parser.add_argument('--df',              help='Panda Dataframe CSV to be read', required=False, nargs='?', action='append', )
+    parser.add_argument('--output_dir',      help='Directory to save the output', required=False, nargs='?', action='append')
     
     return parser
 
@@ -105,16 +111,18 @@ def argparser_classifier(options={}):
     parser.add_argument('--loadDataset',     help='Load a prebuilt vectorizer from disk', required=False, action='store_true')
     parser.add_argument('--train',           help='Train a model on the data in the input file', required=False, action='store_true')
     parser.add_argument('--trainAndTest',    help='Separate data into train/test sets, the train, then test', required=False, action='store_true')
-    parser.add_argument('--test',            help='Test a model on the data in the input file', required=False, action='store_true')
     parser.add_argument('--classify',        help='Use the model to classify the data in the input file, the train', required=False, action='store_true')
 
     # Argument-taking flags
-    parser.add_argument('--model',   nargs='?', action='append', help='File to save the model to', required=False)
+    parser.add_argument('--model',           help='File to save the model to', required=False, nargs='?', action='append')
+    parser.add_argument('--model_dir',       help='Directory to save the model in', required=False, nargs='?', action='append')
+    parser.add_argument('--epochs',          help='Number of epochs for training', required=False, nargs='?', action='append')
+    parser.add_argument('--batch_size',      help='Size of data for each epoch', required=False, nargs='?', action='append')
 
     return parser
 
     
-def err (vars=[], options={}):
+def err(vars=[], options={}):
     """
     Prints var values and/or filename and debug info STDERR.  This is easier than writing comparable print statements,
     and there are times when the Python interpreter doesn't output all of this information.
@@ -426,6 +434,8 @@ def split_data(X, Y, ratios):
 
     Parameters
     ----------
+    data : DataFrame containing both X and Y
+
     X : DataFrame or list of rows which can be used to generate a DataFrame
 
     Y : Series or list of supervised outputs
@@ -477,7 +487,7 @@ def is_jsonable(x):
         return True
     except:
         return False
-    
+
 
 ################################################################################
 ##   MAIN   ##
