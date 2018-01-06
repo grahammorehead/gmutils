@@ -24,8 +24,8 @@ import unidecode
 
 html_parser = HTMLParser.HTMLParser()  # used in normalizing text, removes some strange characters
 
-from dautils import err, argparser
-from daobjects import Options
+from .utils import err, argparser
+from .objects import Options
 
 
 ################################################################################

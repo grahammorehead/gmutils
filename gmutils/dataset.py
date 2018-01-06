@@ -4,8 +4,6 @@ Code and objects to manage datasets for training models
 
 """
 import os, sys, re
-print('PATH:', sys.path)
-sys.path.insert(0, '.')
 import numpy as np
 import pandas as pd
 from sklearn.model_selection import train_test_split
