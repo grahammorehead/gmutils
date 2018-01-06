@@ -1,7 +1,7 @@
 
-from utils import err, argparser, argparser_classifier, serialize, deserialize
+from gmutils.utils import err, argparser, argparser_classifier, serialize, deserialize
 
-from dataset import Dataset
+from gmutils.dataset import Dataset
 
-from model import Model
+from gmutils.model import Model
 
