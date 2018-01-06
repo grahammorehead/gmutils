@@ -8,10 +8,11 @@ import json
 import pickle
 from copy import deepcopy
 import random
-from sets import Set
 
-from utils import *
-from objects import *
+from keras.utils.vis_utils import plot_model
+
+from .utils import *
+from .objects import *
 
 
 ################################################################################
@@ -43,8 +44,40 @@ class Model(Object):
 
         """
         self.set_options(options, default)            # For more on 'self.set_options()' see DSObject class
+        self.generate()
 
+
+    def generate(self):
+        """
+        override in subclass
+
+        In some cases will create the attribue self.model
+        """
+        pass
+    
+
+    def summary(self):
+        """
+        Print and/or save info which describes this model
+
+        """
+        self.model.summary()
+        if self.isTrue('model'):
+            self.to_png()
+
+
+    def to_png(self):
+        """
+        Generate a png-format visual description of the model
+
+        """
+        save_dir = self.get('model')
+        try:
+            plot_model(model, to_file=save_dir + '/model.png', show_shapes=True)
+        except:
+            pass
         
+    
     def fit(self, dataset):
         """
         Train a supervised model from a list of inputs X and their corresponding classifications Y.
@@ -62,7 +95,6 @@ class Model(Object):
 
         X, Y = dataset.get_training_XY(self.get('signal'))
         X = self.embed(X)
-
 
 
         

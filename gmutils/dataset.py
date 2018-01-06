@@ -10,8 +10,8 @@ import numpy as np
 import pandas as pd
 from sklearn.model_selection import train_test_split
 
-from utils import *
-from objects import Object
+from .utils import *
+from .objects import Object
 
 
 ################################################################################
@@ -111,53 +111,67 @@ class Dataset(Object):
         sys.stderr.write('Training set size:  %d\n'% n_train)
         sys.stderr.write('Test set size:      %d\n'% n_test)
 
-
-    def get_training_XY(self, signal=None):
+        
+    def get_x_train(self, signal=None):
         """
-        For use in modules where X and Y are handled separately
-
         Returns
         -------
-        X : DataFrame
-
-        Y : Series
+        X : numpy array
 
         """
         if signal is None:
             signal = self.get('signal')
-        
         X = self.train.loc[:, self.train.columns != signal]
-        Y = self.train[signal]
-
         X = X.as_matrix()
-        Y = Y.tolist()
         
-        return X, Y
+        return X
 
-            
-    def get_testing_XY(self, signal=None):
+
+    def get_y_train(self, signal=None):
         """
-        For use in modules where X and Y are handled separately
-
         Returns
         -------
-        X : DataFrame
-
-        Y : Series
+        Y : 1D numpy array
 
         """
         if signal is None:
             signal = self.get('signal')
+        Y = self.train[signal]
+        Y = Y.as_matrix()
+        
+        return Y
+
             
+    def get_x_test(self, signal=None):
+        """
+        Returns
+        -------
+        X : numpy array
+
+        """
+        if signal is None:
+            signal = self.get('signal')
         X = self.test.loc[:, self.test.columns != signal]
-        Y = self.test[signal]
-        
         X = X.as_matrix()
-        Y = Y.tolist()
         
-        return X, Y
+        return X
 
 
+    def get_y_test(self, signal=None):
+        """
+        Returns
+        -------
+        Y : 1D numpy array
+
+        """
+        if signal is None:
+            signal = self.get('signal')
+        Y = self.test[signal]
+        Y = Y.as_matrix()
+        
+        return Y
+
+            
     def balance_with_synthetic_minority_oversampling(self, X, Y):
         """
         For the minority set, iterate over datapoints:

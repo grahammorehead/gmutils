@@ -107,10 +107,10 @@ def argparser_classifier(options={}):
     """
     parser = argparser(options)
     
-    parser.add_argument('--loadModel',       help='Load a pretrained model from disk', required=False, action='store_true')
-    parser.add_argument('--loadDataset',     help='Load a prebuilt vectorizer from disk', required=False, action='store_true')
+    parser.add_argument('--load_model',      help='Load a pretrained model from disk', required=False, action='store_true')
+    parser.add_argument('--load_dataset',    help='Load a prebuilt vectorizer from disk', required=False, action='store_true')
     parser.add_argument('--train',           help='Train a model on the data in the input file', required=False, action='store_true')
-    parser.add_argument('--trainAndTest',    help='Separate data into train/test sets, the train, then test', required=False, action='store_true')
+    parser.add_argument('--train_and_test',  help='Separate data into train/test sets, the train, then test', required=False, action='store_true')
     parser.add_argument('--classify',        help='Use the model to classify the data in the input file, the train', required=False, action='store_true')
 
     # Argument-taking flags
@@ -140,7 +140,6 @@ def err(vars=[], options={}):
 
     """
     exc_type, exc_value, exc_traceback = sys.exc_info()
-    sys.exc_clear()
     traceback_details = {}
     exception = None
     if isTrue(options, 'exception'):
