@@ -4,6 +4,8 @@ Code and objects to manage datasets for training models
 
 """
 import os, sys, re
+print('PATH:', sys.path)
+sys.path.insert(0, '.')
 import numpy as np
 import pandas as pd
 from sklearn.model_selection import train_test_split
@@ -27,6 +29,9 @@ class Dataset(Object):
 
     cols : str[]
         Column headers
+
+    signal : str
+        This is the column header of the column for supervised output, the "Y"
 
     train : panda dataframe
         subset of the dataframe used for training
@@ -57,10 +62,10 @@ class Dataset(Object):
         read_data : a function which can read the specified input
 
         """
-        if read_data is None:
-            read_data = read_file
+        if read_data is not None:
+            self.read_data = read_data
             
-        self.data = read_data(input)       # Use provided read function
+        self.read_data(input)       # Use provided read function
         self.split_data()                  # Split into train/test as needed
         self.print_set_sizes()
 
@@ -107,7 +112,7 @@ class Dataset(Object):
         sys.stderr.write('Test set size:      %d\n'% n_test)
 
 
-    def get_training_XY(self, signal):
+    def get_training_XY(self, signal=None):
         """
         For use in modules where X and Y are handled separately
 
@@ -118,6 +123,9 @@ class Dataset(Object):
         Y : Series
 
         """
+        if signal is None:
+            signal = self.get('signal')
+        
         X = self.train.loc[:, self.train.columns != signal]
         Y = self.train[signal]
 
@@ -127,7 +135,7 @@ class Dataset(Object):
         return X, Y
 
             
-    def get_testing_XY(self, signal):
+    def get_testing_XY(self, signal=None):
         """
         For use in modules where X and Y are handled separately
 
@@ -138,6 +146,9 @@ class Dataset(Object):
         Y : Series
 
         """
+        if signal is None:
+            signal = self.get('signal')
+            
         X = self.test.loc[:, self.test.columns != signal]
         Y = self.test[signal]
         

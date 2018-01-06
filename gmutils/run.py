@@ -38,11 +38,6 @@ if __name__ == '__main__':
     if args.loadDataset:
         dataset = deserialize(args.datasetFile)
 
-    # Load a TrainingDataset from two files in a dir
-    elif args.input_dir:
-        dataset = Dataset(options=args)
-        dataset.load(input=args.file[0])
-        serialize(dataset)
 
     # Load an existing Model
     if args.loadModel:
