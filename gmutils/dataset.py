@@ -87,7 +87,7 @@ class Dataset(Object):
         elif self.get('test'):               # 100% for Testing
             self.test = self.data
 
-        elif self.get('trainAndTest'):       # Training AND Testing
+        elif self.get('train_and_test'):       # Training AND Testing
             if self.get('validation'):
                 self.train, self.test                   = train_test_split(self.data, test_size=0.09)
             else:
@@ -95,7 +95,7 @@ class Dataset(Object):
             self.print_set_sizes()
 
         else:
-            sys.stderr.write("No task selected. Exiting...\n")
+            err(["No task selected.  Could not split data.  Exiting...\n"])
             exit()
 
             
