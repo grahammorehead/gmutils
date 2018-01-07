@@ -82,14 +82,21 @@ class Object(object):
                 print('ERROR: options object is of type:', type(options))
                 exit()
 
-        # Some options may be missing because they either weren't serializable or simply weren't specified.
+        self.set_defaults(default)
+        self.mkdirs()  # Some settings require that a given directory exists
+                    
+
+    def set_defaults(self, default=None):
+        """
+        Set some missing options using a dict of defaults.
+        Some options may have been missing because they either weren't serializable or simply weren't specified.
+
+        """
         if default is not None:
             for param in default.keys():
                 if not self.get(param):
                     self.set(param, default[param])
 
-        self.mkdirs()  # Some settings require that a given directory exists
-                    
         
     def set(self, key, val):
         """
@@ -124,6 +131,28 @@ class Object(object):
         
     def __str__(self):
         return str( self.__repr__() )
+
+
+    def isTrue(self, key):
+        """
+        To enable shorter code for determining if an option is set
+        """
+        try:
+            out = self.get(key)
+            if out:
+                return out
+            return False
+        except:
+            pass
+
+        return False
+
+
+    def isVerbose(self):
+        """
+        To enable shorter code for determining if an option is set
+        """
+        return self.isTrue(options, 'verbose')
 
 
     def mkdirs(self):
@@ -180,28 +209,6 @@ class Options(Object):
     """
     def __init__(self, options):
         self.set_options(options)
-
-
-    def isTrue(self, key):
-        """
-        To enable shorter code for determining if an option is set
-        """
-        try:
-            out = self.get(key)
-            if out:
-                return out
-            return False
-        except:
-            pass
-
-        return False
-
-
-    def isVerbose(self):
-        """
-        To enable shorter code for determining if an option is set
-        """
-        return self.isTrue(options, 'verbose')
 
 
         

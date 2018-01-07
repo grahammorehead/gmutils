@@ -93,7 +93,9 @@ def argparser(options={}):
     parser.add_argument('--file',            help='A file to be read', required=False, nargs='?', action='append', )
     parser.add_argument('--str',             help='A string to be read', required=False, nargs='?', action='append', )
     parser.add_argument('--df',              help='Panda Dataframe CSV to be read', required=False, nargs='?', action='append', )
-    parser.add_argument('--output_dir',      help='Directory to save the output', required=False, nargs='?', action='append')
+
+    # Argument-taking flags (single-use)
+    parser.add_argument('--output_dir',      help='Directory to save the output', required=False, type=str)
     
     return parser
 
@@ -113,11 +115,11 @@ def argparser_classifier(options={}):
     parser.add_argument('--train_and_test',  help='Separate data into train/test sets, the train, then test', required=False, action='store_true')
     parser.add_argument('--classify',        help='Use the model to classify the data in the input file, the train', required=False, action='store_true')
 
-    # Argument-taking flags
-    parser.add_argument('--model',           help='File to save the model to', required=False, nargs='?', action='append')
-    parser.add_argument('--model_dir',       help='Directory to save the model in', required=False, nargs='?', action='append')
-    parser.add_argument('--epochs',          help='Number of epochs for training', required=False, nargs='?', action='append')
-    parser.add_argument('--batch_size',      help='Size of data for each epoch', required=False, nargs='?', action='append')
+    # Argument-taking flags (single-use)
+    parser.add_argument('--model',           help='File to save the model to', required=False, type=str)
+    parser.add_argument('--model_dir',       help='Directory to save the model in', required=False, type=str)
+    parser.add_argument('--epochs',          help='Number of epochs for training', required=False, type=int)
+    parser.add_argument('--batch_size',      help='Size of data for each epoch', required=False, type=int)
 
     return parser
 

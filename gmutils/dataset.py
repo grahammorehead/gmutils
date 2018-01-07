@@ -64,7 +64,6 @@ class Dataset(Object):
             self.read_data = read_data
             
         self.read_data(input)       # Use provided read function
-        self.split_data()                  # Split into train/test as needed
         self.print_set_sizes()
 
             
@@ -89,9 +88,9 @@ class Dataset(Object):
 
         elif self.get('train_and_test'):       # Training AND Testing
             if self.get('validation'):
-                self.train, self.test                   = train_test_split(self.data, test_size=0.09)
-            else:
                 self.train, self.test, self.validation  = train_test_split(self.data, test_size=0.08, validation_size=0.01)
+            else:
+                self.train, self.test                   = train_test_split(self.data, test_size=0.09)
             self.print_set_sizes()
 
         else:
@@ -103,11 +102,11 @@ class Dataset(Object):
         """
         Print info about the training and test sets
         """
-        n_train = self.train.shape[0]         # Lines of input text for training
-        n_test  = self.test.shape[0]          # Lines of input text for testing
+        n_train = self.train.shape         # Lines of input text for training
+        n_test  = self.test.shape          # Lines of input text for testing
 
-        sys.stderr.write('Training set size:  %d\n'% n_train)
-        sys.stderr.write('Test set size:      %d\n'% n_test)
+        sys.stderr.write('Training set:  %s\n'% str(n_train))
+        sys.stderr.write('Test set:      %s\n'% str(n_test))
 
         
     def get_x_train(self, signal=None):

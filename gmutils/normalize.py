@@ -25,7 +25,6 @@ import unidecode
 html_parser = HTMLParser.HTMLParser()  # used in normalizing text, removes some strange characters
 
 from .utils import err, argparser
-from .objects import Options
 
 
 ################################################################################
@@ -206,10 +205,6 @@ def normalize(text, options=None):
 
     Options
     -------
-    NOTE: 'options' can be passed either as a dict or an Options object, e.g. both of these are acceptable:
-        options = {'verbose':True}
-        options.verbose = True      (See utils.py for Options class definition)
-
     verbose : boolean
 
     remove_mixed : boolean

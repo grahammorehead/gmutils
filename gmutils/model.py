@@ -44,7 +44,6 @@ class Model(Object):
 
         """
         self.set_options(options, default)            # For more on 'self.set_options()' see DSObject class
-        self.generate()
 
 
     def generate(self):
