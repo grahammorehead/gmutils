@@ -320,9 +320,28 @@ def read_dir(path, options={}):
     return out
 
 
-def serialize(thing, file=None, options={}):
+def is_Model(thing):
+    """
+    Determine if an object is a subclass of gmutils.model.Model
+
+    """
+    for base in thing.__class__.__bases__:
+        if base.__name__ == 'Model':
+            return True
+    return False
+    
+
+def serialize(thing, file=None, directory=None, options={}):
     """
     Serialize an object and save it to disk
+
+    Parameters
+    ----------
+    thing : subclass of gmutils.objects.Object
+
+    file : str
+
+    directory : str
 
     """
     options['joblib'] = True
@@ -333,9 +352,19 @@ def serialize(thing, file=None, options={}):
         thingType = re.sub(r"__main__\.", "", thingType)
         sys.stderr.write("Saving %s to %s ...\n"% ( thingType, file))
 
-    if file is None:
-        file = thing.get('defaultFile')   # assumes 'thing' is a subclass of object>Object
-
+    # Determine location
+    try:
+        if file is None:
+            file  = thing.get('defaultFile')        # assumes 'thing' is a subclass of object>Object
+        if directory is None:
+            directory = thing.get('defaultDir')     # assumes 'thing' is a subclass of object>Object
+    except: pass
+            
+    # Serialize a Model
+    if is_Model(thing, directory):
+        return serialize_Model(thing, directory)
+        
+    # Default action
     if isTrue(options, 'joblib'):
         joblib.dump(thing, file)
     else:
@@ -343,13 +372,26 @@ def serialize(thing, file=None, options={}):
             pickle.dump(thing, FH)
 
 
-def deserialize(file, options={}):
+def deserialize(file=None, directory=None, options={}):
     """
     De-Serialize an object from disk
+
+    Parameters
+    ----------
+    file : str
+
+    directory : str
+
     """
     options['verbose'] = True
     options['joblib'] = True
     
+    # Deserialize a Model
+    if directory is not None:
+        weights_file = directory + '/trained_model.h5'
+        if os.path.isfile(weights_file):
+            return deserialize_Model(directory, options)
+        
     if isVerbose(options):
         sys.stderr.write("Deserializing %s ...\n"% file)
 
@@ -362,6 +404,35 @@ def deserialize(file, options={}):
             return thing
 
 
+def serialize_Model(thing, directory, options={}):
+    """
+    Serialize a Model and save it to <directory>
+
+    Parameters
+    ----------
+    thing : subclass of gmutils.model.Model
+
+    directory : str
+
+    """
+    # If the model has an underlying Keras Model, save the weights
+    thing.model.save_weights(directory + '/trained_model.h5')
+
+    
+def deserialize_Model(directory, options={}):
+    """
+    Deserialize a Model and save it to <directory>
+
+    Parameters
+    ----------
+    directory : str
+
+    """
+    weights_file = directory + '/trained_model.h5'
+    model = options['constructor'](options)
+    model.load_weights(weights_file)
+    
+    
 def close_enough(a, b):
     if abs(a-b) < 0.00001:
         return True

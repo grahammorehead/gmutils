@@ -20,7 +20,7 @@ from .objects import *
 
 default = {
     'batch_size'         : 100,
-    'num_epochs'         : 5,
+    'epochs'             : 5,
     'optimizer'          : 'adam',
     'loss'               : 'binary_crossentropy',
 }
@@ -75,6 +75,14 @@ class Model(Object):
             plot_model(model, to_file=save_dir + '/model.png', show_shapes=True)
         except:
             pass
+
+
+    def load_weights(self, weights_file):
+        """
+        Typically for underlying Keras Models.  Load weights saved from a trained version of this identical architecture.
+
+        """
+        self.model.load_weights(weights_file)
         
     
     def fit(self, dataset):
@@ -95,7 +103,7 @@ class Model(Object):
         X, Y = dataset.get_training_XY(self.get('signal'))
         X = self.embed(X)
 
-
+        # Do something here!!
         
         sys.stderr.write("Done Training.\n")
 
