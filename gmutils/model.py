@@ -19,6 +19,7 @@ from .objects import *
 # CONFIG
 
 default = {
+    'default_dir'        : 'model',
     'batch_size'         : 100,
     'epochs'             : 5,
     'optimizer'          : 'adam',
@@ -33,17 +34,20 @@ class Model(Object):
     """
     An object to manage the training, storage, and utilizating of a classifier
 
+    Attributes  (depends on subclass)
+    ----------
+    model : Typically exists and is a Keras Model
+
+    model_dir : str
+        Path to where the model is stored
+
     """
     def __init__(self, options=None):
         """
-        Initialize the object
-
-        Parameters
-        ----------
-        options : dict
+        Instantiate the object and set options
 
         """
-        self.set_options(options, default)            # For more on 'self.set_options()' see DSObject class
+        self.set_options(options, default)        # For more on 'self.set_options()' see object.Object
 
 
     def generate(self):
@@ -70,7 +74,7 @@ class Model(Object):
         Generate a png-format visual description of the model
 
         """
-        save_dir = self.get('model')
+        save_dir = self.get('model_dir')
         try:
             plot_model(model, to_file=save_dir + '/model.png', show_shapes=True)
         except:

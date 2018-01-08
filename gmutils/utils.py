@@ -4,6 +4,7 @@ Helper functions
 
 """
 import os, sys, re
+import traceback
 import json
 import pickle
 import inspect
@@ -19,8 +20,10 @@ from sklearn.model_selection import ShuffleSplit
 
 # If using spaCy for NLP
 import spacy
-spacy_nlp = spacy.load('en_core_web_lg')    # download separately: https://spacy.io/models/
-
+try:
+    spacy_nlp = spacy.load('en_core_web_lg')    # download separately: https://spacy.io/models/
+except:
+    pass
 
 ################################################################################
 # FUNCTIONS
@@ -120,6 +123,7 @@ def argparser_classifier(options={}):
     parser.add_argument('--model_dir',       help='Directory to save the model in', required=False, type=str)
     parser.add_argument('--epochs',          help='Number of epochs for training', required=False, type=int)
     parser.add_argument('--batch_size',      help='Size of data for each epoch', required=False, type=int)
+    parser.add_argument('--weights',         help='A weights file to load', required=False, type=str)
 
     return parser
 
@@ -355,13 +359,13 @@ def serialize(thing, file=None, directory=None, options={}):
     # Determine location
     try:
         if file is None:
-            file  = thing.get('defaultFile')        # assumes 'thing' is a subclass of object>Object
+            file  = thing.get('default_file')        # assumes 'thing' is a subclass of object>Object
         if directory is None:
-            directory = thing.get('defaultDir')     # assumes 'thing' is a subclass of object>Object
+            directory = thing.get('default_dir')     # assumes 'thing' is a subclass of object>Object
     except: pass
             
     # Serialize a Model
-    if is_Model(thing, directory):
+    if is_Model(thing):
         return serialize_Model(thing, directory)
         
     # Default action
@@ -442,8 +446,15 @@ def close_enough(a, b):
 def mkdir(path):
     try:
         os.makedirs(path)
-    except:
+    except FileExistsError:
         pass
+    except Exception as e:
+        err([traceback.format_exception(*sys.exc_info())])
+
+
+def mkdirs(paths):
+    for path in paths:
+        mkdir(path)
 
 
 def num_lines_in_file(file):
@@ -561,6 +572,43 @@ def is_jsonable(x):
         return False
 
 
+def set_missing_attributes(namespace, attributes=None):
+    """
+    Set some missing options using a dict of defaults.
+    Some options may have been missing because they either weren't serializable or simply weren't specified.
+
+    Parameters
+    ----------
+    namespace : Namespace
+
+    attributes : dict
+
+    """
+    if attributes is not None:
+        for param in attributes.keys():
+            try:
+                if not getattr(namespace, param):
+                    setattr(namespace, param, attributes[param])
+            except:
+                setattr(namespace, param, attributes[param])
+
+
+def override_attributes(namespace, attributes=None):
+    """
+    Set some missing options using a dict of defaults.  Override any existing values.
+
+    Parameters
+    ----------
+    namespace : Namespace
+
+    attributes : dict
+
+    """
+    if attributes is not None:
+        for param in attributes.keys():
+            setattr(namespace, param, attributes[param])
+
+    
 ################################################################################
 ##   MAIN   ##
 

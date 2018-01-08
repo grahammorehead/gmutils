@@ -1,7 +1,27 @@
 # Makefile for gmutils
 
 #########################################################################################################################
-# CONFIGURE
+# Admin
+
+com:
+	git commit -a -m "minor updates"
+	git push
+
+clean:
+	# Clean up some artifacts created by other software typically on a Mac
+	find . -name Icon$$'\r' -exec rm -fr {} \;
+	find . -name '*.pyc' -exec rm -fr {} \;
+	find . -name '*~' -exec rm -fr {} \;
+	find . -name "*\[Conflict\]*" -exec rm -r {} \;
+	find . -name "* \(1\)*" -exec rm -r {} \;
+	find . -name ".DS_Store" -exec rm -r {} \;
+	find . -name '__pycache__' -exec rm -fr {} \;
+
+force:
+
+
+#########################################################################################################################
+# Configure
 
 install_mac1:
 	# Suggested version of Python 3 as of this writing:
@@ -46,26 +66,6 @@ install2:
 	sudo dpkg -i downloads/elasticsearch-6.1.1.deb
 	sudo systemctl enable elasticsearch.service
 	pip install requests
-
-
-#########################################################################################################################
-# ADMIN
-
-com:
-	git commit -a -m "minor updates"
-	git push
-
-clean:
-	# Clean up some artifacts created by other software
-	find . -name Icon$$'\r' -exec rm -fr {} \;
-	find . -name '*.pyc' -exec rm -fr {} \;
-	find . -name '__pycache__' -exec rm -fr {} \;
-	find . -name '*~' -exec rm -fr {} \;
-	find . -name "*\[Conflict\]*" -exec rm -r {} \;
-	find . -name "* \(1\)*" -exec rm -r {} \;
-	find . -name ".DS_Store" -exec rm -r {} \;
-
-force:
 
 
 #########################################################################################################################

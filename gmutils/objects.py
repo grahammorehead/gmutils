@@ -82,20 +82,30 @@ class Object(object):
                 print('ERROR: options object is of type:', type(options))
                 exit()
 
-        self.set_defaults(default)
+        self.set_missing_attributes(default)
         self.mkdirs()  # Some settings require that a given directory exists
                     
 
-    def set_defaults(self, default=None):
+    def set_missing_attributes(self, attributes=None):
         """
         Set some missing options using a dict of defaults.
         Some options may have been missing because they either weren't serializable or simply weren't specified.
 
         """
-        if default is not None:
-            for param in default.keys():
+        if attributes is not None:
+            for param in attributes.keys():
                 if not self.get(param):
-                    self.set(param, default[param])
+                    self.set(param, attributes[param])
+
+        
+    def override_attributes(self, attributes=None):
+        """
+        Set some missing options using a dict of defaults.  Override any existing values.
+        
+        """
+        if attributes is not None:
+            for param in attributes.keys():
+                self.set(param, attributes[param])
 
         
     def set(self, key, val):
@@ -160,8 +170,10 @@ class Object(object):
         For some options, a directory is called for.  Ensure that each of these exist.
 
         """
-        mkdir(self.get('output_dir'))
-        mkdir(self.get('model_dir'))
+        check = ['default_dir', 'output_dir', 'model_dir']
+        for c in check:
+            if self.get(c):
+                mkdir(self.get(c))
         
     
     def get_config(self, options=None):
