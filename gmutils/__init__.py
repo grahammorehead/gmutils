@@ -1,5 +1,5 @@
 
-from .utils import err, argparser, argparser_classifier, serialize, deserialize, set_missing_attributes
+from .utils import err, argparser, argparser_classifier, serialize, deserialize, set_missing_attributes, isTrue
 
 from .dataset import Dataset
 
