@@ -4,16 +4,16 @@ Helper functions for Elasticsearch
 
 """
 import os, sys, re
-from sets import Set
 from editdistance import eval as fast_levenshtein
 
 from elasticsearch import Elasticsearch
 from elasticsearch import helpers
 es = Elasticsearch()
 
-from .utils import *
-from .normalize import normalize
-from .lexical import damerauLevenshtein, phrase_similarity
+from utils import isTrue
+from utils import *
+from normalize import normalize
+from lexical import damerauLevenshtein, phrase_similarity
 
 
 def list_indices():

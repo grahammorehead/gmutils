@@ -5,3 +5,4 @@ from .dataset import Dataset
 
 from .model import Model
 
+from .objects import Options

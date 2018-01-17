@@ -51,7 +51,7 @@ def isTrue(options, key):
     except:
         pass
     
-    # Treat <options> as DSObject
+    # Treat <options> as Object
     try:
         out = options.get(key)
         if out:

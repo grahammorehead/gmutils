@@ -37,6 +37,7 @@ install_mac1:
 install_mac2:
 	pip install -e ../../../gmutils
 	pip install -r requirements.txt
+	python -m spacy download 'en_core_web_lg'
 
 
 install1:

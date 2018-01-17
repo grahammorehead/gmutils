@@ -11,4 +11,15 @@ Suggested:
   - python 3.5
   - When on Mac, use venv instead of virtualenv
 
+---------
+## Install
+
+1. install python 3
+2. python -m venv this_env
+3. source this_env/bin/activate
+4. cd to this directory
+5. pip install -r requirements.txt
+6. python -m spacy download en_core_web_lg
+
+
 ---

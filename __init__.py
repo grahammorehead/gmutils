@@ -5,3 +5,4 @@ from gmutils import Dataset
 
 from gmutils import Model
 
+from gmutils import Options

@@ -7,13 +7,11 @@ Normalize raw text:  Remove strange encodings and strange strings of text.
 
 """
 import sys  
-reload(sys)  
-sys.setdefaultencoding('utf8')
+#reload(sys)  
+#sys.setdefaultencoding('utf8')
 
 import os, re
 import chardet
-import HTMLParser
-import cPickle as pickle
 import datetime
 
 # Handling of special encodings
@@ -22,9 +20,7 @@ import datetime
 #    pip install Unidecode-0.04.20-py2.py3-none-any.whl
 import unidecode
 
-html_parser = HTMLParser.HTMLParser()  # used in normalizing text, removes some strange characters
-
-from .utils import err, argparser
+from utils import err, argparser
 
 
 ################################################################################
@@ -346,12 +342,6 @@ def normalize(text, options=None):
         text = re.sub(r"“\s+", '“', text)
         text = re.sub(r"\s+”", '”', text)
         text = re.sub(r"—", '-', text)
-
-        if options.get('verbose'):
-            tarray = [text]
-            err([tarray])
-        
-        text = html_parser.unescape(text)                # Remove HTML encodings
 
         if options.get('verbose'):
             tarray = [text]
