@@ -1,5 +1,9 @@
 
-from gmutils import err, argparser, argparser_classifier, serialize, deserialize, set_missing_attributes, isTrue
+from gmutils import err, argparser, argparser_ml, serialize, deserialize, set_missing_attributes, isTrue
+
+from gmutils import list_indices, index_dicts
+
+from gmutils import mongo_iterator
 
 from gmutils import Dataset
 

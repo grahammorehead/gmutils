@@ -87,23 +87,25 @@ def argparser(options={}):
     
     parser = argparse.ArgumentParser(description=desc)
 
-    parser.add_argument('--debug',           help='Debug Mode', required=False, action='store_true')
-    parser.add_argument('--verbose',         help='Verbose mode', required=False, action='store_true')
-    parser.add_argument('--test',            help='Run a test (if a model, test on the input dataset)', required=False, action='store_true')
+    # Boolean flags
+    parser.add_argument('--debug',            help='Debug Mode', required=False, action='store_true')
+    parser.add_argument('--test',             help='Run a test', required=False, action='store_true')
+    parser.add_argument('--verbose',          help='Verbose mode', required=False, action='store_true')
 
     # Argument-taking flags
-    parser.add_argument('--dir',             help='A folder having files to be read', required=False, nargs='?', action='append', )
-    parser.add_argument('--file',            help='A file to be read', required=False, nargs='?', action='append', )
-    parser.add_argument('--str',             help='A string to be read', required=False, nargs='?', action='append', )
-    parser.add_argument('--df',              help='Panda Dataframe CSV to be read', required=False, nargs='?', action='append', )
+    parser.add_argument('--df',               help='Panda Dataframe CSV to be read', required=False, nargs='?', action='append')
+    parser.add_argument('--dir',              help='A folder having files to be read', required=False, nargs='?', action='append')
+    parser.add_argument('--file',             help='A file to be read', required=False, nargs='?', action='append')
+    parser.add_argument('--str',              help='A string to be read', required=False, nargs='?', action='append')
 
     # Argument-taking flags (single-use)
-    parser.add_argument('--output_dir',      help='Directory to save the output', required=False, type=str)
+    parser.add_argument('--bucket_id',        help='Google bucket ID', type=str, required=False, default=None, action='append')
+    parser.add_argument('--output_dir',       help='Directory to save the output', required=False, type=str)
     
     return parser
 
 
-def argparser_classifier(options={}):
+def argparser_ml(options={}):
     """
     argparser, but specific to ML
 
@@ -112,18 +114,27 @@ def argparser_classifier(options={}):
     """
     parser = argparser(options)
     
-    parser.add_argument('--load_model',      help='Load a pretrained model from disk', required=False, action='store_true')
-    parser.add_argument('--load_dataset',    help='Load a prebuilt vectorizer from disk', required=False, action='store_true')
-    parser.add_argument('--train',           help='Train a model on the data in the input file', required=False, action='store_true')
-    parser.add_argument('--train_and_test',  help='Separate data into train/test sets, the train, then test', required=False, action='store_true')
-    parser.add_argument('--classify',        help='Use the model to classify the data in the input file, the train', required=False, action='store_true')
+    # Boolean flags
+    parser.add_argument('--classify',         help='Use the model to classify the data in the input file, the train', required=False, action='store_true')
+    parser.add_argument('--eval',             help='Separate data into train/eval sets, then evaluate a trained model', required=False, action='store_true')
+    parser.add_argument('--load_dataset',     help='Load a prebuilt vectorizer from disk', required=False, action='store_true')
+    parser.add_argument('--load_model',       help='Load a pretrained model from disk', required=False, action='store_true')
+    parser.add_argument('--train',            help='Train a model on the data in the input file', required=False, action='store_true')
+    parser.add_argument('--train_and_eval',   help='Separate data into train/eval sets, then train, then evaluate the trained model', required=False, action='store_true')
 
     # Argument-taking flags (single-use)
-    parser.add_argument('--model',           help='File to save the model to', required=False, type=str)
-    parser.add_argument('--model_dir',       help='Directory to save the model in', required=False, type=str)
-    parser.add_argument('--epochs',          help='Number of epochs for training', required=False, type=int)
-    parser.add_argument('--batch_size',      help='Size of data for each epoch', required=False, type=int)
-    parser.add_argument('--weights',         help='A weights file to load', required=False, type=str)
+    parser.add_argument('--batch_size',       help='Size of data for each epoch', required=False, type=int)
+    parser.add_argument('--data_dir',         help='Directory where data is stored (if local)', required=False, type=str)
+    parser.add_argument('--epochs',           help='Number of epochs for training', required=False, type=int)
+    parser.add_argument('--eval_file',        help='Evaluation files local or GCS', required=True, type=str)
+    parser.add_argument('--label_column',     help='Output label for which to train', type=str, required=True)
+    parser.add_argument('--learning_rate',    help='Learning rate for SGD', type=float, default=0.003)
+    parser.add_argument('--model',            help='File to save the model to', required=False, type=str)
+    parser.add_argument('--model_dir',        help='Directory to save the model in', required=False, type=str)
+    parser.add_argument('--model_file',       help='Load a specific model file', required=False, type=str)
+    parser.add_argument('--train_file',       help='Training files local or GCS', required=False, type=str)
+    parser.add_argument('--steps_per_epoch',  help='Steps per epoch', required=False, type=int)
+    parser.add_argument('--weights',          help='A weights file to load', required=False, type=str)
 
     return parser
 

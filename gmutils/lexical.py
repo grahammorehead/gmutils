@@ -16,6 +16,7 @@ from normalize import simplify_for_distance
 global stringType
 stringType = type('abc')
 
+################################################################################
 
 def letterCost(a, b):
     if a==b:

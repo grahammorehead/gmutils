@@ -49,24 +49,38 @@ install1:
 	# zsh
 	# sh -c "$(curl -fsSL https://raw.github.com/robbyrussell/oh-my-zsh/master/tools/install.sh)"
 	# export LC_ALL=C
-	mkdir envs
-	mkdir downloads
+	# sudo apt-get upgrade
+	# reboot
+	mkdir ../envs
+	mkdir ../downloads
 	sudo apt-get install -y mosh
 	wget https://bootstrap.pypa.io/get-pip.py
 	sudo python3 get-pip.py
 	sudo apt-get install -y python3-dev
-	sudo apt-get install -y virtualenv
 	sudo apt-get install -y emacs
 	sudo apt-get install -y python3-tk
+	# sudo apt-get install -y virtualenv
+	sudo apt-get install -y python3-venv
 
 
+ES_DIR = https://artifacts.elastic.co/downloads/elasticsearch/
+ES_FILE = elasticsearch-6.1.3.deb
 install2:
 	# source envs/sample/bin/activate
 	# Latest Elastic Search as of this writing:
-	wget -P downloads https://artifacts.elastic.co/downloads/elasticsearch/elasticsearch-6.1.1.deb
-	sudo dpkg -i downloads/elasticsearch-6.1.1.deb
+	sudo apt-get install -y default-jdk
+	wget -P downloads $(ES_DIR)/$(ES_FILE)
+	sudo dpkg -i downloads/$(ES_FILE)
 	sudo systemctl enable elasticsearch.service
-	pip install requests
+	# sudo emacs /etc/elasticsearch/elasticsearch.yml
+	# sudo systemctl start elasticsearch
+	python3 -m venv ../envs/$(ENV)
+	source ../envs/$(ENV)/bin/activate
+	pip install --upgrade pip
+	pip install -r requirements
+	pip install pip-review
+	pip-review --local --interactive
+	python -m spacy download en_core_web_lg
 
 
 #########################################################################################################################
