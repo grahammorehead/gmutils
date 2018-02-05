@@ -10,7 +10,7 @@ from numpy import sqrt
 from editdistance import eval as fast_levenshtein
 
 from utils import err
-from normalize import simplify_for_distance
+from .normalize import simplify_for_distance
 
 # Globals
 global stringType

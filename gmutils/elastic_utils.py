@@ -10,9 +10,9 @@ from elasticsearch import Elasticsearch
 from elasticsearch import helpers
 es = Elasticsearch()
 
-from utils import *
-from normalize import normalize
-from lexical import damerauLevenshtein, phrase_similarity
+from utils import argparser, isTrue
+from .normalize import normalize
+from .lexical import damerauLevenshtein, phrase_similarity
 
 ################################################################################
 # ADMIN FUNCTIONS

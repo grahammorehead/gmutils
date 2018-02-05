@@ -17,6 +17,7 @@ clean:
 	find . -name ".DS_Store" -exec rm -r {} \;
 	find . -name '__pycache__' -exec rm -fr {} \;
 
+
 force:
 
 
@@ -79,6 +80,7 @@ install2:
 	pip install --upgrade pip
 	pip install -r requirements
 	pip install pip-review
+	pip install awscli
 	pip-review --local --interactive
 	python -m spacy download en_core_web_lg
 

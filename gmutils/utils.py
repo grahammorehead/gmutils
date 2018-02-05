@@ -101,6 +101,8 @@ def argparser(options={}):
     # Argument-taking flags (single-use)
     parser.add_argument('--bucket_id',        help='Google bucket ID', type=str, required=False, default=None, action='append')
     parser.add_argument('--output_dir',       help='Directory to save the output', required=False, type=str)
+    parser.add_argument('--host',             help='Host/IP address', required=False, type=str)
+    parser.add_argument('--port',             help='Port number', required=False, type=int)
     
     return parser
 

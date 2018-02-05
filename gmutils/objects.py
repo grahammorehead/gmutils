@@ -7,8 +7,7 @@ import sys, os, re
 import argparse
 import types
 
-from .utils import *
-
+from utils import *
 
 ################################################################################
 # OBJECTS
