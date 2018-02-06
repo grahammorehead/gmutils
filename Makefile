@@ -33,15 +33,15 @@ install_mac1:
 	brew install graphviz
 	brew link graphviz
 	# By hand: (Using Python 3)
-	# Following lines in .zshrc
 	# python -m venv ~/envs/sample
-	# alias rm="rm -i"
-	# alias mv="mv -i"
-	# alias cp="cp -i"
-	# alias python=python3
-	# alias python2=/usr/bin/python
-	# unsetopt share_history
-	# setopt no_share_history
+	# Add following lines to .zshrc \
+alias rm="rm -i" \
+alias mv="mv -i" \
+alias cp="cp -i" \
+alias python=python3 \
+alias python2=/usr/bin/python \
+unsetopt share_history \
+setopt no_share_history
 
 
 install_mac2:
