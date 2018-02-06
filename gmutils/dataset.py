@@ -17,6 +17,7 @@ from .objects import Object
 default = {
     'default_file'        : 'dataset',
 }
+
     
 ################################################################################
 # OBJECTS
@@ -58,8 +59,10 @@ class Dataset(Object):
         """
         if read_data is not None:
             self.read_data = read_data
+        else:
+            self.read_data = default_read_data
             
-        self.read_data(input)       # Use provided read function
+        self.x_train, self.x_test, self.y_train, self.y_test = self.read_data(input)
         self.print_set_sizes()
 
             
@@ -96,6 +99,38 @@ class Dataset(Object):
         return counts
             
             
+################################################################################
+# FUNCTIONS
+
+def default_read_data(input):
+    """
+    Default function for reading data into a Dataset
+
+    Parameters
+    ----------
+    input : DataFrame saved as csv file
+
+    """
+    print('Reading DataFrame input file %s ...'% input)
+    df = pd.read_csv(input)
+    
+    # Determine supervised label
+    label = None
+    if 'Y' in df.columns:
+        label = 'Y'
+    elif '_Y_' in df.columns:
+        label = '_Y_'
+    else:
+        print('ERROR: no label found')
+        exit()
+
+    X = df.loc[:, df.columns != label]
+    Y = df[label]
+    x_train, x_test, y_train, y_test = train_test_split(X, Y, test_size=0.1)
+    
+    return x_train, x_test, y_train, y_test
+
+    
 ################################################################################
 ##   MAIN   ##
 

@@ -337,13 +337,13 @@ def read_dir(path, options={}):
     return out
 
 
-def is_Model(thing):
+def is_KerasModel(thing):
     """
     Determine if an object is a subclass of gmutils.model.Model
 
     """
     for base in thing.__class__.__bases__:
-        if base.__name__ == 'Model':
+        if base.__name__ == 'KerasModel':
             return True
     return False
     
@@ -361,8 +361,6 @@ def serialize(thing, file=None, directory=None, options={}):
     directory : str
 
     """
-    options['joblib'] = True
-    
     # Informative STDERR output
     if isVerbose(options):
         thingType = re.sub(r"^.*'(.*)'.*$", r"\1", (str(type(thing))))
@@ -377,9 +375,9 @@ def serialize(thing, file=None, directory=None, options={}):
             directory = thing.get('default_dir')     # assumes 'thing' is a subclass of object>Object
     except: pass
             
-    # Serialize a Model
-    if is_Model(thing):
-        return serialize_Model(thing, directory)
+    # Serialize a Keras Model
+    if is_KerasModel(thing):
+        return serialize_KerasModel(thing, directory)
         
     # Default action
     if isTrue(options, 'joblib'):
@@ -407,7 +405,7 @@ def deserialize(file=None, directory=None, options={}):
     if directory is not None:
         weights_file = directory + '/trained_model.h5'
         if os.path.isfile(weights_file):
-            return deserialize_Model(directory, options)
+            return deserialize_KerasModel(directory, options)
         
     if isVerbose(options):
         sys.stderr.write("Deserializing %s ...\n"% file)

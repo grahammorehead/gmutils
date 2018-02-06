@@ -14,4 +14,6 @@ from .dataset import Dataset
 
 from .model import Model
 
+from .sklearn_model import SklearnModel
+
 from .objects import Object, Options

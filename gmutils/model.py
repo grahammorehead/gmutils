@@ -9,6 +9,7 @@ import pickle
 from copy import deepcopy
 import random
 
+from sklearn import metrics
 from keras.utils.vis_utils import plot_model
 
 from .utils import *
@@ -24,8 +25,10 @@ default = {
     'epochs'             : 5,
     'optimizer'          : 'adam',
     'loss'               : 'binary_crossentropy',
+    'nn_max_iter'        : 1000,
+    'nn_hl'              : (9, 18, 18, 9, 3),   # hidden layer sizes
+    'binarize_predictions' : False
 }
-
   
 ################################################################################
 # OBJECTS
@@ -36,10 +39,19 @@ class Model(Object):
 
     Attributes  (depends on subclass)
     ----------
-    model : Typically exists and is a Keras Model
+    label : str
+        The supervised label
+
+    model : an underlying Keras, TensorFlow, or Scikit-Learn Model
 
     model_dir : str
         Path to where the model is stored
+
+    model_file : str
+        File path where the model is stored
+
+    estimators : array of str
+        Names of the underlying estimator(s) to be used
 
     """
     def __init__(self, options=None):
@@ -48,16 +60,18 @@ class Model(Object):
 
         """
         self.set_options(options, default)        # For more on 'self.set_options()' see object.Object
+        self.generate()
 
 
     def generate(self):
         """
-        override in subclass
+        Override in subclass.
 
         In some cases will create the attribue self.model
+
         """
         pass
-    
+
 
     def summary(self):
         """
@@ -104,11 +118,9 @@ class Model(Object):
         """
         verbose = self.get('verbose')     # For more on 'self.get(option_name)' see objects.py DSObject class
 
-        X, Y = dataset.get_training_XY(self.get('signal'))
-        X = self.embed(X)
-
-        # Do something here!!
-        
+        X = dataset.x_train
+        Y = dataset.y_train
+        self.model.fit(X, Y)
         sys.stderr.write("Done Training.\n")
 
 
@@ -125,39 +137,39 @@ class Model(Object):
         return binarizer.transform(X)
         
         
-    def predict(self, input, binarizer=None):
+    def predict(self, X, binarizer=None):
         """
         Return the prediction for each input line.
 
         Parameters
         ----------
-        input : array of str, or Sentence objects
+        X : array of str, Sentence objects, ints, floats, etc
 
         Returns : array of float
 
         """
-        X = self.embed(input)
+        if self.get('vocab'):
+            X = self.embed(X)
         preds = self.model.predict(X)
         
-        if binarizer is None:
+        if self.get('binarize_predictions'):
             preds = self.binarize(preds)
-        else:
-            preds = binarizer.transform(preds)    
         
         return preds
 
     
-    def predict_proba(self, input):
+    def predict_proba(self, X):
         """
         Return the prediction for each input line.
 
         Parameters
         ----------
-        input : array of str, or Sentence
+        X : array of str, Sentence objects, ints, floats, etc
 
         Returns : array of float
         """
-        X = self.embed(input)
+        if self.get('vocab'):
+            X = self.embed(X)
         preds = self.model.predict(X)
 
         return preds
@@ -216,10 +228,12 @@ class Model(Object):
             This function only pays attention to the testing data: dataset.test
 
         """
-        X, Y = dataset.get_testing_XY(self.get('signal'))
-        
-        sys.stderr.write("\nSetting threshold ...\n")
-        self.set_thresh(X, Y)
+        X = dataset.x_test
+        Y = dataset.y_test
+
+        if self.get('binarize_predictions'):
+            sys.stderr.write("\nSetting threshold ...\n")
+            self.set_thresh(X, Y)
         
         sys.stderr.write("\nMaking predictions ...\n")
         preds = self.predict(X)

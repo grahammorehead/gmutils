@@ -79,8 +79,8 @@ install2:
 	source ../envs/$(ENV)/bin/activate
 	pip install --upgrade pip
 	pip install -r requirements
-	pip install pip-review
 	pip install awscli
+	pip install pip-review
 	pip-review --local --interactive
 	python -m spacy download en_core_web_lg
 
