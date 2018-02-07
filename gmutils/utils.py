@@ -18,13 +18,6 @@ import pandas as pd
 from sklearn.externals import joblib
 from sklearn.model_selection import ShuffleSplit
 
-# If using spaCy for NLP
-import spacy
-try:
-    spacy_nlp = spacy.load('en_core_web_lg')    # download separately: https://spacy.io/models/
-except:
-    pass
-
 ################################################################################
 # FUNCTIONS
 
