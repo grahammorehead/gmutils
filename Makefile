@@ -28,10 +28,7 @@ install_mac1:
 	# Suggested version of Python 3 as of this writing:
 	brew install https://raw.githubusercontent.com/Homebrew/homebrew-core/ec545d45d4512ace3570782283df4ecda6bb0044/Formula/python3.rb
 	wget https://bootstrap.pypa.io/get-pip.py
-	sudo python3 get-pip.py
 	pip install --upgrade pip
-	brew install graphviz
-	brew link graphviz
 	# By hand: (Using Python 3)
 	# python -m venv ~/envs/sample
 	# Add following lines to .zshrc \
@@ -46,9 +43,9 @@ setopt no_share_history
 
 install_mac2:
 	# sh -c "$(curl -fsSL https://raw.github.com/robbyrussell/oh-my-zsh/master/tools/install.sh)"
-	pip install -e ../../../gmutils
-	pip install -r requirements.txt
 	python -m spacy download 'en_core_web_lg'
+	defaults write -g InitialKeyRepeat -int 12 # normal minimum is 15 (225 ms)
+	defaults write -g KeyRepeat -int 2 # normal minimum is 2 (30 ms)
 
 
 install1:

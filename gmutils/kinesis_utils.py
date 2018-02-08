@@ -7,7 +7,7 @@ import os, sys, re
 import time
 from boto import kinesis
 
-from utils import argparser
+from .utils import argparser
 from .objects import Object
 
 ################################################################################
