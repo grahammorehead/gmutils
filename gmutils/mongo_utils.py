@@ -7,17 +7,17 @@ import os, sys, re
 from pprint import pprint
 from pymongo import MongoClient
 
-from .utils import argparser
+from gmutils.utils import argparser
 
 ################################################################################
 
-def test(host='localhost', port=27017, db_name='default', coll_name='default'):
+def test(host='localhost', port=27017, db_name='default', collection_name='default'):
     client = MongoClient(host, port)
     db = client[db_name]
     print("Loaded db", db_name,"  type:", type(db))
     print("Collections:", db.collection_names())
-    coll = db[coll_name]
-    print("Loaded collection", coll_name,"  type:", type(coll))
+    coll = db[collection_name]
+    print("Loaded collection", collection_name,"  type:", type(coll))
 
 
 def mongo_iterator(db_name='default', collection_name='default', host='localhost', port=27017):
@@ -58,10 +58,12 @@ if __name__ == '__main__':
     parser = argparser({'desc': "Helper functions for Mongo: mongo_utils.py"})
 
     #  --  Tool-specific command-line args may be added here
-    parser.add_argument('--list',            help='List all indices', required=False, action='store_true')
-
-    test(db_name='biologic', collection_name='usda')
-
+    parser.add_argument('--list', help='List all databases', required=False, action='store_true')
+    args = parser.parse_args()   # Get inputs and options
     
+    if args.list:
+        test(db_name='biologic', collection_name='usda')
+
+        
 ################################################################################
 ################################################################################

@@ -151,50 +151,22 @@ def err(vars=[], options={}):
     exception : Exception (optional)
 
     """
-    exc_type, exc_value, exc_traceback = sys.exc_info()
-    traceback_details = {}
+    # Gather frame
+    callerframerecord = inspect.stack()[1]    # 0 represents this line
+                                              # 1 represents line at caller
+    frame = callerframerecord[0]
+    info = inspect.getframeinfo(frame)
+    file = os.path.basename(info.filename)
+    line = info.lineno
+    sys.stderr.write("\nDEBUG (Line %d) from file %s:\n"% (line, info.filename))
+
+    # Parse exception
     exception = None
     if isTrue(options, 'exception'):
         exception = options['exception']
-
-    if isTrue(options, 'error'):
-        sys.stderr.write('\nERROR: %s\n'% options['error'])
-        
-    try:
-        traceback_details = {
-            'filename': exc_traceback.tb_frame.f_code.co_filename,
-            'lineno'  : exc_traceback.tb_lineno,
-            'name'    : exc_traceback.tb_frame.f_code.co_name,
-            'type'    : exc_type.__name__,
-            'message' : exc_value.message, # or see traceback._some_str()
-            }
-        sys.stderr.write("\nDEBUG w/Trace (Line %d) from file %s:\n"% (traceback_details['lineno'], traceback_details['filename']))
-
-        # Handle exception if it exists
-        if exception is not None:
-            sys.stderr.write("\tException: ["+ str(exception) +"]\n")
-            sys.stderr.write("\t     type: [%s]\n"% traceback_details['type'])
-            if traceback_details['message'] != str(exception):
-                sys.stderr.write("\t  message: [%s]\n"% traceback_details['message'])
-            tb = traceback.format_exc().rstrip()
-            if tb != 'None':
-                sys.stderr.write("\t traceback: [%s]\n"% tb)
-
-    except:   # If traceback fails
-        
-        callerframerecord = inspect.stack()[1]    # 0 represents this line
-                                                  # 1 represents line at caller
-        frame = callerframerecord[0]
-        info = inspect.getframeinfo(frame)
-        # func = info.function
-        file = os.path.basename(info.filename)
-        line = info.lineno
-        sys.stderr.write("\nDEBUG (Line %d) from file %s:\n"% (line, info.filename))
-        
-        # Handle exception if it exists
-        if exception is not None:
-            sys.stderr.write( "\tException: [%s]\n"% str(exception))
-            sys.stderr.write( "\t     type: [%s]\n"% str(type(exception)))
+        for arg in exception.args:
+            print("ERROR: {}".format(arg))
+        print("\n\t", sys.exc_info()[0], "\n")
 
     # Print vars to STDERR if present
     if len(vars) > 0:
@@ -205,6 +177,7 @@ def err(vars=[], options={}):
                 sys.stderr.write('\tVAR    %s\n'% str(v))
             sys.stderr.write('\n')
 
+    # Conditional return
     if isTrue(options, 'exit'):
         exit(1)
     if isTrue(options, 'warn'):

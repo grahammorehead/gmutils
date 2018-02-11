@@ -10,10 +10,14 @@ from copy import deepcopy
 import random
 
 from sklearn import metrics
-from keras.utils.vis_utils import plot_model
 
-from .utils import *
-from .objects import *
+try:
+    from keras.utils.vis_utils import plot_model
+except:
+    pass
+
+from gmutils.utils import *
+from gmutils.objects import *
 
 
 ################################################################################

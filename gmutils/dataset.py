@@ -102,17 +102,17 @@ class Dataset(Object):
 ################################################################################
 # FUNCTIONS
 
-def default_read_data(input):
+def default_read_data_file(input_file):
     """
     Default function for reading data into a Dataset
 
     Parameters
     ----------
-    input : DataFrame saved as csv file
+    input_file : DataFrame saved as csv file
 
     """
-    print('Reading DataFrame input file %s ...'% input)
-    df = pd.read_csv(input)
+    print('Reading DataFrame input_file file %s ...'% input_file)
+    df = pd.read_csv(input_file)
     
     # Determine supervised label
     label = None
@@ -130,7 +130,37 @@ def default_read_data(input):
     
     return x_train, x_test, y_train, y_test
 
-    
+
+def default_read_data(inputs):
+    """
+    Default function for reading data into a Dataset
+
+    Parameters
+    ----------
+    inputs : DataFrame or array thereof
+
+    """
+    if isinstance(inputs, str):
+        return default_read_data_file(inputs)
+        
+    elif isinstance(inputs, list):
+        x_train  = []
+        x_test   = []
+        y_train  = []
+        y_test   = []
+        for input_file in inputs:
+            x_tr, x_te, y_tr, y_te = default_read_data_file(input_file)
+            x_train.extend(x_tr)
+            x_test.extend(x_te)
+            y_train.extend(y_tr)
+            y_test.extend(y_te)
+            
+    else:
+        err([], {'exception':ValueError('Unrecognized input type: %s'% type(inputs))})
+
+    return x_train, x_test, y_train, y_test
+
+
 ################################################################################
 ##   MAIN   ##
 
