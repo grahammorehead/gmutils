@@ -84,6 +84,7 @@ def argparser(options={}):
     parser.add_argument('--debug',            help='Debug Mode', required=False, action='store_true')
     parser.add_argument('--test',             help='Run a test', required=False, action='store_true')
     parser.add_argument('--verbose',          help='Verbose mode', required=False, action='store_true')
+    parser.add_argument('--normalize',        help='Normalize input text', required=False, action='store_true')
 
     # Argument-taking flags
     parser.add_argument('--df',               help='Panda Dataframe CSV to be read', required=False, nargs='?', action='append')
@@ -158,11 +159,13 @@ def err(vars=[], options={}):
     info = inspect.getframeinfo(frame)
     file = os.path.basename(info.filename)
     line = info.lineno
-    sys.stderr.write("\nDEBUG (Line %d) from file %s:\n"% (line, info.filename))
+
+    if not isTrue(options, 'silent'):
+        sys.stderr.write("\nDEBUG (Line %d) from file %s:\n"% (line, info.filename))
 
     # Parse exception
     exception = None
-    if isTrue(options, 'exception'):
+    if isTrue(options, 'exception')  and not isTrue(options, 'silent'):
         exception = options['exception']
         for arg in exception.args:
             print("ERROR: {}".format(arg))
@@ -180,7 +183,7 @@ def err(vars=[], options={}):
     # Conditional return
     if isTrue(options, 'exit'):
         exit(1)
-    if isTrue(options, 'warn'):
+    if isTrue(options, 'warn')  or  isTrue(options, 'silent'):
         return
     if exception:
         raise exception

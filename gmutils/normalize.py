@@ -20,8 +20,8 @@ import datetime
 #    pip install Unidecode-0.04.20-py2.py3-none-any.whl
 import unidecode
 
-from .utils import err, argparser
-
+from gmutils.utils import err, argparser
+from gmutils.objects import Options
 
 ################################################################################
 
