@@ -63,6 +63,42 @@ class Node(Object):
         return False
         
             
+    def is_leaf(self):
+        if len(self.children) == 0:
+            return True
+        return False
+
+
+    def adopt(self, nodes):
+        """
+        Create both sides of parent-child relationships
+
+        """
+        for node in nodes:
+            node.parent = self
+            self.children.append(node)
+    
+
+    def disown(self, node):
+        """
+        Break both sides of parent-child relationship
+
+        """
+        self.children.remove(node)
+        node.parent = None
+
+        
+    def absorb(self, node):
+        """
+        For one Node to be merged with another (usually a parent with a child).
+        Afterwards, nothing should link to 'node'
+
+        """
+        self.disown(node)
+        self.adopt(node.children)
+        self.tokens.extend(node.tokens)
+        
+    
     def get_text(self):
         """
         Get a string representing, in tree order, the tokens comprising this Node
@@ -71,11 +107,10 @@ class Node(Object):
         texts = []
         for token in self.tokens:
             texts.append(token.text)
-            
         return ' '.join(texts)
 
 
-    def get_lemma(self):
+    def get_lemmas(self):
         """
         Get a string representing, in tree order, the tokens comprising this Node
 
@@ -83,28 +118,47 @@ class Node(Object):
         lemmas = []
         for token in self.tokens:
             lemmas.append(token.lemma_)
-            
-        return ' '.join(lemmas)
+        return lemmas
 
 
-    def get_dep(self):
+    def get_lemmas_str(self):
+        return ' '.join(self.get_lemmas())
+
+
+    def get_pos(self):
         """
-        Get the dependency relation type
+        Get the part of speech (could be multiple)
+
+        """
+        pos = []
+        for token in self.tokens:
+            pos.append(token.pos_)
+        return pos
+
+
+    def is_verb(self):
+        if 'VERB' in self.get_pos():
+            return True
+        return False
+    
+    
+    def get_deps(self):
+        """
+        Get the dependency relation type (could be multiple)
 
         """
         deps = []
         for token in self.tokens:
             deps.append(token.dep_)
+        return sorted(deps)
 
-        return deps
 
-
-    def dep_str(self):
+    def get_deps_str(self):
         """
         A simple str representation of the dependency type
 
         """
-        return ' ' .join(self.get_dep())
+        return ' ' .join(self.get_deps())
     
     
     def get_supporting_text(self):
@@ -123,13 +177,70 @@ class Node(Object):
         return subtree_span.text
     
 
+    def get_semantic_roles(self, options={}):
+        """
+        Glean what we can about semantic roles if self is_verb
+
+        Returns
+        -------
+        dict
+          dep_type : list of spacy.Token
+          Maps the dependency type onto an array of Tokens and therefore a substring
+
+        """
+        roles = {}
+        for child in self.children:
+            deps = child.get_deps_str()
+
+            if deps == 'punct'  and  child.is_leaf():
+                continue
+            
+            if deps in roles:
+                roles[deps].append(child)
+            else:
+                roles[deps] = [child]
+
+        return roles
+
+
+    def agglomerate_verbs_preps(self, options={}):
+        """
+        For the purpose of sense disambiguation, agglomerate verbs with prepositional children
+
+        e.g. If "jump" is used to describe A jumping over B, the real sense of the verb is "jump over"
+
+        """
+        if self.is_leaf():
+            return
+        
+        if self.is_verb:
+            for child in self.children:
+                if 'prep' in child.get_deps():
+                    self.absorb(child)
+        
+        for child in self.children:
+            child.agglomerate_verbs_preps()
+            
+
+    def print_semantic_roles(self, options={}):
+        """
+        Print what we know about the semantic roles
+
+        """
+        print("\nSemantic Roles:")
+        print(self.get_lemmas_str())
+        roles = self.get_semantic_roles(options=options)
+        for dep, nodes in roles.items():
+            print('    {%s}'% dep, get_support_for_nodes(nodes))
+    
+            
     def pretty_print(self, depth=0, options={}):
         """
         Print out the tree recursively from this point
 
         """
         indent = depth * '    '
-        print(indent + self.get_text() + ' {%s}'% self.dep_str())
+        print(indent + self.get_text() + ' {%s}'% self.get_deps_str())
 
         # Options
         if options.get('supporting text'):  # Print the text supporting subtree
@@ -143,23 +254,6 @@ class Node(Object):
             self.print_semantic_roles(options=options)
             
 
-    def print_semantic_roles(self, options={})
-        """
-        Print what little we know about the semantic roles
-
-        """
-        # Semantic roles for root verb
-        print("\nSR: %s"% self.get_lemma())
-        for child in self.children:
-            if 'prep' in child.get_dep():
-                print('    {%s} [%s] '% (child.dep_str(), child.get_lemma()), get_support_for_nodes(self.doc, child.children))
-            else:
-                print('    {%s} '% child.dep_str() + get_support_for_nodes(self.doc, [child]))
-        print()
-
-
-    
-            
             
 ################################################################################
 # FUNCTIONS
@@ -173,16 +267,37 @@ def iprint(title, X):
         print('\t', x)
         
 
-def get_support_for_nodes(doc, nodes):
+def get_support_for_tokens(doc, tokens):
     """
-    Give a doc and some nodes, find the shortest contiguous substring containing all constituents tokens
+    Give a doc and some tokens, find the shortest contiguous substring containing all the tokens
+
+    """
+    if len(tokens) == 0:
+        return ''
+    
+    left = right = None
+    for token in tokens:
+        if left is None or token.left_edge.i < left:
+            left = token.left_edge.i
+        if right is None or token.right_edge.i > right:
+            right = token.right_edge.i
+
+    subtree_span = doc[left:right + 1]
+    return subtree_span.text
+    
+
+def get_support_for_nodes(nodes):
+    """
+    For some nodes (from single Document), find the shortest contiguous substring containing all constituents tokens
 
     """
     if len(nodes) == 0:
         return ''
     
-    left = right = None
+    doc = left = right = None
     for node in nodes:
+        if doc is None:
+            doc = node.doc
         for token in node.tokens:
             if left is None or token.left_edge.i < left:
                 left = token.left_edge.i

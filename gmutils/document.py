@@ -183,7 +183,18 @@ class Document(Object):
                     self.trees.append(Node(doc, span.root))
 
         self.spacy_docs = checked_docs
-                    
+
+
+    def agglomerate_verbs_preps(self):
+        """
+        For the purpose of sense disambiguation, agglomerate verbs with prepositional children
+
+        e.g. If "jump" is used to describe A jumping over B, the real sense of the verb is "jump over"
+
+        """
+        for tree in self.trees:
+            tree.agglomerate_verbs_preps()
+        
 
     def pretty_print(self):
         """
@@ -234,6 +245,7 @@ if __name__ == '__main__':
     elif args.str:
         for text in args.str:
             doc = Document(text)
+            doc.agglomerate_verbs_preps()
             doc.pretty_print()
             
     else:
