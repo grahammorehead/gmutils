@@ -8,7 +8,7 @@ import numpy as np
 import pandas as pd
 from sklearn.model_selection import train_test_split
 
-from gmutils.utils import err, argparser
+from gmutils.utils import err, argparser, read_dir, read_file
 from gmutils.objects import Object
 
 ################################################################################
@@ -108,11 +108,16 @@ def default_read_data_file(input_file):
 
     Parameters
     ----------
-    input_file : DataFrame saved as csv file
+    input_file : str
+        DataFrame saved as csv file
+
+    Returns
+    -------
+    array of DataFrame (4 of them: x_train, x_test, y_train, y_test)
 
     """
     print('Reading DataFrame input_file file %s ...'% input_file)
-    df = pd.read_csv(input_file)
+    df = pd.read_csv(input_file, index_col=0)
     
     # Determine supervised label
     label = None
@@ -131,32 +136,86 @@ def default_read_data_file(input_file):
     return x_train, x_test, y_train, y_test
 
 
+def default_read_data_files(input_files):
+    """
+    Default function for reading data files into a Dataset
+
+    Parameters
+    ----------
+    input_files : array of str
+        DataFrames saved as csv files
+
+    Returns
+    -------
+    array of DataFrame (4 of them: x_train, x_test, y_train, y_test)
+
+    """
+    x_train  = pd.DataFrame([])
+    x_test   = pd.DataFrame([])
+    y_train  = pd.DataFrame([])
+    y_test   = pd.DataFrame([])
+    for input_file in input_files:
+        x_tr, x_te, y_tr, y_te = default_read_data_file(input_file)
+        x_train = pd.concat([x_train, x_tr])
+        x_test = pd.concat([x_test, x_te])
+        y_train = pd.concat([y_train, y_tr])
+        y_test = pd.concat([y_test, y_te])
+        
+    return x_train, x_test, y_train, y_test
+
+    
+def default_read_data_dir(input_dir):
+    """
+    Default function for reading data from a directory into a Dataset
+
+    Parameters
+    ----------
+    input_dir : str
+        Directory where each file will be read
+
+    Returns
+    -------
+    array of DataFrame (4 of them: x_train, x_test, y_train, y_test)
+
+    """
+    files = read_dir(input_dir, {'fullpath':True})
+    return default_read_data_files(files)
+    
+    
 def default_read_data(inputs):
     """
-    Default function for reading data into a Dataset
+    Default function for reading data into a Dataset.  Will accept one of:
+        - file
+        - list of files
+        - dir
 
     Parameters
     ----------
     inputs : DataFrame or array thereof
 
+    Returns
+    -------
+    array of DataFrame (4 of them: x_train, x_test, y_train, y_test)
+
     """
-    if isinstance(inputs, str):
-        return default_read_data_file(inputs)
-        
-    elif isinstance(inputs, list):
-        x_train  = []
-        x_test   = []
-        y_train  = []
-        y_test   = []
-        for input_file in inputs:
-            x_tr, x_te, y_tr, y_te = default_read_data_file(input_file)
-            x_train.extend(x_tr)
-            x_test.extend(x_te)
-            y_train.extend(y_tr)
-            y_test.extend(y_te)
+    if isinstance(inputs, list):
+        if len(inputs) == 1:
+            inputs = inputs[0]
+        elif len(inputs) > 1:
+            return default_read_data_files(inputs)
+        else:
+            err([],{'ex':"ERROR: zero-length array of inputs"})
             
+    if isinstance(inputs, str):
+        if os.path.isfile(inputs):
+            return default_read_data_file(inputs)
+        elif os.path.isdir(inputs):
+            return default_read_data_dir(inputs)
+        else:
+            err([],{'ex':"ERROR: inputs neither file nor dir."})
+        
     else:
-        err([], {'exception':ValueError('Unrecognized input type: %s'% type(inputs))})
+        err([], {'ex':'Unrecognized input type: %s'% type(inputs)})
 
     return x_train, x_test, y_train, y_test
 

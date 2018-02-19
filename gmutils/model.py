@@ -123,7 +123,7 @@ class Model(Object):
         verbose = self.get('verbose')     # For more on 'self.get(option_name)' see objects.py DSObject class
 
         X = dataset.x_train
-        Y = dataset.y_train
+        Y = dataset.y_train.values.ravel()   # to prevent DataConversionWarning
         self.model.fit(X, Y)
         sys.stderr.write("Done Training.\n")
 
@@ -174,7 +174,7 @@ class Model(Object):
         """
         if self.get('vocab'):
             X = self.embed(X)
-        preds = self.model.predict(X)
+        preds = self.model.predict_proba(X)
 
         return preds
 

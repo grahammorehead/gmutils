@@ -11,7 +11,7 @@ except Exception as e: err([], {'exception':e, 'warn':True})
 
 try:
     from .mongo_utils import mongo_iterator
-except Exception as e: err([], {'exception':e, 'silent':True})
+except Exception as e: err([], {'exception':e, 'warn':True})
 
 from .dataset import Dataset
 

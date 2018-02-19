@@ -151,6 +151,8 @@ def err(vars=[], options={}):
 
     exception : Exception (optional)
 
+    ex : create and Exception
+
     """
     # Gather frame
     callerframerecord = inspect.stack()[1]    # 0 represents this line
@@ -164,12 +166,17 @@ def err(vars=[], options={}):
         sys.stderr.write("\nDEBUG (Line %d) from file %s:\n"% (line, info.filename))
 
     # Parse exception
-    exception = None
-    if isTrue(options, 'exception')  and not isTrue(options, 'silent'):
+    exception = options.get('exception')
+    if exception is None:
+        if options.get('ex'):
+            exception = ValueError(options.get('ex'))
+            
+    if isTrue(options, 'exception'):
         exception = options['exception']
         for arg in exception.args:
             print("ERROR: {}".format(arg))
-        print("\n\t", sys.exc_info()[0], "\n")
+        if not isTrue(options, 'silent'):
+            print("\n\t", sys.exc_info()[0], "\n")
 
     # Print vars to STDERR if present
     if len(vars) > 0:
