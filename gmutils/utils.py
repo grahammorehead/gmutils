@@ -162,6 +162,8 @@ def err(vars=[], options={}):
     file = os.path.basename(info.filename)
     line = info.lineno
 
+    if os.environ['GMSILENT']:
+        options['silent'] = os.environ['GMSILENT']
     if not isTrue(options, 'silent'):
         sys.stderr.write("\nDEBUG (Line %d) from file %s:\n"% (line, info.filename))
 
@@ -173,9 +175,9 @@ def err(vars=[], options={}):
             
     if isTrue(options, 'exception'):
         exception = options['exception']
-        for arg in exception.args:
-            print("ERROR: {}".format(arg))
         if not isTrue(options, 'silent'):
+            for arg in exception.args:
+                print("ERROR: {}".format(arg))
             print("\n\t", sys.exc_info()[0], "\n")
 
     # Print vars to STDERR if present

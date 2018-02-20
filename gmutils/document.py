@@ -3,8 +3,6 @@
     Class to manage all internal elements of a document having an underlying Spacy Doc
 
 """
-from __future__ import print_function
-
 import os, sys, re, time
 from copy import deepcopy
 from collections import deque
