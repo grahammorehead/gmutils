@@ -351,7 +351,7 @@ def read_dir(path, options={}):
 
 def read_conceptnet_vectorfile(filename, options={}):
     """
-    Read the file format used by ConceptNet Numberbatch to store word vectors.  These vectors are simple arrays of float.
+    Read a file formatted like a ConceptNet Numberbatch file.  These vectors are simple arrays of float.
     This function is only necessary because of an error related to either h5py or how this file was created.
 
     Parmmeters
@@ -370,6 +370,7 @@ def read_conceptnet_vectorfile(filename, options={}):
         vocab : <languange code> : <word> : <vector>
 
     """
+    verbose = False
     vocab = {}
     repeats = {}   # will be used at the end to compute the average vector for any collisions
     langs = options.get('langs')
@@ -388,13 +389,11 @@ def read_conceptnet_vectorfile(filename, options={}):
 
         # Ignore some lines, check for errors
         if kind != 'c':
-            print (line)
-            exit()   # The default file only has 'c' entries (concepts)
+            err([],{'ex':"Unexpected concept type: %s"% kind})  # The default file only has 'c' entries (concepts)
         if langs is not None:
             if lang not in langs: continue
         if pos is not None:
-            print('Unexpected POS:', pos, ':', word)
-            exit()
+            err([],{'ex':"Unexpected POS: %s for %s"% (pos, word)})  # The default file only has 'c' entries (concepts)
             
         vector = np.array(list(map(float, vector)))   # convert to numpy array of floats
         
@@ -407,7 +406,7 @@ def read_conceptnet_vectorfile(filename, options={}):
         if re.search(r'^[a-z_\'’]*$', word):
             pass
         else:
-            print(word)
+            if verbose: print('IGNORE:', word)
             continue
 
         # Structure outgoing data into a dict of dicts.  Where necessary, handle collisions by summing the vectors
@@ -421,6 +420,7 @@ def read_conceptnet_vectorfile(filename, options={}):
                 vocab[lang][word] = vector
         else:
             vocab[lang] = { word:vector }
+            repeats[lang] = {}
 
     # For each repeated entry, compute an averaged vector
     for lang in repeats.keys():
@@ -473,6 +473,11 @@ def serialize(thing, file=None, directory=None, options={}):
         return serialize_KerasModel(thing, directory)
         
     # Default action
+    if directory is None:
+        filepath = file
+    else:
+        filepath = directory +'/'+ file
+        
     if isTrue(options, 'joblib'):
         joblib.dump(thing, file)
     else:
@@ -491,7 +496,7 @@ def deserialize(file=None, directory=None, options={}):
     directory : str
 
     """
-    options['verbose'] = True
+    # options['verbose'] = True
     options['joblib'] = True
     
     # Deserialize a Model
@@ -727,10 +732,7 @@ def vector_average(vectors):
 
     """
     arr = np.array(vectors)
-    print(type(arr))
-    print('shape:', arr.shape)
     arr = np.mean(arr, axis=0)
-    print('shape:', arr.shape)
     return arr
 
     

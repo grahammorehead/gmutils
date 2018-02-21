@@ -202,33 +202,14 @@ class Document(Object):
             tree.agglomerate_verbs_preps()
         
 
-    def embed(self, options={}):
+    def embed(self, vocab, options={}):
         """
-        Load vectors and generate a vectorization of each constituent sentence
-
-        Default vector space: ConceptNet NumberBatch
+        Use a given embedding (vocab) to vectorize this node and its children
 
         """
-        def preprocess(word, vector):
-            """
-            Carefully process and discard some words from this embedding
-            """
-            word = ascii_fold(word)
-            word = normalize(word)
-            if re.search(r'^[a-z_\'’]*$', word):
-                word = False
-                vector = None
-            return word, vector
-        
-        # Load vectors
-        vectorfile = os.environ['HOME'] + '/data/ConceptNet/numberbatch-17.06.txt'
-        if options.get('vectorfile'):
-            vectorfile = options.get('vectorfile')
-        vectors = read_conceptnet_vectorfile(vectorfile, {'langs':['en'], 'preprocess':preprocess})
-
         # Recursively embed each tree in this vector space
         for tree in self.trees:
-            tree.embed(vectors)
+            tree.embed(vocab)
 
         
     def pretty_print(self):

@@ -1,7 +1,7 @@
 
-import sys
+from .utils import err, argparser, argparser_ml, serialize, deserialize, set_missing_attributes, isTrue, read_file, monitor_setup, monitor, read_conceptnet_vectorfile
 
-from .utils import err, argparser, argparser_ml, serialize, deserialize, set_missing_attributes, isTrue, read_file, monitor_setup, monitor
+from .normalize import normalize, ascii_fold
 
 from .elastic_utils import list_indices, index_dicts, store_dict
 
@@ -14,6 +14,8 @@ try:
 except Exception as e: err([], {'exception':e, 'warn':True})
 
 from .dataset import Dataset
+
+from .document import Document
 
 from .model import Model
 

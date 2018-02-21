@@ -6,7 +6,7 @@ Tools to manage nodes in a parse tree
 import os, sys, re, json
 
 from gmutils.objects import Object
-from gmutils.utils import err, argparser
+from gmutils.utils import err, argparser, vector_average
 
 
 ################################################################################
@@ -238,7 +238,41 @@ class Node(Object):
             verbs.extend( child.get_verb_nodes() )
         return verbs
 
-        
+
+    def embed(self, vocab):
+        """
+        Given some vocab (embedding) produce a vector that represents this node
+
+        """
+        # First try full lemma string
+        lemmas_str = self.get_lemmas_str()
+        lemmas_str = re.sub(r' ', '_', lemmas_str)
+        vec = vocab.get(lemmas_str)
+        if vec is not None:
+            print("Found vector for: %s"% lemmas_str)
+            self.embedding = vec
+            
+        elif len(self.get_lemmas()) > 1:   # Use an averaging of as many vectors as available
+            print("Found nothing for: %s"% lemmas_str)
+            vecs = []
+            for lemma in self.get_lemmas():
+                vec = vocab.get(lemma)
+                if vec is not None:
+                    print("Found sub-vector for: %s"% lemma)
+                    vecs.append(vec)
+                else:
+                    print("Found nothing for: %s"% lemma)
+            if len(vecs) > 1:
+                vec = vector_average(vecs)
+            elif len(vecs) == 1:
+                vec = vecs[0]
+            self.embedding = vec
+
+        # Recursive application
+        for child in self.children:
+            child.embed(vocab)
+            
+    
     ############################################################################
     # Printing
 
