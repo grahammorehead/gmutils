@@ -26,6 +26,9 @@ class Node(Object):
 
     children : array of Node
 
+    embedding : array of float
+        An embedding in some defined vector space
+
     """
     def __init__(self, spacy_doc, spacy_token, parent=None, options={}):
         """
@@ -220,7 +223,24 @@ class Node(Object):
         
         for child in self.children:
             child.agglomerate_verbs_preps()
-            
+
+
+    def get_verb_nodes(self):
+        """
+        From each of the constituent trees, return a list of all nodes that are verbs
+
+        """
+        verbs = []
+        if self.is_verb():
+            verbs = [self]
+        
+        for child in self.children:
+            verbs.extend( child.get_verb_nodes() )
+        return verbs
+
+        
+    ############################################################################
+    # Printing
 
     def print_semantic_roles(self, options={}):
         """
@@ -250,11 +270,11 @@ class Node(Object):
         for child in self.children:
             child.pretty_print(depth + 1, options=options)
 
+        # Head semantic roles -ish (some semblance thereof)
         if self.is_root():
             self.print_semantic_roles(options=options)
             
 
-            
 ################################################################################
 # FUNCTIONS
 

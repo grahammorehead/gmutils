@@ -6,12 +6,12 @@ Helper functions
 import os, sys, re
 import traceback
 import json
+import zipfile
 import pickle
 import inspect
 import requests
 import argparse
 import csv
-
 import numpy as np
 import scipy
 import pandas as pd
@@ -162,7 +162,7 @@ def err(vars=[], options={}):
     file = os.path.basename(info.filename)
     line = info.lineno
 
-    if os.environ['GMSILENT']:
+    if os.environ.get('GMSILENT'):
         options['silent'] = os.environ['GMSILENT']
     if not isTrue(options, 'silent'):
         sys.stderr.write("\nDEBUG (Line %d) from file %s:\n"% (line, info.filename))
@@ -198,6 +198,37 @@ def err(vars=[], options={}):
         raise exception
 
 
+def read_zipfile(file, options={}):
+    """
+    Read text from 'file', where the file has been zipped up and has a name which is 'file' minus the extension
+
+    Parameters
+    ----------
+    file : str
+
+    Options
+    -------
+    'one str' : if True, will return a single str (By default, each line is a separate str)
+
+    Returns
+    -------
+    str or array of str
+    """
+    zipfile = Zipfile(file)
+    innerfile = re.sub(r'\.zip$', '', file)
+    innerfile = re.sub(r'\.gz$', '', innerfile)
+    
+    final = []
+    with open(zipfile.open(innerfile)) as resource:
+        for line in resource:
+            final.append(line.rstrip())
+
+    if isTrue(options, 'one str'):
+        return "\n".join(final)
+
+    return final
+    
+
 def read_file(file, options={}):
     """
     Read text from 'file'
@@ -214,10 +245,13 @@ def read_file(file, options={}):
     -------
     str or array of str
     """
-    final = []
     if isVerbose(options):
         sys.stderr.write("Reading file '%s' ...\n"% file)
 
+    if re.search(r'\.zip$', file)  or  re.search(r'\.zip$', file):
+        return read_zipfile(file, options=options)
+        
+    final = []
     with open(file) as resource:
         for line in resource:
             final.append(line.rstrip())
@@ -315,6 +349,87 @@ def read_dir(path, options={}):
     return out
 
 
+def read_conceptnet_vectorfile(filename, options={}):
+    """
+    Read the file format used by ConceptNet Numberbatch to store word vectors.  These vectors are simple arrays of float.
+    This function is only necessary because of an error related to either h5py or how this file was created.
+
+    Parmmeters
+    ----------
+    filename : str
+
+    Options
+    -------
+    preprocess : func
+        str,vector -> str,vector, or False,None
+        A function that alters some entries, leaves others untouched, and removes some
+
+    Returns
+    -------
+    dict of dict of dict (str:vector)
+        vocab : <languange code> : <word> : <vector>
+
+    """
+    vocab = {}
+    repeats = {}   # will be used at the end to compute the average vector for any collisions
+    langs = options.get('langs')
+
+    # Iterate through the file
+    for line in read_file(filename):
+
+        # Parse each line
+        if not re.search(r'^/', line): continue
+        wordpath, *vector = line.split()
+        try:
+            none, kind, lang, word, pos = wordpath.split('/')
+        except:
+            pos = None
+            none, kind, lang, word = wordpath.split('/')
+
+        # Ignore some lines, check for errors
+        if kind != 'c':
+            print (line)
+            exit()   # The default file only has 'c' entries (concepts)
+        if langs is not None:
+            if lang not in langs: continue
+        if pos is not None:
+            print('Unexpected POS:', pos, ':', word)
+            exit()
+            
+        vector = np.array(list(map(float, vector)))   # convert to numpy array of floats
+        
+        # Preprocessing.  After this step collisions sometimes occur
+        if options.get('preprocess'):
+            word, vector = options.get('preprocess')(word, vector)
+            if word == False:
+                continue
+            
+        if re.search(r'^[a-z_\'’]*$', word):
+            pass
+        else:
+            print(word)
+            continue
+
+        # Structure outgoing data into a dict of dicts.  Where necessary, handle collisions by summing the vectors
+        if lang in vocab:
+            if word in vocab[lang]:
+                if word in repeats[lang]:
+                    repeats[lang][word].append(vector)
+                else:
+                    repeats[lang][word] = [vector]
+            else:
+                vocab[lang][word] = vector
+        else:
+            vocab[lang] = { word:vector }
+
+    # For each repeated entry, compute an averaged vector
+    for lang in repeats.keys():
+        for word in repeats[lang].keys():
+            vocab[lang][word] = vector_average([vocab[lang][word]] + repeats[lang][word])
+            
+    return vocab
+
+    
 def is_KerasModel(thing):
     """
     Determine if an object is a subclass of gmutils.model.Model
@@ -597,20 +712,48 @@ def override_attributes(namespace, attributes=None):
         for param in attributes.keys():
             setattr(namespace, param, attributes[param])
 
+
+def vector_average(vectors):
+    """
+    Return the vector average of a list of floating-point vectors
+
+    Parameters
+    ----------
+    vectors : array of array of float, all of the same length
+
+    Returns
+    -------
+    same-length vector with averaged values
+
+    """
+    arr = np.array(vectors)
+    print(type(arr))
+    print('shape:', arr.shape)
+    arr = np.mean(arr, axis=0)
+    print('shape:', arr.shape)
+    return arr
+
     
+            
 ################################################################################
 ##   MAIN   ##
 
 if __name__ == '__main__':
     try:
         parser = argparser({'desc': "utils.py"})
-        #  --  Tool-specific command-line args may be added here
+
         args = parser.parse_args()   # Get inputs and options
 
         if args.file:   # Can be used for various one-off needs
             for file in args.file:
                 for line in read_file(file):
                     print('Do something with Line:', line)
+        elif args.test:
+            a = [1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 3.0, 1.0]
+            b = [2.0, 2.0, 2.0, 2.0, 2.0, 2.0, 2.0, 2.0, 2.0, 2.0]
+            c = [3.5, 3.5, 3.5, 3.5, 3.5, 3.5, 3.5, 3.5, 3.5, 3.5]
+            print(vector_average([a,b,c]))
+                    
         else:
             print(__doc__)
 

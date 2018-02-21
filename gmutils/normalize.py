@@ -13,12 +13,7 @@ import sys
 import os, re
 import chardet
 import datetime
-
-# Handling of special encodings
-# If pip doesn't install it correctly:
-#    Download Wheel file: https://pypi.python.org/pypi/Unidecode#downloads
-#    pip install Unidecode-0.04.20-py2.py3-none-any.whl
-import unidecode
+import unicodedata
 
 from gmutils.utils import err, argparser
 from gmutils.objects import Options
@@ -165,31 +160,9 @@ def scrub_charByChar(text):
         err([], {'exception':e, 'exit':True})
 
 
-def ascii_fold(text):
-    """
-    Char-by-char folding
+def ascii_fold(s):
+   return ''.join((c for c in unicodedata.normalize('NFD', s) if unicodedata.category(c) != 'Mn'))
 
-    """
-    b = None
-    if isinstance(text, unicode):
-        b = text.encode('latin1')
-    elif isinstance(text, str):
-        b = text
-    else:
-        err()
-        exit()
-
-    b = re.sub(r'\xc3\x91', 'N', b)
-    b = re.sub(r'\xd1', 'N', b)
-        
-    try:
-        c = b.decode('utf8')
-        decoded = unidecode.unidecode(c)
-        return decoded
-    except:
-        decoded = scrub_charByChar(text)
-        return decoded
-        
 
 def normalize(text, options=None):
     """
@@ -203,23 +176,7 @@ def normalize(text, options=None):
     -------
     verbose : boolean
 
-    remove_mixed : boolean
-        Set to True if you want to remove mixtures of numbers and letters, e.g. "EUR410bn"
-
-    no_consecutive_capitals : boolean
-        Removes tokens having two or more consecutive capitals
-
-    remove_parentheticals : boolean
-        Removes parenthetical statements
-
     no_urls : boolean
-        Removes tokens that look like URLs
-
-    no_strange_tokens : boolean
-        Designed to handle some particularly junk-filled files
-
-    show_warnings : boolean
-        Will warn for out-of-language words
 
     Returns
     -------
@@ -228,175 +185,46 @@ def normalize(text, options=None):
     """
     options = Options(options)
     # options.set('verbose', True)
-        
+
     if options.get('verbose'):
-        tarray = [text, u'N1 Ñ', u'N2 \xd1', u'N3 \xc3\x91']
         err([tarray])
 
-    try:
-        ##########################################################################################################################
-        # Decoding
-    
-        if text == '':    # Chardet can't handle empty strings
-            return ''
+    # Punctuation normalization
+    text = re.sub(r"“\s+", '“', text)
+    text = re.sub(r"\s+”", '”', text)
+    text = re.sub(r"—", '-', text)
+    text = re.sub(r"\xe2\x80\x99", "'", text)
+    text = re.sub(r"''+", '"', text)
+    text = re.sub(r"``+", '"', text)
+    text = re.sub(r"“+", '"', text)
+    text = re.sub(r"”+", '"', text)
+    text = re.sub(r"‘", "'", text)
+    text = re.sub(r"’", "'", text)
+    text = re.sub(r"`", "'", text)
+    text = re.sub(r"—", "-", text)
+    text = re.sub(r"\-+", "-", text)
+    text = re.sub(r"\.*…+\.*", "...", text)
 
-        ##  Re: N with tilde
-        #   seen in input:           \xc3\x91
-        #   seen in decoded output:  \xd1
+    if options.get('verbose'):
+        tarray = [text]
+        err([tarray])
 
-        
-        ##  Handle enyas first  ####################
-        if options.get('verbose'):
-            err([[text], text])
-            
-        try:
-            text = re.sub(u'\xc3\x91', u'\xd1', text, flags=re.UNICODE)
-        except Exception as e:
-            pass
-        if options.get('verbose'):
-            err([[text], text])
-                                        
-        try:
-            text = re.sub(r'\xc3\x91', u'\xd1', text)
-        except Exception as e:
-            err([[text]], {'exception':e})
-        if options.get('verbose'):
-            err([[text], text])
-            
-        ##  Enyas handled  ####################
+    # Char-by-char scrubbing
+    text = scrub_charByChar(text)
+    if options.get('verbose'):
+        tarray = [text]
+        err([tarray])
 
-        ########################
-        ##   DECODING CHAIN   ##
-        ########################
+    # Some final options
+    if options.get('no_urls'):                 # Remove URLs and Emails if requested in options
+        text = no_urls(text)
 
-        # First make the str 'b'
-        if isinstance(text, unicode):
-            text = text.encode('latin1')
-        elif isinstance(text, str):
-            text = text
-        else:
-            err()
-            exit()
+    text = final_clean(text)
+    if options.get('verbose'):
+        tarray = [text]
+        err([tarray])
 
-        # Then attempt to deocde to 'utf8'
-        try:
-            text = text.decode('utf8')
-        except:
-
-            ###  Longer decoding chain  ###
-            while not isinstance(text, unicode):  # if unicode, Leave alone.  We want unicode
-
-                encoding = None
-                try:
-                    encoding = chardet.detect(text)['encoding']
-                    if encoding is not None:
-                        text = text.decode(encoding)             # Unencode where possible using sensed encoding
-                        if options.get('verbose'):
-                            err([[text], text])
-                except Exception as e:
-                    err([encoding], {'exception':e})
-
-                if isinstance(text, unicode):  # if unicode, Leave alone.  We want unicode
-                    break
-
-                ############################################
-                try:
-                    text = unidecode.unidecode(text)                 # Decode other non-ASCII
-                    if options.get('verbose'):
-                        err([[text]])
-                except Exception as e:
-                    err([], {'exception':e})
-
-                if isinstance(text, unicode):  # if unicode, Leave alone.  We want unicode
-                    break
-
-                ################################################
-                try:
-                    text = text.decode('utf-8')          # Unencode where possible using utf-8
-                    if options.get('verbose'):
-                        err([[text]])
-                except Exception as e:
-                    err([], {'exception':e})
-
-                if isinstance(text, unicode):  # if unicode, Leave alone.  We want unicode
-                    break
-
-                ##############################################
-                try:
-                    text = text.decode('ascii')      # Unencode where possible using ascii
-                    if options.get('verbose'):
-                        err([[text]])
-                except Exception as e:
-                    err([], {'exception':e})
-                    return ''                        # at this point, give up
-
-                ##############################################
-
-        if text == '':                               # Unidecode can't handle empty strings either, but chardet might generate them
-            return ''                                # In this case, just return
-    
-        if options.get('verbose'):
-            err([[text]])
-
-        # Some punctuation normalization
-        text = re.sub(r"“\s+", '“', text)
-        text = re.sub(r"\s+”", '”', text)
-        text = re.sub(r"—", '-', text)
-
-        if options.get('verbose'):
-            tarray = [text]
-            err([tarray])
-        
-        if options.get('remove_parentheticals'):
-            text = re.sub(r'\s*\(.*\)\s*', ' ', text)    # Remove parenthetical expressions
-
-        if options.get('verbose'):
-            tarray = [text]
-            err([tarray])
-        
-        ##########################################################################################################################
-        # Further punctuation normalization
-    
-        text = re.sub(r"\xe2\x80\x99", "'", text)
-        text = re.sub(r"''+", '"', text)
-        text = re.sub(r"``+", '"', text)
-        text = re.sub(r"“+", '"', text)
-        text = re.sub(r"”+", '"', text)
-        text = re.sub(r"‘", "'", text)
-        text = re.sub(r"’", "'", text)
-        text = re.sub(r"`", "'", text)
-        text = re.sub(r"—", "-", text)
-        text = re.sub(r"\-+", "-", text)
-        text = re.sub(r"\.*…+\.*", "...", text)
-
-        if options.get('verbose'):
-            tarray = [text]
-            err([tarray])
-        
-        # Char-by-char scrubbing
-        text = scrub_charByChar(text)
-    
-        if options.get('verbose'):
-            tarray = [text]
-            err([tarray])
-
-        # Some final options
-        if options.get('no_urls'):                 # Remove URLs and Emails if requested in options
-            text = no_urls(text)
-        
-        if options.get('no_strange_tokens'):       # Designed to handle some particularly junk-filled files
-            text = no_strange_tokens(text)
-        
-        text = final_clean(text)
-    
-        if options.get('verbose'):
-            tarray = [text]
-            err([tarray])
-        
-        return text
-    
-    except Exception as e:
-        err([], {'exception':e})
+    return text
 
 
 def clean_spaces(line):
@@ -470,10 +298,14 @@ def simplify_for_distance(line):
 if __name__ == '__main__':
 
     parser = argparser({'desc': "normalize.py"})
+    parser.add_argument('--ascii_fold', help='Fold special characters to ASCII', required=False, type=str)
     args = parser.parse_args()   # Get inputs and options
 
-    if args.text:
-        print(normalize(args.text[0]))
+    if args.str:
+        print(normalize(args.str[0]))
+
+    elif args.ascii_fold:
+        print(ascii_fold(args.ascii_fold))
 
 
 ################################################################################

@@ -7,12 +7,12 @@ import os, sys, re, time
 from copy import deepcopy
 from collections import deque
 import numpy as np
-import pandas
+import pandas as pd
 import spacy
 
-from gmutils.utils import err, argparser, read_file
+from gmutils.utils import err, argparser, read_file, read_conceptnet_vectorfile
 from gmutils.objects import Object
-from gmutils.normalize import normalize, clean_spaces
+from gmutils.normalize import normalize, clean_spaces, ascii_fold
 from gmutils.node import Node, iprint
 
 import spacy
@@ -32,9 +32,6 @@ class Document(Object):
     ----------
     spacy_docs : array of spacy.Doc
         The underlying spacy Doc object(s).  More than one is generated only when spacy makes mistakes on sentence tokenization.
-
-    sentences : array of spacy.Span
-        An array of all the sentences in the document
 
     trees : array of Node
         Each of these Node objects represents the root of a parse tree
@@ -64,7 +61,7 @@ class Document(Object):
             text = normalize(text, {'verbose':False})
 
         self.spacy_docs = [ spacy_nlp(text) ]   # Parse with spacy
-        self.generate_sentences()               # Generate sentences and do some checks
+        self.generate_trees()               # Generate Node trees representing sentences, then do some checks
 
             
     def __repr__(self):
@@ -122,13 +119,13 @@ class Document(Object):
         return False
         
     
-    def generate_sentences(self):
+    def generate_trees(self):
         """
-        Parse doc into sentences
+        Parse doc into sentences, then generate a Node tree for each
 
         """
         verbose = False
-        self.sentences = []   # array of spacy.Span
+        sentences = []        # array of spacy.Span  (might not need this ...)
         self.trees = []       # array of Node
         
         ##  Iterate over the spaCy sentence boundaries collecting offset pairs of Sentence candidates
@@ -171,16 +168,27 @@ class Document(Object):
                     doc2 = spacy_nlp(span.text)        # Reparse text of this sentence as a single sentence (with potentially less other text around it)
                     checked_docs.append(doc2)          # Append to list of docs
                     span2 = doc2[:]
-                    self.sentences.append(span2)     # Take entirety of this new doc as the sentence span
+                    sentences.append(span2)     # Take entirety of this new doc as the sentence span
                     self.trees.append(Node(doc2, span2.root))
                     
             else:
                 checked_docs.append(doc)
                 for span in sen_spans:
-                    self.sentences.append(span)
+                    sentences.append(span)
                     self.trees.append(Node(doc, span.root))
 
         self.spacy_docs = checked_docs
+
+
+    def get_verb_nodes(self):
+        """
+        From each of the constituent trees, return a list of all nodes that are verbs
+
+        """
+        verbs = []
+        for tree in self.trees:
+            verbs.extend( tree.get_verb_nodes() )
+        return verbs
 
 
     def agglomerate_verbs_preps(self):
@@ -194,6 +202,35 @@ class Document(Object):
             tree.agglomerate_verbs_preps()
         
 
+    def embed(self, options={}):
+        """
+        Load vectors and generate a vectorization of each constituent sentence
+
+        Default vector space: ConceptNet NumberBatch
+
+        """
+        def preprocess(word, vector):
+            """
+            Carefully process and discard some words from this embedding
+            """
+            word = ascii_fold(word)
+            word = normalize(word)
+            if re.search(r'^[a-z_\'’]*$', word):
+                word = False
+                vector = None
+            return word, vector
+        
+        # Load vectors
+        vectorfile = os.environ['HOME'] + '/data/ConceptNet/numberbatch-17.06.txt'
+        if options.get('vectorfile'):
+            vectorfile = options.get('vectorfile')
+        vectors = read_conceptnet_vectorfile(vectorfile, {'langs':['en'], 'preprocess':preprocess})
+
+        # Recursively embed each tree in this vector space
+        for tree in self.trees:
+            tree.embed(vectors)
+
+        
     def pretty_print(self):
         """
         Print parsed elements in an easy-to-read format
@@ -213,7 +250,7 @@ def generate_documents(input, options={'normalize':True}):
     it = str(type(input))
     logger.info(" >>> input type: %s\n", it)
     
-    if isinstance(input, pandas.core.frame.DataFrame):
+    if isinstance(input, pd.core.frame.DataFrame):
         for index, row in input.iterrows():
             documents.append( Document(text=row['content'], options=options) )
 
@@ -227,12 +264,12 @@ def generate_documents(input, options={'normalize':True}):
     return documents
     
 
-
 ################################################################################
 ##   MAIN   ##
 
 if __name__ == '__main__':
     parser = argparser({'desc': "Document object: document.py"})
+    parser.add_argument('--embed', help='Embed a Document in a vector space', required=False, action='store_true')
     args = parser.parse_args()   # Get inputs and options
 
     if args.file:
@@ -245,7 +282,9 @@ if __name__ == '__main__':
             doc = Document(text)
             doc.agglomerate_verbs_preps()
             doc.pretty_print()
-            
+            if args.embed:
+                doc.embed()
+                
     else:
         print(__doc__)
 
