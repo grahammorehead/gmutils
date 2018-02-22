@@ -1,6 +1,13 @@
 # Makefile for gmutils
 
 #########################################################################################################################
+# Data
+
+serialize_and_save_conceptnet_vectorfile:
+	python gmutils/utils.py --file $(HOME)/data/ConceptNet/numberbatch-17.06.txt --pklfile $(HOME)/data/ConceptNet/numberbatch_en.pkl
+
+
+#########################################################################################################################
 # Admin
 
 com:

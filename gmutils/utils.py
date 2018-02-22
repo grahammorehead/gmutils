@@ -349,6 +349,27 @@ def read_dir(path, options={}):
     return out
 
 
+def serialize_and_save_conceptnet_vectorfile(vectorfile, pklfile):
+    """
+    Read vocab and embedding from file and serialize to disk
+
+    """
+    def preprocess(word, vector):
+        """
+        Carefully process and discard some words from this embedding
+        """
+        word = ascii_fold(word)
+        word = normalize(word)
+        if not re.search(r'^[a-z_\'’]*$', word):
+            word = False
+            vector = None
+        return word, vector
+
+    vectors = read_conceptnet_vectorfile(vectorfile, {'langs':['en'], 'preprocess':preprocess})
+    print("Serializing %d vectors to the file: %s ..."% (len(vectors), pklfile))
+    serialize(vectors, pklfile)
+
+
 def read_conceptnet_vectorfile(filename, options={}):
     """
     Read a file formatted like a ConceptNet Numberbatch file.  These vectors are simple arrays of float.
@@ -743,13 +764,19 @@ def vector_average(vectors):
 if __name__ == '__main__':
     try:
         parser = argparser({'desc': "utils.py"})
-
+        parser.add_argument('--pklfile', help='Target pickle file.', required=False, type=str)
         args = parser.parse_args()   # Get inputs and options
 
         if args.file:   # Can be used for various one-off needs
-            for file in args.file:
-                for line in read_file(file):
-                    print('Do something with Line:', line)
+
+            if args.pklfile:   # Read and save a vector file
+                serialize_and_save_conceptnet_vectorfile(args.file[0], args.pklfile)
+
+            else:
+                for file in args.file:
+                    for line in read_file(file):
+                        print('Do something with Line:', line)
+                        
         elif args.test:
             a = [1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 3.0, 1.0]
             b = [2.0, 2.0, 2.0, 2.0, 2.0, 2.0, 2.0, 2.0, 2.0, 2.0]
