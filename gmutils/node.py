@@ -171,7 +171,12 @@ class Node(Object):
             self.adopt(node.children)          # Adopt their children
             
         elif self in node.children:            # <node> is the parent of self
-            parent = node.parent
+
+            if node.is_root():                 # <node> is root
+                print(node, 'is root!')
+                exit()
+            
+            parent = node.parent               # grandparent of self is the new parent
             if verbose:  print(parent, 'disowning', node)
             parent.disown(node)
             self.tokens.extend(node.tokens)    # Absorb their tokens

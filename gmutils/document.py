@@ -133,6 +133,7 @@ class Document(Object):
             need_to_reparse = False
             spacy_sentences = list(doc.sents)
             for i,sen in enumerate(spacy_sentences):
+                print('\nSPAN 0:', sen)
                 
                 # Current Sentence
                 start = sen.start
@@ -140,7 +141,7 @@ class Document(Object):
                 current = doc[start:end]
 
                 # Previous Sentence
-                previous = None
+                previous = p_start = p_end = None
                 if i > 0:
                     prev = spacy_sentences[i-1]
                     p_start = prev.start
@@ -152,8 +153,8 @@ class Document(Object):
                 # Correct for mistakes
                 if previous is not None  and  self.combine_with_previous(previous, current):
                     need_to_reparse = True
-                    sen_spans[-1] = doc[sen_offsets[-1][0]:end]
-                    sen_offsets[-1][1] = end
+                    sen_spans[-1] = doc[p_start:end]
+                    sen_offsets[-1] = [p_start, end]
                 else:
                     sen_offsets.append( [start, end] )
                     sen_spans.append( doc[start:end] )
@@ -163,17 +164,34 @@ class Document(Object):
                     doc2 = spacy_nlp(span.text)        # Reparse text of this sentence as a single sentence (with potentially less other text around it)
                     checked_docs.append(doc2)          # Append to list of docs
                     span2 = doc2[:]
+                    print('ERROR SPAN2:', span2)
+                    print('\troot:', span2.root)
+                    print('\tnext:', span2.root.children)
                     sentences.append(span2)     # Take entirety of this new doc as the sentence span
-                    self.trees.append(Node(doc2, span2.root))
+                    tree = Node(doc2, span2.root)
+                    # tree.pretty_print()
+                    exit()
+                    self.trees.append(tree)
                     
             else:
                 checked_docs.append(doc)
                 for span in sen_spans:
+                    print('\nSPAN orig:', span)
                     sentences.append(span)
                     self.trees.append(Node(doc, span.root))
 
         self.spacy_docs = checked_docs
 
+
+    def print_sentences(self):
+        """
+        Print the supporting text for each tree
+        """
+        print('\nPRINTING SENTENCES:')
+        for tree in self.trees:
+            print('\nNEXT SENTENCE:')
+            print (tree.get_supporting_text())
+        
 
     def get_verb_nodes(self):
         """
