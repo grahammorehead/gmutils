@@ -8,18 +8,19 @@ from copy import deepcopy
 from collections import deque
 import numpy as np
 import pandas as pd
-import spacy
 
-from gmutils.utils import err, argparser, read_file, read_conceptnet_vectorfile
+from gmutils.utils import err
+err()
+from gmutils.utils import argparser, read_file, read_conceptnet_vectorfile
+err()
+from gmutils import spacy_nlp
+err()
 from gmutils.objects import Object
+err()
 from gmutils.normalize import normalize, clean_spaces, ascii_fold
+err()
 from gmutils.node import Node, iprint
-
-import spacy
-try:
-    spacy_nlp = spacy.load('en_core_web_lg')    # download separately: https://spacy.io/models/
-except:
-    pass
+err()
 
 ################################################################################
 
@@ -242,6 +243,7 @@ class Document(Object):
         # for tree in self.trees:
         #    tree.print_semantic_roles()
         
+err()
         
 ################################################################################
 ##  FUNCTIONS

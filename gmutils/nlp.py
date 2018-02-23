@@ -19,7 +19,7 @@ import spacy
 try:
     spacy_nlp = spacy.load('en_core_web_lg')    # download separately: https://spacy.io/models/
 except:
-    pass
+    spacy_nlp = None
 
 ################################################################################
 # FUNCTIONS

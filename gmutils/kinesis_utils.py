@@ -5,10 +5,14 @@ Helper functions for Elasticsearch
 """
 import os, sys, re
 import time
-from boto import kinesis
 
-from .utils import argparser
-from .objects import Object
+from gmutils.utils import argparser, err
+from gmutils.objects import Object
+
+try:
+    from boto import kinesis
+except Exception as e: err([], {'exception':e, 'level':1})
+
 
 ################################################################################
 # OBJECTS

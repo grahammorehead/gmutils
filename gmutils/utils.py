@@ -153,12 +153,20 @@ def err(vars=[], options={}):
 
     ex : create and Exception
 
+    GMLEVEL (env var)
+        Lowest value allows all errors and warnings to print
+
     """
     # Information about the urgency of this call
     call_level = options.get('level')
     if call_level is None:  call_level = 2    # default is 2
-    os_level = int(os.environ['GMLEVEL'])
-    if call_level <= os_level:
+
+    os_level = 0
+    try:
+        os_level = int(os.environ['GMLEVEL'])
+    except:  pass
+        
+    if call_level < os_level:
         options['silent'] = True
 
     # Gather frame
@@ -196,7 +204,7 @@ def err(vars=[], options={}):
     # Conditional return
     if isTrue(options, 'exit'):
         exit(1)
-    if isTrue(options, 'warning')  or  isTrue(options, 'silent'):
+    if isTrue(options, 'warning')  or  isTrue(options, 'silent')  or  call_level < 2:
         return
     if exception:
         raise exception
@@ -760,10 +768,9 @@ def vector_average(vectors):
     arr = np.mean(arr, axis=0)
     return arr
 
-    
             
 ################################################################################
-##   MAIN   ##
+# MAIN
 
 if __name__ == '__main__':
     try:
@@ -794,4 +801,5 @@ if __name__ == '__main__':
         print(__doc__)
 
         
+################################################################################
 ################################################################################
