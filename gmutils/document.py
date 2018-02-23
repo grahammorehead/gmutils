@@ -10,17 +10,11 @@ import numpy as np
 import pandas as pd
 
 from gmutils.utils import err
-err()
 from gmutils.utils import argparser, read_file, read_conceptnet_vectorfile
-err()
 from gmutils import spacy_nlp
-err()
 from gmutils.objects import Object
-err()
 from gmutils.normalize import normalize, clean_spaces, ascii_fold
-err()
 from gmutils.node import Node, iprint
-err()
 
 ################################################################################
 
@@ -242,8 +236,6 @@ class Document(Object):
         # Head semantic roles -ish (some semblance thereof)
         # for tree in self.trees:
         #    tree.print_semantic_roles()
-        
-err()
         
 ################################################################################
 ##  FUNCTIONS

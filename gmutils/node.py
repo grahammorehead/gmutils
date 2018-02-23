@@ -370,22 +370,15 @@ class Node(Object):
         of an entity.
 
         """
-        err([self])
         altered = False
         if self.is_dead:
             return altered
 
-        err([self])
         if self.get_entity_position() == 'B':             # Base case
-            err([self])
             next_token = self.get_next_token()            # Get token immediately following last token of this Node
-            err([self])
             next_node = self.node_of_token(next_token)    # Get the Node containing that token
-            err([self])
             if next_node.get_entity_position() == 'I':
-                err([self])
                 self.absorb(next_node)
-                err([self, next_node])
                 altered = True
 
         return altered
