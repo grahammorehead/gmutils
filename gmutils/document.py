@@ -191,15 +191,32 @@ class Document(Object):
         return verbs
 
 
-    def agglomerate_verbs_preps(self):
+    def agglomerate_entities(self):
+        """
+        For the purpose of dealing sensibly with extracted entities, agglomerate tokens from a single entity into a node
+
+        """
+        altered = True
+        while altered:
+            for tree in self.trees:
+                beginners = tree.get_entity_beginners()
+                for node in beginners:
+                    altered = node.agglomerate_entities()
+        
+
+    def agglomerate_verbs_preps(self, vocab=None):
         """
         For the purpose of sense disambiguation, agglomerate verbs with prepositional children
 
         e.g. If "jump" is used to describe A jumping over B, the real sense of the verb is "jump over"
 
+        When an embedding (vocab) is provided, it will be consulted before agglomeration
+
         """
-        for tree in self.trees:
-            tree.agglomerate_verbs_preps()
+        altered = True
+        while altered:
+            for tree in self.trees:
+                altered = tree.agglomerate_verbs_preps(vocab=vocab)
         
 
     def embed(self, vocab, options={}):
@@ -217,9 +234,13 @@ class Document(Object):
         Print parsed elements in an easy-to-read format
 
         """
+        print('\nSENTENCE:')
         for tree in self.trees:
             tree.pretty_print(options={'supporting text':False})
 
+        # Head semantic roles -ish (some semblance thereof)
+        # for tree in self.trees:
+        #    tree.print_semantic_roles()
         
         
 ################################################################################

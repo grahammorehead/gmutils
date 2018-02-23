@@ -18,6 +18,9 @@ class Node(Object):
 
     Attributes
     ----------
+    is_dead : boolean
+        Used to ensure activity by absorbed nodes
+
     doc : spacy.Doc
 
     tokens : array of spacy.Token
@@ -40,6 +43,7 @@ class Node(Object):
 
         """
         self.set_options(options)        # For more on 'self.set_options()' see object.Object
+        self.is_dead = False
         self.doc = spacy_doc
 
         if isinstance(spacy_token, list):
@@ -72,12 +76,69 @@ class Node(Object):
         return False
 
 
-    def adopt(self, nodes):
+    def get_next_token(self):
+        """
+        Return the token just after the last token currently held by this Node
+        """
+        highest = 0
+        for token in self.tokens:
+            if token.i > highest:
+                highest = token.i
+        next_index = highest + 1
+        if next_index < len(self.doc):
+            return self.doc[next_index]
+        else:
+            return None
+
+
+    def get_root(self):
+        """
+        Recursive climb toward the root
+        """
+        if self.is_root():
+            return self
+        return self.parent.get_root()
+
+
+    def node_with_token(self, token):
+        """
+        Search locally and recursively down to the leaves for the Node containing <token>
+        """
+        if token in self.tokens:                    # Base case
+            return self
+        
+        for child in self.children:
+            node = child.node_with_token(token)     # Recursion
+            if node is not None:
+                return node
+            
+        return None
+    
+
+    def node_of_token(self, token):
+        """
+        Given a token, find the Node to which it currently belongs
+        """
+        root = self.get_root()
+        node = root.node_with_token(token)
+        return node
+        
+
+    def adopt(self, node):
         """
         Create both sides of parent-child relationships
-
         """
-        for node in nodes:
+        verbose = False
+        
+        if isinstance(node, list):
+            for n in node:
+                self.adopt(n)
+        else:
+            if node in self.children:
+                return
+            if node == self:
+                return
+            if verbose:  print(self, 'adopting', node)
             node.parent = self
             self.children.append(node)
     
@@ -85,7 +146,6 @@ class Node(Object):
     def disown(self, node):
         """
         Break both sides of parent-child relationship
-
         """
         self.children.remove(node)
         node.parent = None
@@ -95,11 +155,45 @@ class Node(Object):
         """
         For one Node to be merged with another (usually a parent with a child).
         Afterwards, nothing should link to 'node'
-
         """
-        self.disown(node)
-        self.adopt(node.children)
-        self.tokens.extend(node.tokens)
+        verbose = False
+        
+        if self == node:  err([self], {'ex':'node = self'})     # Sanity check
+
+        if verbose:
+            print('Absorbing', node, 'into', self)
+            print('\thaving children:', node.children)
+        
+        if node in self.children:              # <node> is a child of self
+            if verbose:  print(self, 'disowning', node)
+            self.disown(node)                  # Separate old child from parent
+            self.tokens.extend(node.tokens)    # Absorb their tokens
+            self.adopt(node.children)          # Adopt their children
+            
+        elif self in node.children:            # <node> is the parent of self
+            parent = node.parent
+            if verbose:  print(parent, 'disowning', node)
+            parent.disown(node)
+            self.tokens.extend(node.tokens)    # Absorb their tokens
+            self.adopt(node.children)          # Adopt their children
+            parent.adopt(self)                 # New parental relationship (sometimes this already exists)
+            
+        else:
+            old_parent = node.parent
+            if verbose:  print(old_parent, 'disowning', node)
+            old_parent.disown(node)
+            self.tokens.extend(node.tokens)    # Absorb their tokens
+            self.adopt(node.children)          # Adopt their children
+            old_parent.adopt(self)             # New parental relationship (sometimes this already exists)
+
+        node.is_dead = True                # Finally make sure the absorbed Node knows it's been absorbed
+
+        # Final sanity check
+        for child in self.children:
+            if child == self:
+                err([self], {'ex':'child = self'})
+            if str(self) == str(child):
+                err([self], {'ex':'child = self'})
         
     
     def get_text(self):
@@ -143,8 +237,70 @@ class Node(Object):
         if 'VERB' in self.get_pos():
             return True
         return False
-    
-    
+
+
+    def get_entity_type(self):
+        """
+        Return an array containing the recognized entity types purely for this one entity (No Node should contain more than one).
+        Only in the case where spaCy has made an error will this array have more than one element.
+
+        Known types
+        -----------
+        PERSON
+        ORG
+        GPE
+        CARDINAL
+        DATE
+        TIME
+        MONEY
+        LAW
+
+        Returns
+        -------
+        array of str
+
+        """
+        ents = []
+        for token in self.tokens:
+            if not token.ent_type_ in ents:
+                ents.append(token.ent_type_)
+        return ents
+
+
+    def get_entity_position(self):
+        """
+        If a token is part of an entity, it is either the beginning (B) or the interior (I), which includes the last token.
+        "O" refers to being outside any entity.
+
+        Returns
+        -------
+        str
+
+        """
+        position = 'O'
+        for token in self.tokens:
+            if token.ent_iob_ == 'B':
+                position = 'B'
+            if token.ent_iob_ == 'I'  and  position == 'O':
+                position = 'I'
+        return position
+
+
+    def get_entity_beginners(self):
+        """
+        Recursively accrue a list of all Nodes representing the beginning of an entity.
+
+        """
+        beginners = []
+        if self.get_entity_position() == 'B':                   # Base case
+            beginners.append(self)
+
+        for child in self.children:
+            beginners.extend( child.get_entity_beginners() )    # Recursion
+
+        return beginners
+
+        
     def get_deps(self):
         """
         Get the dependency relation type (could be multiple)
@@ -206,23 +362,70 @@ class Node(Object):
         return roles
 
 
-    def agglomerate_verbs_preps(self, options={}):
+    def agglomerate_entities(self, options={}):
+        """
+        For the purpose of dealing sensibly with extracted entities, agglomerate tokens from a single entity into a node.
+
+        No need to apply this function recursively as it is applied separately to all Nodes that represent the beginning
+        of an entity.
+
+        """
+        err([self])
+        altered = False
+        if self.is_dead:
+            return altered
+
+        err([self])
+        if self.get_entity_position() == 'B':             # Base case
+            err([self])
+            next_token = self.get_next_token()            # Get token immediately following last token of this Node
+            err([self])
+            next_node = self.node_of_token(next_token)    # Get the Node containing that token
+            err([self])
+            if next_node.get_entity_position() == 'I':
+                err([self])
+                self.absorb(next_node)
+                err([self, next_node])
+                altered = True
+
+        return altered
+
+
+    def agglomerate_verbs_preps(self, vocab=None, options={}):
         """
         For the purpose of sense disambiguation, agglomerate verbs with prepositional children
 
         e.g. If "jump" is used to describe A jumping over B, the real sense of the verb is "jump over"
 
         """
+        altered = False
+        if self.is_dead:
+            return altered
+            
         if self.is_leaf():
-            return
-        
+            return altered
+
+        # Select which children, if any, to absorb
+        to_absorb = []
         if self.is_verb:
             for child in self.children:
-                if 'prep' in child.get_deps():
-                    self.absorb(child)
-        
+                if 'prep' in child.get_deps():  # Only looking to agglomerate nodes with a 'prep' dependency
+                    if vocab is not None:       # Only allow agglomerations corresponding to a vocab entry
+                        if not combined_lemmas_in_vocab(vocab, self.get_lemmas_str(), child.get_lemmas_str()):
+                            continue
+                    to_absorb.append(child)     # Add to the list of children to absorb
+
+        # Execute absorptions in order, re-confirming vocab presence along the way
+        for child in to_absorb:
+            if combined_lemmas_in_vocab(vocab, self.get_lemmas_str(), child.get_lemmas_str()):
+                self.absorb(child)
+                altered = True
+                    
+        # Apply recursively to children
         for child in self.children:
-            child.agglomerate_verbs_preps()
+            child.agglomerate_verbs_preps(vocab=vocab)
+            
+        return altered
 
 
     def get_verb_nodes(self):
@@ -244,24 +447,28 @@ class Node(Object):
         Given some vocab (embedding) produce a vector that represents this node
 
         """
+        verbose = False
+
+        self.get_entity_type()
+        
         # First try full lemma string
         lemmas_str = self.get_lemmas_str()
         lemmas_str = re.sub(r' ', '_', lemmas_str)
         vec = vocab.get(lemmas_str)
         if vec is not None:
-            print("Found vector for: %s"% lemmas_str)
+            if verbose: print("Found vector for: %s"% lemmas_str)
             self.embedding = vec
             
         elif len(self.get_lemmas()) > 1:   # Use an averaging of as many vectors as available
-            print("Found nothing for: %s"% lemmas_str)
+            if verbose: print("Found nothing for: %s"% lemmas_str)
             vecs = []
             for lemma in self.get_lemmas():
                 vec = vocab.get(lemma)
                 if vec is not None:
-                    print("Found sub-vector for: %s"% lemma)
+                    if verbose: print("Found sub-vector for: %s"% lemma)
                     vecs.append(vec)
                 else:
-                    print("Found nothing for: %s"% lemma)
+                    if verbose: print("Found nothing for: %s"% lemma)
             if len(vecs) > 1:
                 vec = vector_average(vecs)
             elif len(vecs) == 1:
@@ -304,9 +511,6 @@ class Node(Object):
         for child in self.children:
             child.pretty_print(depth + 1, options=options)
 
-        # Head semantic roles -ish (some semblance thereof)
-        if self.is_root():
-            self.print_semantic_roles(options=options)
             
 
 ################################################################################
@@ -361,6 +565,23 @@ def get_support_for_nodes(nodes):
     subtree_span = doc[left:right + 1]
     return subtree_span.text
     
+
+def combined_lemmas_in_vocab(vocab, lemmas_str_A, lemmas_str_B):
+    """
+    Look for a combination of these two lemmas strings such that vocab has an entry
+
+    """
+    lemmas_str = lemmas_str_A +'_'+ lemmas_str_B
+    lemmas_str = re.sub(r' ', '_', lemmas_str)
+    if vocab.get(lemmas_str) is not None:
+        return True
+    
+    lemmas_str = lemmas_str_B +'_'+ lemmas_str_A
+    lemmas_str = re.sub(r' ', '_', lemmas_str)
+    if vocab.get(lemmas_str) is not None:
+        return True
+
+    return False
 
         
 ################################################################################

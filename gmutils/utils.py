@@ -154,6 +154,13 @@ def err(vars=[], options={}):
     ex : create and Exception
 
     """
+    # Information about the urgency of this call
+    call_level = options.get('level')
+    if call_level is None:  call_level = 2    # default is 2
+    os_level = int(os.environ['GMLEVEL'])
+    if call_level <= os_level:
+        options['silent'] = True
+
     # Gather frame
     callerframerecord = inspect.stack()[1]    # 0 represents this line
                                               # 1 represents line at caller
@@ -161,9 +168,6 @@ def err(vars=[], options={}):
     info = inspect.getframeinfo(frame)
     file = os.path.basename(info.filename)
     line = info.lineno
-
-    if os.environ.get('GMSILENT'):
-        options['silent'] = os.environ['GMSILENT']
     if not isTrue(options, 'silent'):
         sys.stderr.write("\nDEBUG (Line %d) from file %s:\n"% (line, info.filename))
 
@@ -192,7 +196,7 @@ def err(vars=[], options={}):
     # Conditional return
     if isTrue(options, 'exit'):
         exit(1)
-    if isTrue(options, 'warn')  or  isTrue(options, 'silent'):
+    if isTrue(options, 'warning')  or  isTrue(options, 'silent'):
         return
     if exception:
         raise exception
