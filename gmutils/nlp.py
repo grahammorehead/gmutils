@@ -20,9 +20,35 @@ from gmutils.utils import err, argparser, read_file, read_dir, iter_file, isTrue
 
 import spacy
 try:
-    spacy_nlp = spacy.load('en_core_web_lg')    # download separately: https://spacy.io/models/
-except:
-    spacy_nlp = None
+    spacy_ner     = spacy.load('en_core_web_lg')    # download separately: https://spacy.io/models/
+    spacy_parsing = spacy.load('en_core_web_lg')
+
+except Exception as e:
+    spacy_parsing = spacy_ner = None
+
+
+def generate_spacy_data(text):
+    """
+    Used in the creation of Document objects
+
+    Parameters
+    ----------
+    text : str
+
+    Returns
+    -------
+    spaCy Doc
+
+    """
+    # IN here put code to do the NER corrections
+    spacy_doc = spacy_parsing(text)
+    spacy_nerdoc = spacy_ner(text)
+    assert( len(spacy_doc) == len(spacy_nerdoc) )
+    ner = {}
+    for i, token in enumerate(spacy_doc):
+        ner[token.i]  = (spacy_nerdoc[i].ent_type_, spacy_nerdoc[i].ent_iob_)
+
+    return spacy_doc, ner
 
 
 def combine_with_previous(previous, current):
@@ -75,7 +101,6 @@ def sentence_segmenter(doc):
 
     """
     verbose = False
-    sen_spans = []
     sen_offsets = []  # Sentence offset pairs
     spacy_sentences = list(doc.sents)
     for i,sen in enumerate(spacy_sentences):
@@ -97,37 +122,42 @@ def sentence_segmenter(doc):
 
         # Correct for mistakes
         if previous is not None  and  combine_with_previous(previous, current):
-            sen_spans[-1] = doc[p_start:end]
             sen_offsets[-1] = [p_start, end]
-
         else:
-            sen_spans.append( doc[start:end] )
             sen_offsets.append( [start, end] )
             
     return sen_offsets
     
 
 def set_sent_starts(doc):
+    """
+    Adjust the elements in a spaCy Doc to record the sentence starts as output by sentence_segmenter()
+
+    This function is designed to be a spaCy pipeline element
+
+    """
     for offsets in sentence_segmenter(doc):
-        print("OFFSETS:", offsets)
         start, end = offsets
         sent = doc[start:end]
-        print('SENT:', sent)
         sent[0].sent_start = True
         for token in sent[1:]:
             token.sent_start = False
     return doc
 
-spacy_nlp.add_pipe(set_sent_starts, name='sentence_segmenter', before='parser')
-spacy_nlp.add_pipe(spacy_nlp.create_pipe('sentencizer'), before='sentence_segmenter')
 
+# Add elements to the parsing pipeline to correct for the sentence tokenizer problems
+try:
+    spacy_parsing.add_pipe(set_sent_starts, name='sentence_segmenter', before='tagger')
+    spacy_parsing.add_pipe(spacy_parsing.create_pipe('sentencizer'), before='sentence_segmenter')
+except Exception as e:
+    spacy_parsing = spacy_ner = None
 
-
+    
 ################################################################################
 # FUNCTIONS
 
 def lemmatize(text):
-    spacy_doc = spacy_nlp(text)
+    spacy_doc = spacy_parsing(text)
     span = spacy_doc[:]
     return span.lemma_
 
@@ -158,7 +188,7 @@ def parse(text):
     Generate a detailed dependency parse of some text.
 
     """
-    spacy_doc = spacy_nlp(text)
+    spacy_doc = spacy_parsing(text)
 
 
     

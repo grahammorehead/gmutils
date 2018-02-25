@@ -8,7 +8,6 @@ import os, sys, re, json
 from gmutils.objects import Object
 from gmutils.utils import err, argparser, vector_average
 
-
 ################################################################################
 # OBJECTS
 
@@ -21,7 +20,7 @@ class Node(Object):
     is_dead : boolean
         Used to ensure activity by absorbed nodes
 
-    doc : spacy.Doc
+    doc : Document object (as defined in document.py)
 
     tokens : array of spacy.Token
 
@@ -33,9 +32,11 @@ class Node(Object):
         An embedding in some defined vector space
 
     """
-    def __init__(self, spacy_doc, spacy_token, parent=None, options={}):
+    def __init__(self, doc, spacy_token, parent=None, options={}):
         """
         Instantiate the object and set options
+
+        doc : Document (as defined in document.py)
 
         spacy_token : spacy.Token
 
@@ -44,7 +45,7 @@ class Node(Object):
         """
         self.set_options(options)        # For more on 'self.set_options()' see object.Object
         self.is_dead = False
-        self.doc = spacy_doc
+        self.doc = doc
 
         if isinstance(spacy_token, list):
             self.tokens = spacy_token
@@ -54,7 +55,7 @@ class Node(Object):
         self.parent = parent
         self.children = []
         
-        # Base original tree on spacy Token tree
+        # Base original tree on spacy Token tree.  Add a Node-child for every token-child
         for token in self.tokens:
             for child in token.children:
                 self.children.append(Node(self.doc, child, parent=self, options=options))
@@ -85,8 +86,8 @@ class Node(Object):
             if token.i > highest:
                 highest = token.i
         next_index = highest + 1
-        if next_index < len(self.doc):
-            return self.doc[next_index]
+        if next_index < self.doc.get_num_tokens():
+            return self.doc.token_by_index(next_index)
         else:
             return None
 
@@ -223,6 +224,16 @@ class Node(Object):
         return lemmas
 
 
+    def ner_by_token(self, token):
+        ent_type, iob = self.doc.ner[token.i]
+        return ent_type
+    
+
+    def iob_by_token(self, token):
+        ent_type, iob = self.doc.ner[token.i]
+        return iob
+    
+
     def get_lemmas_str(self):
         return ' '.join(self.get_lemmas())
 
@@ -267,8 +278,10 @@ class Node(Object):
         """
         ents = []
         for token in self.tokens:
-            if not token.ent_type_ in ents:
-                ents.append(token.ent_type_)
+            ent_type = self.ner_by_token(token)
+            if not ent_type in ents:
+                ents.append(ent_type)
+                
         return ents
 
 
@@ -284,10 +297,12 @@ class Node(Object):
         """
         position = 'O'
         for token in self.tokens:
-            if token.ent_iob_ == 'B':
+            iob = self.iob_by_token(token)
+            if iob == 'B':
                 position = 'B'
-            if token.ent_iob_ == 'I'  and  position == 'O':
+            if iob == 'I'  and  position == 'O':
                 position = 'I'
+                
         return position
 
 
@@ -337,7 +352,7 @@ class Node(Object):
             if right is None or token.right_edge.i > right:
                 right = token.right_edge.i
                 
-        subtree_span = self.doc[left:right + 1]
+        subtree_span = self.doc.get_span(left, right+1)
         return subtree_span.text
     
 
@@ -379,7 +394,7 @@ class Node(Object):
         if self.is_dead:
             return altered
 
-        if self.get_entity_position() == 'B':             # Base case
+        if self.get_entity_position() == 'B':
             next_token = self.get_next_token()            # Get token immediately following last token of this Node
             next_node = self.node_of_token(next_token)    # Get the Node containing that token
             if next_node.get_entity_position() == 'I':
@@ -486,11 +501,15 @@ class Node(Object):
         Print what we know about the semantic roles
 
         """
+        roles = self.get_semantic_roles(options=options)
+        if len(roles) == 0:
+            return
+        
         print("\nSemantic Roles:")
         print(self.get_lemmas_str())
-        roles = self.get_semantic_roles(options=options)
         for dep, nodes in roles.items():
             print('    {%s}'% dep, get_support_for_nodes(nodes))
+        print()
     
             
     def pretty_print(self, depth=0, options={}):
@@ -538,29 +557,28 @@ def get_support_for_tokens(doc, tokens):
         if right is None or token.right_edge.i > right:
             right = token.right_edge.i
 
-    subtree_span = doc[left:right + 1]
+    subtree_span = doc.get_span(left, right+1)
     return subtree_span.text
     
 
 def get_support_for_nodes(nodes):
     """
-    For some nodes (from single Document), find the shortest contiguous substring containing all constituents tokens
+    For some set of nodes (from single Document), find the shortest contiguous substring containing all constituents tokens
 
     """
     if len(nodes) == 0:
         return ''
     
-    doc = left = right = None
+    left = right = None
+    doc = nodes[0].doc
     for node in nodes:
-        if doc is None:
-            doc = node.doc
         for token in node.tokens:
             if left is None or token.left_edge.i < left:
                 left = token.left_edge.i
             if right is None or token.right_edge.i > right:
                 right = token.right_edge.i
 
-    subtree_span = doc[left:right + 1]
+    subtree_span = doc.get_span(left, right+1)
     return subtree_span.text
     
 

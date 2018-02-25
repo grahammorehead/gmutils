@@ -11,7 +11,7 @@ from gmutils import KinesisStream
 # mongo_utils
 from gmutils import mongo_iterator, mongo_find_one
 
-from gmutils import spacy_nlp
+from gmutils import generate_spacy_data
 
 from gmutils import Dataset
 

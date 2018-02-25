@@ -13,9 +13,9 @@ try:
     from .mongo_utils import mongo_iterator, mongo_find_one
 except Exception as e: err([], {'exception':e, 'level':1})
 
-from .dataset import Dataset
+from .nlp import generate_spacy_data
 
-from .nlp import spacy_nlp
+from .dataset import Dataset
 
 from .document import Document
 

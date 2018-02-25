@@ -11,7 +11,7 @@ import pandas as pd
 
 from gmutils.utils import err
 from gmutils.utils import argparser, read_file, read_conceptnet_vectorfile
-from gmutils import spacy_nlp
+from gmutils import generate_spacy_data
 from gmutils.objects import Object
 from gmutils.normalize import normalize, clean_spaces, ascii_fold
 from gmutils.node import Node, iprint
@@ -25,8 +25,12 @@ class Document(Object):
 
     Attributes
     ----------
-    spacy_docs : array of spacy.Doc
-        The underlying spacy Doc object(s).  More than one is generated only when spacy makes mistakes on sentence tokenization.
+    spacy_doc : spaCy.Doc
+        The underlying spacy Doc object
+
+    ner : dict
+        token.i : (ent_type_, ent_iob_)
+        This is needed because the parse pipeline doesn't do NER well.  Must be handled separately.
 
     trees : array of Node
         Each of these Node objects represents the root of a parse tree
@@ -54,16 +58,18 @@ class Document(Object):
 
         if self.get('normalize'):
             text = normalize(text, {'verbose':False})
-
-        self.spacy_docs = [ spacy_nlp(text) ]   # Parse with spacy
-        self.generate_trees()               # Generate Node trees representing sentences, then do some checks
+        if self.get('remove_brackets'):
+            text = remove_brackets(text)
+            
+        self.spacy_doc, self.ner = generate_spacy_data(text)   # Parse with spacy, get NER
+        self.generate_trees()                                  # Generate Node trees representing sentences
 
             
     def __repr__(self):
         """
         Print Document in an easily-understood manner
         """
-        return self.spacy.text
+        return self.spacy_doc[:].text
 
     
     def __str__(self):
@@ -71,13 +77,25 @@ class Document(Object):
 
     
     def get_text(self):
-        return self.spacy.text
+        return self.spacy_doc[:].text
     
 
     def get_lemmas(self):
-        return self.spacy[:].lemma_
+        return self.spacy_doc[:].lemma_
     
 
+    def get_num_tokens(self):
+        return len(self.spacy_doc)
+    
+
+    def token_by_index(self, i):
+        return self.spacy_doc[i]
+
+
+    def get_span(self, start, end):
+        return self.spacy_doc[start:end]
+        
+    
     def combine_with_previous(self, previous, current):
         """
         Correct for some errors made by the spaCy sentence splitter
@@ -120,74 +138,17 @@ class Document(Object):
 
         """
         verbose = False
-        sentences = []        # array of spacy.Span  (might not need this ...)
-        self.trees = []       # array of Node
-        
-        ##  Iterate over the spaCy sentence boundaries collecting offset pairs of Sentence candidates
-        sen_offsets = []  # Sentence offset pairs
-        sen_spans = []
-
-        # Iterate over sentences as tokenized by spacy.  Correct and reparse if needed
-        checked_docs = []   # spacy_docs after checking sentences
-        for doc in self.spacy_docs:
-            need_to_reparse = False
-            spacy_sentences = list(doc.sents)
-            for i,sen in enumerate(spacy_sentences):
-                print('\nSPAN 0:', sen)
-                
-                # Current Sentence
-                start = sen.start
-                end = sen.end
-                current = doc[start:end]
-
-                # Previous Sentence
-                previous = p_start = p_end = None
-                if i > 0:
-                    prev = spacy_sentences[i-1]
-                    p_start = prev.start
-                    p_end = prev.end
-                    previous = doc[p_start:p_end]
-                    if verbose:
-                        err([[previous.text, current.text]])
-
-                # Correct for mistakes
-                if previous is not None  and  self.combine_with_previous(previous, current):
-                    need_to_reparse = True
-                    sen_spans[-1] = doc[p_start:end]
-                    sen_offsets[-1] = [p_start, end]
-                else:
-                    sen_offsets.append( [start, end] )
-                    sen_spans.append( doc[start:end] )
-
-            if need_to_reparse:                        # Sentence tokenization failed, this is a last ditch effort
-                for span in sen_spans:
-                    doc2 = spacy_nlp(span.text)        # Reparse text of this sentence as a single sentence (with potentially less other text around it)
-                    checked_docs.append(doc2)          # Append to list of docs
-                    span2 = doc2[:]
-                    print('ERROR SPAN2:', span2)
-                    print('\troot:', span2.root)
-                    print('\tnext:', span2.root.children)
-                    sentences.append(span2)     # Take entirety of this new doc as the sentence span
-                    tree = Node(doc2, span2.root)
-                    # tree.pretty_print()
-                    exit()
-                    self.trees.append(tree)
-                    
-            else:
-                checked_docs.append(doc)
-                for span in sen_spans:
-                    print('\nSPAN orig:', span)
-                    sentences.append(span)
-                    self.trees.append(Node(doc, span.root))
-
-        self.spacy_docs = checked_docs
+        self.trees = []            # array of Node
+        need_to_reparse = False
+        spacy_sentences = list(self.spacy_doc.sents)
+        for i,sen in enumerate(spacy_sentences):
+            self.trees.append(Node(self, sen.root))
 
 
     def print_sentences(self):
         """
         Print the supporting text for each tree
         """
-        print('\nPRINTING SENTENCES:')
         for tree in self.trees:
             print('\nNEXT SENTENCE:')
             print (tree.get_supporting_text())
@@ -204,6 +165,12 @@ class Document(Object):
         return verbs
 
 
+    def print_entity_status(self):
+        for token in self.spacy_doc:
+            ent_type, iob = self.ner[token.i]
+            print(token, iob)
+            
+
     def agglomerate_entities(self):
         """
         For the purpose of dealing sensibly with extracted entities, agglomerate tokens from a single entity into a node
@@ -211,6 +178,7 @@ class Document(Object):
         """
         altered = True
         while altered:
+            altered = False
             for tree in self.trees:
                 beginners = tree.get_entity_beginners()
                 for node in beginners:
@@ -228,6 +196,7 @@ class Document(Object):
         """
         altered = True
         while altered:
+            altered = False
             for tree in self.trees:
                 altered = tree.agglomerate_verbs_preps(vocab=vocab)
         
@@ -247,18 +216,24 @@ class Document(Object):
         Print parsed elements in an easy-to-read format
 
         """
-        print('\nSENTENCE:')
+        print('\nPARSED SENTENCE:')
         for tree in self.trees:
             tree.pretty_print(options={'supporting text':False})
 
-        # Head semantic roles -ish (some semblance thereof)
-        # for tree in self.trees:
-        #    tree.print_semantic_roles()
-        
+
+    def print_semantic_roles(self):
+        """
+        Get the verb Nodes and print something like a theta-role breakdown for each
+
+        """
+        for node in self.get_verb_nodes():
+            node.print_semantic_roles()
+
+            
 ################################################################################
 ##  FUNCTIONS
 
-def generate_documents(input, options={'normalize':True}):
+def generate_documents(input, options={'normalize':True, 'remove_brackets':True}):
     documents = []
 
     it = str(type(input))
