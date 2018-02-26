@@ -18,20 +18,13 @@ from gmutils.utils import err, argparser, read_file, read_dir, iter_file, isTrue
 ################################################################################
 # SPACY INTEGRATION
 
-err()
 import spacy
-err()
 spacy_parsing = spacy_ner = None
 try:
-    err()
     spacy_ner     = spacy.load('en_core_web_lg')    # download separately: https://spacy.io/models/
-    err()
     if not os.environ.get('GM_NERONLY'):
         spacy_parsing = spacy.load('en_core_web_lg')
-    err()
-
 except Exception as e: pass
-err()
 
 def generate_spacy_data(text):
     """
