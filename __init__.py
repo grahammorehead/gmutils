@@ -11,7 +11,7 @@ from gmutils import KinesisStream
 # mongo_utils
 from gmutils import mongo_iterator, mongo_find_one
 
-from gmutils import generate_spacy_data
+from gmutils import generate_spacy_data, spacy_ner, spacy_parsing
 
 from gmutils import Dataset
 
@@ -20,7 +20,5 @@ from gmutils import Document
 from gmutils import Model
 
 from gmutils import SklearnModel
-print('a', 23)
 
 from gmutils import Object, Options
-print('a', 26)

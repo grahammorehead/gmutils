@@ -13,7 +13,7 @@ try:
     from .mongo_utils import mongo_iterator, mongo_find_one
 except Exception as e: err([], {'exception':e, 'level':1})
 
-from .nlp import generate_spacy_data
+from .nlp import generate_spacy_data, spacy_ner, spacy_parsing
 
 from .dataset import Dataset
 
