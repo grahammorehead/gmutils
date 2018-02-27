@@ -9,8 +9,7 @@ from collections import deque
 import numpy as np
 import pandas as pd
 
-from gmutils.utils import err
-from gmutils.utils import argparser, read_file, read_conceptnet_vectorfile
+from gmutils.utils import err, argparser, deserialize, read_file, read_conceptnet_vectorfile
 from gmutils import generate_spacy_data
 from gmutils.objects import Object
 from gmutils.normalize import normalize, clean_spaces, ascii_fold
@@ -21,7 +20,6 @@ from gmutils.node import Node, iprint
 class Document(Object):
     """
     A document object that builds on top of the spaCy Doc and Spans.
-    Provides easy access to paragraphs and sentences.
 
     Attributes
     ----------
@@ -67,10 +65,10 @@ class Document(Object):
             
     def __repr__(self):
         """
-        Print Document in an easily-understood manner
+        str version of Object in an easily-understood manner
         """
-        return self.spacy_doc[:].text
-
+        text = self.get_text()
+        
     
     def __str__(self):
         return self.__repr__()
@@ -211,6 +209,20 @@ class Document(Object):
             tree.embed(vocab)
 
         
+    def preprocess(self, vocab):
+        """
+        Collapse the parse tree to a more simplified format where sensible,  Identify the verb nodes and find their theta roles
+
+        Parameters
+        ----------
+        vocab : dict { lemma string -> vector }
+
+        """
+        self.agglomerate_verbs_preps(vocab)
+        self.agglomerate_entities()
+        self.embed(vocab)
+
+        
     def pretty_print(self):
         """
         Print parsed elements in an easy-to-read format
@@ -228,6 +240,68 @@ class Document(Object):
         """
         for node in self.get_verb_nodes():
             node.print_semantic_roles()
+
+
+    def get_token_at_char_index(self, index):
+        """
+        Return the token containing character index 'index'
+
+        """
+        last_token = None
+        for token in self.spacy_doc:
+            if token.idx > index:
+                return last_token
+            last_token = token
+            
+        return last_token
+        
+
+    def tokens_matching(self, text, start_char=0):
+        """
+        Find a contiguous sequence of tokens matching the input string, starting at a specified CHARACTER index
+
+        """
+        verbose = False
+        end_char = start_char + len(text)
+        tokens = []
+        words = text.split()
+        start = self.get_token_at_char_index(start_char)
+        end   = self.get_token_at_char_index(end_char)
+        span = self.get_span(start.i, end.i)
+
+        if text == span.text:                                      # Make sure we have the right tokens
+            return span
+
+        elif len(span.text) < len(text):                           # Tokenization left out the following token
+
+            while len(span.text) < len(text):
+                end_char += 1
+                end   = self.get_token_at_char_index(end_char)
+                if end is None:
+                    break
+                span = self.get_span(start.i, end.i)
+                if text == span.text:                              # Try again
+                    return span
+            
+        err([], {'ex':"TEXT [%s] doesn't match SPAN [%s]"% (text, span.text)})
+
+
+    def old_way(self):
+        if verbose:
+            print("\nLooking for", words, 'in:', self.spacy_doc)
+            
+        j0 = token.i    # Token index at starting point
+        for i, word in enumerate(words):
+            j = j0 + i     # Corresponding token index in spacy_doc (i begins at 0)
+            token = self.spacy_doc[j]
+            if verbose:
+                print("\tword %d: [%s]  \ttoken %d: [%s]"% (i, word, j, token.text))
+            if word == token.text:
+                tokens.append(token)
+            else:
+                err([], {'ex':"Token [%s] doesn't match word [%s]"% (token.text, word)})
+                
+        return tokens
 
             
 ################################################################################
@@ -251,16 +325,26 @@ def generate_documents(input, options={'normalize':True, 'remove_brackets':True}
         documents.append( Document(text=input, options=options) )
             
     return documents
-    
+
+
+def load_vocab(file):
+    """
+    Load word vectors
+    """
+    mult_vocab = deserialize(file)
+    vocab = mult_vocab['en']
+    return vocab
+
 
 ################################################################################
 ##   MAIN   ##
 
 if __name__ == '__main__':
     parser = argparser({'desc': "Document object: document.py"})
-    parser.add_argument('--embed', help='Embed a Document in a vector space', required=False, action='store_true')
+    parser.add_argument('--vocab', help='File with word embeddings', required=False, type=str)
     args = parser.parse_args()   # Get inputs and options
-
+    vocab = load_vocab(args.vocab)
+    
     if args.file:
         docs = []
         for file in args.file:
@@ -269,10 +353,10 @@ if __name__ == '__main__':
     elif args.str:
         for text in args.str:
             doc = Document(text)
-            doc.agglomerate_verbs_preps()
+            doc.preprocess(vocab)
             doc.pretty_print()
-            if args.embed:
-                doc.embed()
+            print('\nSEMANTIC ROLES:')
+            doc.print_semantic_roles()
                 
     else:
         print(__doc__)

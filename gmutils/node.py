@@ -60,7 +60,15 @@ class Node(Object):
             for child in token.children:
                 self.children.append(Node(self.doc, child, parent=self, options=options))
 
-
+                
+    def kill(self):
+        """
+        Remove a Node and make sure it doesn't get used accidentally
+        """
+        self.is_dead = True
+        self.tokens = self.children = self.embedding = None
+        
+                
     def __repr__(self):
         return self.get_text()
 
@@ -105,10 +113,14 @@ class Node(Object):
         """
         Search locally and recursively down to the leaves for the Node containing <token>
         """
+        if self.is_dead:
+            return None
+        
         if token in self.tokens:                    # Base case
             return self
         
         for child in self.children:
+            # print('SELF:', self.get_text(), '  CHILD:', child.get_text())
             node = child.node_with_token(token)     # Recursion
             if node is not None:
                 return node
@@ -162,38 +174,50 @@ class Node(Object):
         if self == node:  err([self], {'ex':'node = self'})     # Sanity check
 
         if verbose:
-            print('Absorbing', node, 'into', self)
-            print('\thaving children:', node.children)
+            print("\nNode [%s]:"% str(self))
+            if len(self.children):
+                print('\t(children -before):', self.children)
+            else:
+                print("\t(self has no children)")
+            print('\twill absorb [%s]'% str(node))
+            if len(node.children):
+                print("\t(absorbee's children):", node.children)
+            else:
+                print("\t(absorbee has no children)")
         
-        if node in self.children:              # <node> is a child of self
-            if verbose:  print(self, 'disowning', node)
+        if node in self.children:              ###  <node> is a child of self
+            if verbose:  print("node [%s] disowning [%s] ..."% (str(self), str(node)))
             self.disown(node)                  # Separate old child from parent
             self.tokens.extend(node.tokens)    # Absorb their tokens
             self.adopt(node.children)          # Adopt their children
             
-        elif self in node.children:            # <node> is the parent of self
-
+        elif self in node.children:            ### <node> is the parent of self
             if node.is_root():                 # <node> is root
                 print(node, 'is root!')
                 exit()
-            
             parent = node.parent               # grandparent of self is the new parent
-            if verbose:  print(parent, 'disowning', node)
+            if verbose:  print("node [%s] disowning [%s] ..."% (str(parent), str(node)))
             parent.disown(node)
             self.tokens.extend(node.tokens)    # Absorb their tokens
             self.adopt(node.children)          # Adopt their children
             parent.adopt(self)                 # New parental relationship (sometimes this already exists)
             
-        else:
+        else:                                  ### <node> is somewhere else in tree
             old_parent = node.parent
-            if verbose:  print(old_parent, 'disowning', node)
+            if verbose:  print("node [%s] disowning [%s] ..."% (str(old_parent), str(node)))
             old_parent.disown(node)
             self.tokens.extend(node.tokens)    # Absorb their tokens
-            self.adopt(node.children)          # Adopt their children
-            old_parent.adopt(self)             # New parental relationship (sometimes this already exists)
+            self.adopt(node.children)          # Adopt their children (if any)
 
-        node.is_dead = True                # Finally make sure the absorbed Node knows it's been absorbed
+        node.kill()
 
+        if verbose:
+            print("\n[%s] done absorbing."% str(self))
+            if len(self.children):
+                print('\t(children -after):', self.children)
+            else:
+                print("\t(self has no children)")
+        
         # Final sanity check
         for child in self.children:
             if child == self:
@@ -397,9 +421,10 @@ class Node(Object):
         if self.get_entity_position() == 'B':
             next_token = self.get_next_token()            # Get token immediately following last token of this Node
             next_node = self.node_of_token(next_token)    # Get the Node containing that token
-            if next_node.get_entity_position() == 'I':
-                self.absorb(next_node)
-                altered = True
+            if next_node is not None:
+                if next_node.get_entity_position() == 'I':
+                    self.absorb(next_node)
+                    altered = True
 
         return altered
 
