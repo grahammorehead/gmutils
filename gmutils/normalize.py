@@ -236,7 +236,13 @@ def clean_spaces(line):
     line = re.sub('^\s+', '', line)
     line = re.sub('\s+$', '', line)
     return line
-    
+
+
+def remove_brackets(line):
+    while re.search(r'\[.*\]', line):
+        line = re.sub(r'\s*\[.*\]\s*', ' ', line)
+    return line
+
     
 def simplify(text):
     """

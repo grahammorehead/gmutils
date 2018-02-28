@@ -12,7 +12,7 @@ import pandas as pd
 from gmutils.utils import err, argparser, deserialize, read_file, read_conceptnet_vectorfile
 from gmutils import generate_spacy_data
 from gmutils.objects import Object
-from gmutils.normalize import normalize, clean_spaces, ascii_fold
+from gmutils.normalize import normalize, clean_spaces, ascii_fold, remove_brackets
 from gmutils.node import Node, iprint
 
 ################################################################################
@@ -274,6 +274,7 @@ class Document(Object):
 
         elif len(span.text) < len(text):                           # Tokenization left out the following token
 
+            print("Compare  TEXT [%s]  to  SPAN [%s]"% (text, span.text))
             while len(span.text) < len(text):
                 end_char += 1
                 end   = self.get_token_at_char_index(end_char)
@@ -283,8 +284,8 @@ class Document(Object):
                 if text == span.text:                              # Try again
                     return span
             
-        err([], {'ex':"TEXT [%s] doesn't match SPAN [%s]"% (text, span.text)})
-
+        err([list(self.spacy_doc)], {'ex':"TEXT [%s] doesn't match SPAN [%s]"% (text, span.text)})
+        
 
     def old_way(self):
         if verbose:
