@@ -768,6 +768,17 @@ def vector_average(vectors):
     arr = np.mean(arr, axis=0)
     return arr
 
+
+def start_with_same_word(A, B):
+    """
+    Split strings A and B into words.  See if they begin with matching words.
+    """
+    a_words = A.split(' ')
+    b_words = B.split(' ')
+    if a_words[0] == b_words[0]:
+        return True
+    return False
+    
             
 ################################################################################
 # MAIN

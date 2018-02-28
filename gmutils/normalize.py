@@ -121,7 +121,7 @@ def scrub_charByChar(text):
         text = re.sub('\s', ' ', text)   # Standardize on whitespace
         
         for t in text:
-            if re.search(u'[ 0-9a-zA-ZñÑ\.\'\?\!\"\:\$\%\@\|\_]', t):
+            if re.search(u'[ 0-9a-zA-ZñÑ\.\'\?\!\"\:\&\$\%\@\|\_]', t):
                 final += t        # keep the char
                 if verbose:
                     arr = [final]
@@ -202,6 +202,7 @@ def normalize(text, options=None):
     text = re.sub(r"’", "'", text)
     text = re.sub(r"`", "'", text)
     text = re.sub(r"—", "-", text)
+    text = re.sub(r"\u2013", "-", text)
     text = re.sub(r"\-+", "-", text)
     text = re.sub(r"\.*…+\.*", "...", text)
 
@@ -238,10 +239,49 @@ def clean_spaces(line):
     return line
 
 
+def split_words(text):
+    """
+    Poor man's tokenization
+    """
+    words = text.split()
+    
+    ready = []
+    for word in words:
+        
+        if re.search(r'-', word):       # Handle hyphens
+            parts = word.split('-')
+            ready.append(parts[0])
+            for part in parts:
+                ready.append('-')
+                ready.append(part)
+        else:
+            ready.append(word)
+
+    words = ready
+    ready = []
+    for word in words:
+                
+        if re.search(r"\w'\w+$", word):       # Handle apostrophes
+            starting = re.sub(r"'(\w+)$",'', word)
+            ending   = re.sub(r"^.*'(\w+)$",'\1', word)
+            ready.extend( [starting, "'" + ending] )
+        else:
+            ready.append(word)
+
+    words = ready
+    return words
+    
+
 def remove_brackets(line):
     while re.search(r'\[.*\]', line):
         line = re.sub(r'\s*\[.*\]\s*', ' ', line)
     return line
+
+
+def ends_with_punctuation(line):
+    if re.search(r'[\.\,\;\:\'\"\?\!]$', line):
+        return True
+    return False
 
     
 def simplify(text):
@@ -256,7 +296,7 @@ def simplify(text):
         if verbose:
             err([[text]])
             
-        text = normalize(text) #, {'verbose':True})                 # Module for text simplification
+        text = normalize(text)
         if verbose:
             err([[text]])
 
@@ -282,12 +322,20 @@ def simplify(text):
         return(output)
     except Exception as e:
         err([], {'exception':e, 'exit':True})
-        
+
 
 def simplify_for_distance(line):
     """
     Simplify a string for the express purpose of computing an optimistic Levenshtein-Damerau distance
+
+      - lower case
+      - normalized
+      - ASCII-folded
+      - remove extra space
+
     """
+    line = line.lower()
+    line = simplify(line)
     line = ascii_fold(line)
     line = re.sub('-', '_', line)
     out = ''
@@ -295,9 +343,32 @@ def simplify_for_distance(line):
         if re.search(u'[0-9a-zA-ZñÑ _]', l):
             out += l
     line = clean_spaces(out)
+    
     return line
 
 
+def close_enough(A, B):
+    """
+    Determine if two words are similar "enough" (useful for many situations)
+
+    Parameters
+    ----------
+    A : str
+
+    B : str
+
+    Returns
+    -------
+    boolean
+
+    """
+    a = simplify_for_distance(A)
+    b = simplify_for_distance(B)
+    if a == b:
+        return True
+    return False
+
+    
 ################################################################################
 ###  MAIN
 

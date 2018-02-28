@@ -10,6 +10,7 @@ import itertools
 
 import pandas as pd
 from sklearn.model_selection import train_test_split
+import spacy
 
 from gmutils.objects import Options
 from gmutils.normalize import normalize
@@ -18,7 +19,6 @@ from gmutils.utils import err, argparser, read_file, read_dir, iter_file, isTrue
 ################################################################################
 # SPACY INTEGRATION
 
-import spacy
 spacy_parsing = spacy_ner = None
 try:
     spacy_ner     = spacy.load('en_core_web_lg')    # download separately: https://spacy.io/models/
@@ -144,17 +144,41 @@ def set_sent_starts(doc):
     return doc
 
 
+################################################################################
+# POST-DEFINITIONAL LOADING
+# from spacy.tokenizer import Tokenizer
+
 # Add elements to the parsing pipeline to correct for the sentence tokenizer problems
 try:
     spacy_parsing.add_pipe(set_sent_starts, name='sentence_segmenter', before='tagger')
     spacy_parsing.add_pipe(spacy_parsing.create_pipe('sentencizer'), before='sentence_segmenter')
+    tokenizer = spacy.tokenizer.Tokenizer(spacy_ner.vocab)
 except Exception as e:
-    spacy_parsing = spacy_ner = None
+    err([], {'exception':e})
 
-    
+
 ################################################################################
 # FUNCTIONS
 
+def tokenize(text):
+    """
+    Tokenize without handling most of the structure
+
+    Parameters
+    ----------
+    text : str
+
+    Returns
+    -------
+    array of str
+
+    """
+    final = []
+    for token in tokenizer(text):
+        final.append(token.text)
+    return final
+
+    
 def lemmatize(text):
     spacy_doc = spacy_parsing(text)
     span = spacy_doc[:]

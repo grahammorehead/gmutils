@@ -84,7 +84,44 @@ class Node(Object):
             return True
         return False
 
+    
+    def is_child(self, node):
+        """
+        Is <node> one of my children?
+        """
+        if node in self.children:
+            return True
+        else:
+            return False
 
+
+    def is_ancestor(self, node):
+        """
+        Is <node> an ancestor?
+        """
+        focus = self
+        while focus:
+            if focus.parent == node:
+                return True
+            focus = focus.parent   # One step up the tree toward the root
+            
+        return False               # After reaching the root, <node> was not found
+
+
+    def is_descendant(self, node):
+        """
+        is <node> a descendant?
+        """
+        if self.is_child(node):       # Base case
+            return True
+
+        for child in self.children:   # Recursion
+            if child.is_descendant(node):
+                return True
+
+        return False   # After testing self and each child, node is not a descendant
+    
+    
     def get_next_token(self):
         """
         Return the token just after the last token currently held by this Node
@@ -120,7 +157,6 @@ class Node(Object):
             return self
         
         for child in self.children:
-            # print('SELF:', self.get_text(), '  CHILD:', child.get_text())
             node = child.node_with_token(token)     # Recursion
             if node is not None:
                 return node
@@ -166,50 +202,22 @@ class Node(Object):
         
     def absorb(self, node):
         """
-        For one Node to be merged with another (usually a parent with a child).
-        Afterwards, nothing should link to 'node'
+        Merge one Node with another.  Afterwards, nothing should link to 'node', only to 'self'
+
         """
         verbose = False
         
-        if self == node:  err([self], {'ex':'node = self'})     # Sanity check
+        if self == node:
+            err([self], {'ex':'node = self'})   # Sanity check
 
-        if verbose:
-            print("\nNode [%s]:"% str(self))
-            if len(self.children):
-                print('\t(children -before):', self.children)
-            else:
-                print("\t(self has no children)")
-            print('\twill absorb [%s]'% str(node))
-            if len(node.children):
-                print("\t(absorbee's children):", node.children)
-            else:
-                print("\t(absorbee has no children)")
-        
-        if node in self.children:              ###  <node> is a child of self
-            if verbose:  print("node [%s] disowning [%s] ..."% (str(self), str(node)))
-            self.disown(node)                  # Separate old child from parent
-            self.tokens.extend(node.tokens)    # Absorb their tokens
-            self.adopt(node.children)          # Adopt their children
-            
-        elif self in node.children:            ### <node> is the parent of self
-            if node.is_root():                 # <node> is root
-                print(node, 'is root!')
-                exit()
-            parent = node.parent               # grandparent of self is the new parent
-            if verbose:  print("node [%s] disowning [%s] ..."% (str(parent), str(node)))
-            parent.disown(node)
-            self.tokens.extend(node.tokens)    # Absorb their tokens
-            self.adopt(node.children)          # Adopt their children
-            parent.adopt(self)                 # New parental relationship (sometimes this already exists)
-            
-        else:                                  ### <node> is somewhere else in tree
-            old_parent = node.parent
-            if verbose:  print("node [%s] disowning [%s] ..."% (str(old_parent), str(node)))
-            old_parent.disown(node)
-            self.tokens.extend(node.tokens)    # Absorb their tokens
-            self.adopt(node.children)          # Adopt their children (if any)
+        if self.is_descendant(node):
+            self.absorb_descendant(node)
 
-        node.kill()
+        elif self.is_ancestor(node):
+            self.absorb_ancestor(node)
+
+        else:
+            self.absorb_cousin(node)   # anywhere else on same tree
 
         if verbose:
             print("\n[%s] done absorbing."% str(self))
@@ -222,8 +230,62 @@ class Node(Object):
         for child in self.children:
             if child == self:
                 err([self], {'ex':'child = self'})
-            if str(self) == str(child):
-                err([self], {'ex':'child = self'})
+
+                
+    def absorb_descendant(self, node):
+        """
+        Merge descendant Node into self
+        """
+        parent = node.parent               # Might be self
+        parent.disown(node)                # Separate child from old parent
+        self.tokens.extend(node.tokens)    # Absorb their tokens
+        self.adopt(node.children)          # Adopt their children
+        node.kill()
+
+
+    def absorb_parent(self):
+        """
+        Merge parent Node into self
+        """
+        if self.is_root():                     # self is root.  There is no parent
+            pass
+        
+        elif self.parent.is_root():                   # parent is root
+            self.tokens.extend(self.parent.tokens)    # Absorb node's tokens
+            self.adopt(self.parent.children)          # Adopt node's children (ignores self, of course)
+            self.parent = None                        # self is the new root
+            
+        else:
+            node = self.parent
+            grandparent = node.parent          # grandparent of self is new parent
+            grandparent.disown(node)
+            self.tokens.extend(node.tokens)    # Absorb node's tokens
+            self.adopt(node.children)          # Adopt node's children (ignores self, of course)
+            grandparent.adopt(self)            # New parental relationship with grandparent
+            node.kill()
+
+            
+    def absorb_ancestor(self, node):
+        """
+        Merge ancestor Node into self
+        """
+        if node == self.parent:                # Base case
+            return self.absorb_parent()
+        
+        else:                                  # must be grandparent or more senior
+            self.absorb_parent()               # Absorb <node>, then continue up toward root
+            return self.absorb_ancestor(node)  # Recursion
+
+
+    def absorb_cousin(self, node):
+        """
+        Merge a node from another part of the tree into self
+        """
+        old_parent = node.parent
+        old_parent.disown(node)                # Cut old parental ties
+        self.tokens.extend(node.tokens)        # Absorb their tokens
+        self.adopt(node.children)              # Adopt their children (if any)
+        node.kill()
         
     
     def get_text(self):

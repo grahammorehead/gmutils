@@ -9,10 +9,10 @@ from collections import deque
 import numpy as np
 import pandas as pd
 
-from gmutils.utils import err, argparser, deserialize, read_file, read_conceptnet_vectorfile
-from gmutils import generate_spacy_data
+from gmutils.utils import err, argparser, deserialize, read_file, read_conceptnet_vectorfile, start_with_same_word
+from gmutils.normalize import normalize, clean_spaces, ascii_fold, remove_brackets, ends_with_punctuation, close_enough, split_words
+from gmutils.nlp import generate_spacy_data, tokenize
 from gmutils.objects import Object
-from gmutils.normalize import normalize, clean_spaces, ascii_fold, remove_brackets
 from gmutils.node import Node, iprint
 
 ################################################################################
@@ -90,8 +90,44 @@ class Document(Object):
         return self.spacy_doc[i]
 
 
-    def get_span(self, start, end):
-        return self.spacy_doc[start:end]
+    def get_span(self, start_index, end_index):
+        """
+        Use indices to retrieve a slice of a spaCy Span.  Just like other Pythonic slicing, this Span does NOT include the final index!
+
+        Parameters
+        ----------
+        start_index : int
+
+        end_index : int
+
+        Returns
+        -------
+        spaCy.Span
+
+        """
+        return self.spacy_doc[start_index:end_index]
+        
+
+    def next_token(self, token):
+        """
+        Return the following token in the document
+        """
+        if token is None:
+            return None
+        if token.i + 1 < len(self.spacy_doc):
+            return self.spacy_doc[token.i + 1]
+        return None
+        
+    
+    def previous_token(self, token):
+        """
+        Return the previous token in the document
+        """
+        if token is None:
+            return None
+        if token.i > 0:
+            return self.spacy_doc[token.i - 1]
+        return None
         
     
     def combine_with_previous(self, previous, current):
@@ -249,60 +285,97 @@ class Document(Object):
         """
         last_token = None
         for token in self.spacy_doc:
-            if token.idx > index:
+            if token.idx >= index:
                 return last_token
             last_token = token
             
         return last_token
         
 
+    def nearby_matching_token(self, char_index, word):
+        """
+        Search near <char_index> for a token matching word.  Uses the 'close_enough' comparator.
+
+        Begins with word at char_index in the spacy_doc, then looks ahead and behind, ever further, until the edges of the paragraph are found.
+
+        """
+        verbose = True
+        token = self.get_token_at_char_index(char_index)
+
+        if close_enough(token.text, word):
+            return token
+        elif verbose:
+            err([token.text, word])
+
+        # Setup for iteration that expands outward until token is found
+        keep_going  = True
+        previous    = token
+        following   = token
+        
+        while keep_going:
+            keep_going = False
+
+            # Previous token
+            previous = self.previous_token(previous)
+            if previous is not None:
+                if close_enough(previous.text, word):
+                    return previous
+                keep_going = True
+                if verbose:
+                    err([previous.text, word])
+
+            # Following token
+            following = self.next_token(following)
+            if following is not None:
+                if close_enough(following.text, word):
+                    return following
+                keep_going = True
+                if verbose:
+                    err([following.text, word])
+                    
+        err([], {'ex':"No matching token for [%s] in:\n\n%s\n"% (word, str(list(self.spacy_doc)))})
+            
+    
     def tokens_matching(self, text, start_char=0):
         """
         Find a contiguous sequence of tokens matching the input string, starting at a specified CHARACTER index
-
         """
-        verbose = False
-        end_char = start_char + len(text)
-        tokens = []
-        words = text.split()
-        start = self.get_token_at_char_index(start_char)
-        end   = self.get_token_at_char_index(end_char)
-        span = self.get_span(start.i, end.i)
+        tokens = set([])
+        words = special_tokenize(text)
+            
+        char_index = start_char
+        for word in words:
+            token = self.nearby_matching_token(char_index, word)
+            if token is None:
+                err([list(self.spacy_doc)], {'ex':"TEXT [%s] at char %d resulted in None token."% (text, char_index)})
+                
+            if token not in tokens:
+                tokens.add(token)
+                for token in tokens:
+                    if token is None:
+                        err([list(self.spacy_doc)], {'ex':"TEXT [%s] at char %d resulted in None token."% (text, char_index)})
+                    err([token])
+            char_index += len(word) + 1
 
-        if text == span.text:                                      # Make sure we have the right tokens
+        for token in tokens:
+            if token is None:
+                err([list(self.spacy_doc)], {'ex':"TEXT [%s] at char %d resulted in None token."% (text, char_index)})
+            err([token])
+        st = sorted(tokens, key=lambda x: x.i)
+        start = st[0]
+        end   = st[-1]
+        span = self.get_span(start.i, end.i+1)
+        
+        if text == span.text:  # Make sure we have the right tokens
+            return span
+        
+        if re.search(r'^[\.,;:!\?\'\"]*$', span[-1].text):  # If span puctuated at end, remove it
+            span = span[:-1]
+        
+        if text == span.text:  # Try again
             return span
 
-        elif len(span.text) < len(text):                           # Tokenization left out the following token
-
-            print("Compare  TEXT [%s]  to  SPAN [%s]"% (text, span.text))
-            while len(span.text) < len(text):
-                end_char += 1
-                end   = self.get_token_at_char_index(end_char)
-                if end is None:
-                    break
-                span = self.get_span(start.i, end.i)
-                if text == span.text:                              # Try again
-                    return span
-            
-        err([list(self.spacy_doc)], {'ex':"TEXT [%s] doesn't match SPAN [%s]"% (text, span.text)})
-        
-
-    def old_way(self):
-        if verbose:
-            print("\nLooking for", words, 'in:', self.spacy_doc)
-            
-        j0 = token.i    # Token index at starting point
-        for i, word in enumerate(words):
-            j = j0 + i     # Corresponding token index in spacy_doc (i begins at 0)
-            token = self.spacy_doc[j]
-            if verbose:
-                print("\tword %d: [%s]  \ttoken %d: [%s]"% (i, word, j, token.text))
-            if word == token.text:
-                tokens.append(token)
-            else:
-                err([], {'ex':"Token [%s] doesn't match word [%s]"% (token.text, word)})
-                
-        return tokens
+        err([self.spacy_doc], {'ex':"TEXT [%s] doesn't match SPAN [%s]"% (text, str(list(span)))})
 
             
 ################################################################################
@@ -336,6 +409,16 @@ def load_vocab(file):
     vocab = mult_vocab['en']
     return vocab
 
+
+def special_tokenize(text):
+    """
+    Tokenize and do a couple extra things
+    """
+    final = []
+    for word in tokenize(text):
+        final.extend( split_words(word) )
+    return final
+    
 
 ################################################################################
 ##   MAIN   ##
