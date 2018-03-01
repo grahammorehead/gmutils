@@ -292,6 +292,66 @@ class Document(Object):
         return last_token
         
 
+    def char_span(self, start, end):
+        """
+        Get the span from start/end char indices
+
+        Parameters
+        ----------
+        start : int
+
+        end : int
+
+        Returns
+        -------
+        spacy.Span
+
+        """
+        span = self.spacy_doc.char_span(start, end)
+        if span is None:
+            start_token = self.get_token_at_char_index(start)
+            end_token   = self.get_token_at_char_index(end)
+            span = self.spacy_doc[start_token.i:end_token.i]
+            
+        return span
+        
+    
+    def text_to_char_offsets(self, text, start_char=0):
+        """
+        Search in the text of this Document for a substring matching text.  If more than one is found, select the one having a first character
+        closest to start_char.
+
+        Parameters
+        ----------
+        text : str
+
+        start_char : index
+
+        Returns
+        -------
+        pair of int
+            start/end char offsets
+
+        """
+        verbose = False
+        doc_text = self.get_text()
+        lowest_distance = None
+        best_span = None
+        
+        # Iterate over matches.  Select one closest to start_char
+        for m in re.finditer(text, doc_text, flags=re.I):
+            span = m.span()
+            distance = abs(span[0] - start_char)
+            if lowest_distance is None  or  distance < lowest_distance:
+                lowest_distance = distance
+                best_span = span
+
+        if best_span is None:
+            err([], {'ex':"No best span for [%s] in:\n%s"% (text, self.get_text())})
+                
+        return best_span  # pair of (int, int), NOT a spacy.Span object
+
+
     def nearby_matching_token(self, char_index, word):
         """
         Search near <char_index> for a token matching word.  Uses the 'close_enough' comparator.
@@ -378,7 +438,7 @@ class Document(Object):
 
         err([self.spacy_doc], {'ex':"TEXT [%s] doesn't match SPAN [%s]"% (text, str(list(span)))})
 
-            
+
 ################################################################################
 ##  FUNCTIONS
 

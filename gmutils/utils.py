@@ -153,7 +153,7 @@ def err(vars=[], options={}):
 
     ex : create and Exception
 
-    GMLEVEL (env var)
+    GM_LEVEL (env var)
         Lowest value allows all errors and warnings to print
 
     """
@@ -163,7 +163,7 @@ def err(vars=[], options={}):
 
     os_level = 0
     try:
-        os_level = int(os.environ['GMLEVEL'])
+        os_level = int(os.environ['GM_LEVEL'])
     except:  pass
         
     if call_level < os_level:
@@ -198,7 +198,7 @@ def err(vars=[], options={}):
             sys.stderr.write('\tVAR    %s\n' % vars)
         else:
             for v in vars:
-                sys.stderr.write('\tVAR    %s\n'% str(v))
+                sys.stderr.write('\tVAR    %s  %s\n'% (str(v), str(type(v))) )
             sys.stderr.write('\n')
 
     # Conditional return

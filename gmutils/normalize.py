@@ -121,7 +121,7 @@ def scrub_charByChar(text):
         text = re.sub('\s', ' ', text)   # Standardize on whitespace
         
         for t in text:
-            if re.search(u'[ 0-9a-zA-ZñÑ\.\'\?\!\"\:\&\$\%\@\|\_]', t):
+            if re.search(u'[ 0-9a-zA-ZñÑ\.,\'\?\!\"\:\&\$\%\@\|\_]', t):
                 final += t        # keep the char
                 if verbose:
                     arr = [final]
