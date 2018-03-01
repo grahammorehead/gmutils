@@ -340,27 +340,28 @@ class Document(Object):
         """
         Find a contiguous sequence of tokens matching the input string, starting at a specified CHARACTER index
         """
+        verbose = False
         tokens = set([])
         words = special_tokenize(text)
-            
+        
         char_index = start_char
         for word in words:
             token = self.nearby_matching_token(char_index, word)
             if token is None:
-                err([list(self.spacy_doc)], {'ex':"TEXT [%s] at char %d resulted in None token."% (text, char_index)})
+                err([list(self.spacy_doc)], {'ex':"WORD [%s] from TEXT [%s] at char %d resulted in None token."% (word, text, char_index)})
                 
             if token not in tokens:
                 tokens.add(token)
                 for token in tokens:
                     if token is None:
-                        err([list(self.spacy_doc)], {'ex':"TEXT [%s] at char %d resulted in None token."% (text, char_index)})
-                    err([token])
+                        err([list(self.spacy_doc)], {'ex':"WORD [%s] from TEXT [%s] at char %d resulted in None token."% (word, text, char_index)})
+                    err(["WORD [%s] from TEXT [%s]"% (word, text)])
             char_index += len(word) + 1
 
         for token in tokens:
             if token is None:
-                err([list(self.spacy_doc)], {'ex':"TEXT [%s] at char %d resulted in None token."% (text, char_index)})
-            err([token])
+                err([list(self.spacy_doc)], {'ex':"WORD [%s] from TEXT [%s] at char %d resulted in None token."% (word, text, char_index)})
+            err(["TOKEN [%s]"% token.text])
         st = sorted(tokens, key=lambda x: x.i)
         start = st[0]
         end   = st[-1]
@@ -414,9 +415,18 @@ def special_tokenize(text):
     """
     Tokenize and do a couple extra things
     """
+    verbose = False
+
+    if verbose:
+        err([text])
     final = []
     for word in tokenize(text):
+        if verbose:
+            err([word])
         final.extend( split_words(word) )
+    if verbose:
+        err([final])
+        
     return final
     
 

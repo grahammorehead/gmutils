@@ -243,12 +243,12 @@ def split_words(text):
     """
     Poor man's tokenization
     """
+    verbose = False
     words = text.split()
     
     ready = []
     for word in words:
-        
-        if re.search(r'-', word):       # Handle hyphens
+        if re.search(r'[a-zA-Z]-[a-zA-Z]', word):             # Handle hyphens
             parts = word.split('-')
             ready.append(parts[0])
             for part in parts:
@@ -256,19 +256,20 @@ def split_words(text):
                 ready.append(part)
         else:
             ready.append(word)
-
+    if verbose: err([ready])
     words = ready
+    
     ready = []
     for word in words:
-                
         if re.search(r"\w'\w+$", word):       # Handle apostrophes
-            starting = re.sub(r"'(\w+)$",'', word)
-            ending   = re.sub(r"^.*'(\w+)$",'\1', word)
+            starting = re.sub(r"'(\w+)$", '', word)
+            ending   = re.sub(r"^.*'(\w+)$", r'\1', word)
             ready.extend( [starting, "'" + ending] )
         else:
             ready.append(word)
-
+    if verbose: err([ready])
     words = ready
+    
     return words
     
 
@@ -362,10 +363,19 @@ def close_enough(A, B):
     boolean
 
     """
+    if A == B:
+        return True
+    
     a = simplify_for_distance(A)
     b = simplify_for_distance(B)
+    if re.search(r'[a-zA-Z0-9]', a)  and  re.search(r'[a-zA-Z0-9]', b):
+        pass
+    else:
+        return False
+    
     if a == b:
         return True
+    
     return False
 
     
