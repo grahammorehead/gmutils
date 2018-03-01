@@ -193,6 +193,7 @@ def normalize(text, options=None):
     text = re.sub(r"“\s+", '“', text)
     text = re.sub(r"\s+”", '”', text)
     text = re.sub(r"—", '-', text)
+    text = re.sub(r"–", '-', text)
     text = re.sub(r"\xe2\x80\x99", "'", text)
     text = re.sub(r"''+", '"', text)
     text = re.sub(r"``+", '"', text)

@@ -285,7 +285,7 @@ class Document(Object):
         """
         last_token = None
         for token in self.spacy_doc:
-            if token.idx >= index:
+            if token.idx > index:
                 return last_token
             last_token = token
             
@@ -311,8 +311,11 @@ class Document(Object):
         if span is None:
             start_token = self.get_token_at_char_index(start)
             end_token   = self.get_token_at_char_index(end)
-            span = self.spacy_doc[start_token.i:end_token.i]
-            
+            if start_token.i == end_token.i:
+                span = self.spacy_doc[start_token.i:start_token.i+1]
+            else:
+                span = self.spacy_doc[start_token.i:end_token.i]
+
         return span
         
     
@@ -334,9 +337,11 @@ class Document(Object):
 
         """
         verbose = False
-        doc_text = self.get_text()
-        lowest_distance = None
-        best_span = None
+
+        text             = re.escape(text)
+        doc_text         = self.get_text()
+        lowest_distance  = None
+        best_span        = None
         
         # Iterate over matches.  Select one closest to start_char
         for m in re.finditer(text, doc_text, flags=re.I):
@@ -351,92 +356,6 @@ class Document(Object):
                 
         return best_span  # pair of (int, int), NOT a spacy.Span object
 
-
-    def nearby_matching_token(self, char_index, word):
-        """
-        Search near <char_index> for a token matching word.  Uses the 'close_enough' comparator.
-
-        Begins with word at char_index in the spacy_doc, then looks ahead and behind, ever further, until the edges of the paragraph are found.
-
-        """
-        verbose = False
-        token = self.get_token_at_char_index(char_index)
-
-        if close_enough(token.text, word):
-            return token
-        elif verbose:
-            err([token.text, word])
-
-        # Setup for iteration that expands outward until token is found
-        keep_going  = True
-        previous    = token
-        following   = token
-        
-        while keep_going:
-            keep_going = False
-
-            # Previous token
-            previous = self.previous_token(previous)
-            if previous is not None:
-                if close_enough(previous.text, word):
-                    return previous
-                keep_going = True
-                if verbose:
-                    err([previous.text, word])
-
-            # Following token
-            following = self.next_token(following)
-            if following is not None:
-                if close_enough(following.text, word):
-                    return following
-                keep_going = True
-                if verbose:
-                    err([following.text, word])
-                    
-        err([], {'ex':"No matching token for [%s] in:\n\n%s\n"% (word, str(list(self.spacy_doc)))})
-            
-    
-    def tokens_matching(self, text, start_char=0):
-        """
-        Find a contiguous sequence of tokens matching the input string, starting at a specified CHARACTER index
-        """
-        verbose = False
-        tokens = set([])
-        words = tokenize(text)
-        
-        char_index = start_char
-        for word in words:
-            token = self.nearby_matching_token(char_index, word)
-            if token is None:
-                err([list(self.spacy_doc)], {'ex':"WORD [%s] from TEXT [%s] at char %d resulted in None token."% (word, text, char_index)})
-                
-            if token not in tokens:
-                tokens.add(token)
-                for token in tokens:
-                    if token is None:
-                        err([list(self.spacy_doc)], {'ex':"WORD [%s] from TEXT [%s] at char %d resulted in None token."% (word, text, char_index)})
-                    err(["WORD [%s] from TEXT [%s]"% (word, text)])
-            char_index += len(word) + 1
-
-        for token in tokens:
-            if token is None:
-                err([list(self.spacy_doc)], {'ex':"WORD [%s] from TEXT [%s] at char %d resulted in None token."% (word, text, char_index)})
-            err(["TOKEN [%s]"% token.text])
-        st = sorted(tokens, key=lambda x: x.i)
-        start = st[0]
-        end   = st[-1]
-        span = self.get_span(start.i, end.i+1)
-        
-        if text == span.text:  # Make sure we have the right tokens
-            return span
-        
-        if re.search(r'^[\.,;:!\?\'\"]*$', span[-1].text):  # If span puctuated at end, remove it
-            span = span[:-1]
-        
-        if text == span.text:  # Try again
-            return span
-
-        err([self.spacy_doc], {'ex':"TEXT [%s] doesn't match SPAN [%s]"% (text, str(list(span)))})
 
 
 ################################################################################

@@ -195,10 +195,10 @@ def err(vars=[], options={}):
     # Print vars to STDERR if present
     if len(vars) > 0:
         if isinstance(vars, str):
-            sys.stderr.write('\tVAR    %s\n' % vars)
+            sys.stderr.write('\tVAR  |%s|\n' % vars)
         else:
             for v in vars:
-                sys.stderr.write('\tVAR    %s  %s\n'% (str(v), str(type(v))) )
+                sys.stderr.write('\tVAR  |%s|  %s\n'% (str(v), str(type(v))) )
             sys.stderr.write('\n')
 
     # Conditional return
