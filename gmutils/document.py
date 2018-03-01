@@ -10,7 +10,7 @@ import numpy as np
 import pandas as pd
 
 from gmutils.utils import err, argparser, deserialize, read_file, read_conceptnet_vectorfile, start_with_same_word
-from gmutils.normalize import normalize, clean_spaces, ascii_fold, remove_brackets, ends_with_punctuation, close_enough, split_words
+from gmutils.normalize import normalize, clean_spaces, ascii_fold, remove_brackets, ends_with_punctuation, close_enough
 from gmutils.nlp import generate_spacy_data, tokenize
 from gmutils.objects import Object
 from gmutils.node import Node, iprint
@@ -299,7 +299,7 @@ class Document(Object):
         Begins with word at char_index in the spacy_doc, then looks ahead and behind, ever further, until the edges of the paragraph are found.
 
         """
-        verbose = True
+        verbose = False
         token = self.get_token_at_char_index(char_index)
 
         if close_enough(token.text, word):
@@ -342,7 +342,7 @@ class Document(Object):
         """
         verbose = False
         tokens = set([])
-        words = special_tokenize(text)
+        words = tokenize(text)
         
         char_index = start_char
         for word in words:
@@ -410,25 +410,6 @@ def load_vocab(file):
     vocab = mult_vocab['en']
     return vocab
 
-
-def special_tokenize(text):
-    """
-    Tokenize and do a couple extra things
-    """
-    verbose = False
-
-    if verbose:
-        err([text])
-    final = []
-    for word in tokenize(text):
-        if verbose:
-            err([word])
-        final.extend( split_words(word) )
-    if verbose:
-        err([final])
-        
-    return final
-    
 
 ################################################################################
 ##   MAIN   ##

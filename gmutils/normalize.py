@@ -239,40 +239,6 @@ def clean_spaces(line):
     return line
 
 
-def split_words(text):
-    """
-    Poor man's tokenization
-    """
-    verbose = False
-    words = text.split()
-    
-    ready = []
-    for word in words:
-        if re.search(r'[a-zA-Z]-[a-zA-Z]', word):             # Handle hyphens
-            parts = word.split('-')
-            ready.append(parts[0])
-            for part in parts:
-                ready.append('-')
-                ready.append(part)
-        else:
-            ready.append(word)
-    if verbose: err([ready])
-    words = ready
-    
-    ready = []
-    for word in words:
-        if re.search(r"\w'\w+$", word):       # Handle apostrophes
-            starting = re.sub(r"'(\w+)$", '', word)
-            ending   = re.sub(r"^.*'(\w+)$", r'\1', word)
-            ready.extend( [starting, "'" + ending] )
-        else:
-            ready.append(word)
-    if verbose: err([ready])
-    words = ready
-    
-    return words
-    
-
 def remove_brackets(line):
     while re.search(r'\[.*\]', line):
         line = re.sub(r'\s*\[.*\]\s*', ' ', line)

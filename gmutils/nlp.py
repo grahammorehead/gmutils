@@ -160,7 +160,41 @@ except Exception as e:
 ################################################################################
 # FUNCTIONS
 
-def tokenize(text):
+def split_words(text):
+    """
+    Poor man's tokenization
+    """
+    verbose = False
+    words = text.split()
+    
+    ready = []
+    for word in words:
+        if re.search(r'[a-zA-Z]-[a-zA-Z]', word):       # Handle hyphens
+            parts = word.split('-')
+            ready.append(parts[0])
+            for part in parts:
+                ready.append('-')
+                ready.append(part)
+        else:
+            ready.append(word)
+    if verbose: err([ready])
+    words = ready
+    
+    ready = []
+    for word in words:
+        if re.search(r"\w'\w+$", word):                # Handle apostrophes
+            starting = re.sub(r"'(\w+)$", '', word)
+            ending   = re.sub(r"^.*'(\w+)$", r'\1', word)
+            ready.extend( [starting, "'" + ending] )
+        else:
+            ready.append(word)
+    if verbose: err([ready])
+    words = ready
+    
+    return words
+    
+
+def tokenize_spacy(text):
     """
     Tokenize without handling most of the structure
 
@@ -179,6 +213,25 @@ def tokenize(text):
     return final
 
     
+def tokenize(text):
+    """
+    Tokenize and do a couple extra things
+    """
+    verbose = False
+
+    if verbose:
+        err([text])
+    final = []
+    for word in tokenize_spacy(text):
+        if verbose:
+            err([word])
+        final.extend( split_words(word) )
+    if verbose:
+        err([final])
+        
+    return final
+    
+
 def lemmatize(text):
     spacy_doc = spacy_parsing(text)
     span = spacy_doc[:]
