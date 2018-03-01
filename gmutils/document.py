@@ -311,10 +311,11 @@ class Document(Object):
         if span is None:
             start_token = self.get_token_at_char_index(start)
             end_token   = self.get_token_at_char_index(end)
+            err([start_token.i, end_token.i, end_token.text])
             if start_token.i == end_token.i:
                 span = self.spacy_doc[start_token.i:start_token.i+1]
             else:
-                span = self.spacy_doc[start_token.i:end_token.i]
+                span = self.spacy_doc[start_token.i:end_token.i+1]     # Adding 1 here very important
 
         return span
         
