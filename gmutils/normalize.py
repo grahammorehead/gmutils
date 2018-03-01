@@ -241,8 +241,8 @@ def clean_spaces(line):
 
 
 def remove_brackets(line):
-    while re.search(r'\[.*\]', line):
-        line = re.sub(r'(\s*)\[.*\](\s*)', r'\1\2', line)
+    line = re.sub(r"\[citation needed\]", '', line)
+
     return line
 
 

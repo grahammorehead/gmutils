@@ -56,7 +56,7 @@ class Document(Object):
 
         if self.get('remove_brackets'):
             text = remove_brackets(text)
-        
+            
         if self.get('normalize'):
             text = normalize(text, {'verbose':False})
             
