@@ -54,10 +54,11 @@ class Document(Object):
             options['one str'] = True
             text = read_file(file, options)
 
-        if self.get('normalize'):
-            text = normalize(text, {'verbose':False})
         if self.get('remove_brackets'):
             text = remove_brackets(text)
+        
+        if self.get('normalize'):
+            text = normalize(text, {'verbose':False})
             
         self.spacy_doc, self.ner = generate_spacy_data(text)   # Parse with spacy, get NER
         self.generate_trees()                                  # Generate Node trees representing sentences
