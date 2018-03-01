@@ -10,7 +10,7 @@ import numpy as np
 import pandas as pd
 
 from gmutils.utils import err, argparser, deserialize, read_file, read_conceptnet_vectorfile, start_with_same_word
-from gmutils.normalize import normalize, clean_spaces, ascii_fold, remove_brackets, ends_with_punctuation, close_enough
+from gmutils.normalize import normalize, clean_spaces, ascii_fold, ends_with_punctuation, close_enough
 from gmutils.nlp import generate_spacy_data, tokenize
 from gmutils.objects import Object
 from gmutils.node import Node, iprint
@@ -54,11 +54,8 @@ class Document(Object):
             options['one str'] = True
             text = read_file(file, options)
 
-        if self.get('remove_brackets'):
-            text = remove_brackets(text)
-            
         if self.get('normalize'):
-            text = normalize(text, {'verbose':False})
+            text = normalize(text, {'verbose':False, 'remove_citations':True})
             
         self.spacy_doc, self.ner = generate_spacy_data(text)   # Parse with spacy, get NER
         self.generate_trees()                                  # Generate Node trees representing sentences

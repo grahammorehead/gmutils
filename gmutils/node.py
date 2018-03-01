@@ -56,6 +56,8 @@ class Node(Object):
         self.children = []
         
         # Base original tree on spacy Token tree.  Add a Node-child for every token-child
+        if len(self.tokens) < 1:
+            err([], {'ex':"No tokens in this Node. See parent:\n%s\n\nSee Document:\n%s"% (self.parent, self.doc)})
         for token in self.tokens:
             for child in token.children:
                 self.children.append(Node(self.doc, child, parent=self, options=options))

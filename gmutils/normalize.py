@@ -189,6 +189,9 @@ def normalize(text, options=None):
     if options.get('verbose'):
         err([tarray])
 
+    if options.get('remove_citations'):
+        text = remove_citations(text)
+        
     # Punctuation normalization
     text = re.sub(r"“\s+", '“', text)
     text = re.sub(r"\s+”", '”', text)
@@ -240,9 +243,10 @@ def clean_spaces(line):
     return line
 
 
-def remove_brackets(line):
+def remove_citations(line):
     line = re.sub(r"\[citation needed\]", '', line)
-
+    line = re.sub(r"(?<=[a-zA-Z])\.[\d,]* ", '. ', line)
+    
     return line
 
 
