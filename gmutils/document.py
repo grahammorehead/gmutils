@@ -184,12 +184,44 @@ class Document(Object):
         for tree in self.trees:
             print('\nNEXT SENTENCE:')
             print (tree.get_supporting_text())
-        
+
+
+    def get_all_pos(self):
+        """
+        Get all POS from this Document
+        """
+        pos = set([])
+        for tree in self.trees:
+            pos.update(tree.get_all_pos())
+
+        return pos
+            
+
+    def get_all_ner(self):
+        """
+        Get all NER from this Document
+        """
+        ner = set([])
+        for tree in self.trees:
+            ner.update(tree.get_all_ner())
+
+        return ner
+
+
+    def get_all_dep(self):
+        """
+        Get all DEP from this Document
+        """
+        dep = set([])
+        for tree in self.trees:
+            dep.update(tree.get_all_dep())
+
+        return dep
+            
 
     def get_verb_nodes(self):
         """
         From each of the constituent trees, return a list of all nodes that are verbs
-
         """
         verbs = []
         for tree in self.trees:
@@ -340,12 +372,11 @@ class Document(Object):
         verbose = False
 
         text             = re.escape(text)
-        doc_text         = self.get_text()
         lowest_distance  = None
         best_span        = None
         
         # Iterate over matches.  Select one closest to start_char
-        for m in re.finditer(text, doc_text, flags=re.I):
+        for m in re.finditer(text, self.get_text(), flags=re.I):
             span = m.span()
             distance = abs(span[0] - start_char)
             if lowest_distance is None  or  distance < lowest_distance:
@@ -358,6 +389,36 @@ class Document(Object):
         return best_span  # pair of (int, int), NOT a spacy.Span object
 
 
+    def get_nodes(self):
+        """
+        Return all nodes under this Docment, in order of lowest token index
+        """
+        nodes = set([])
+        for tree in self.trees:
+            nodes.update(tree.get_nodes())
+
+        return sorted(nodes, key=lambda x: x.get_index())
+        
+
+    def get_nodes_covering_span(self, span):
+        """
+        Get set of nodes in this Document that cover the span in question
+
+        Parameters
+        ----------
+        span : spacy.Span
+
+        Returns
+        -------
+        array of Node
+
+        """
+        covering = []  # array of Node
+        tokens_in_span = list(span)
+        print("tokens in span:")
+        err(tokens_in_span)
+        
+        
 
 ################################################################################
 ##  FUNCTIONS
@@ -386,6 +447,8 @@ def load_vocab(file):
     """
     Load word vectors
     """
+    if file is None:
+        file = os.environ['HOME'] + '/data/ConceptNet/numberbatch_en.pkl'
     mult_vocab = deserialize(file)
     vocab = mult_vocab['en']
     return vocab
@@ -409,8 +472,9 @@ if __name__ == '__main__':
         for text in args.str:
             doc = Document(text)
             doc.preprocess(vocab)
+            print("\nTEXT:", doc.get_text())
+            exit()
             doc.pretty_print()
-            print('\nSEMANTIC ROLES:')
             doc.print_semantic_roles()
                 
     else:

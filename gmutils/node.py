@@ -9,6 +9,21 @@ from gmutils.objects import Object
 from gmutils.utils import err, argparser, vector_average
 
 ################################################################################
+# DEFAULTS
+
+default = {
+    'sr_embedding' : {
+        '_empty_' : [0, 0, 0, 0, 0]
+        }
+    }
+
+pos_indices = ['ADJ', 'ADP', 'ADV', 'CCONJ', 'DET', 'INTJ', 'NOUN', 'NUM', 'PART', 'PRON', 'PROPN', 'PUNCT', 'SYM', 'VERB', 'X']
+
+ner_indices = []
+
+dep_indices = []
+    
+################################################################################
 # OBJECTS
 
 class Node(Object):
@@ -176,7 +191,9 @@ class Node(Object):
         root = self.get_root()
         node = root.node_with_token(token)
         return node
-        
+
+    ############################################################################
+    # ALTERATIONS
 
     def adopt(self, node):
         """
@@ -291,7 +308,69 @@ class Node(Object):
         self.tokens.extend(node.tokens)        # Absorb their tokens
         self.adopt(node.children)              # Adopt their children (if any)
         node.kill()
+
         
+    def agglomerate_entities(self, options={}):
+        """
+        For the purpose of dealing sensibly with extracted entities, agglomerate tokens from a single entity into a node.
+
+        No need to apply this function recursively as it is applied separately to all Nodes that represent the beginning
+        of an entity.
+
+        """
+        altered = False
+        if self.is_dead:
+            return altered
+
+        if self.get_entity_position() == 'B':
+            next_token = self.get_next_token()            # Get token immediately following last token of this Node
+            next_node = self.node_of_token(next_token)    # Get the Node containing that token
+            if next_node is not None:
+                if next_node.get_entity_position() == 'I':
+                    self.absorb(next_node)
+                    altered = True
+
+        return altered
+
+
+    def agglomerate_verbs_preps(self, vocab=None, options={}):
+        """
+        For the purpose of sense disambiguation, agglomerate verbs with prepositional children
+
+        e.g. If "jump" is used to describe A jumping over B, the real sense of the verb is "jump over"
+
+        """
+        altered = False
+        if self.is_dead:
+            return altered
+            
+        if self.is_leaf():
+            return altered
+
+        # Select which children, if any, to absorb
+        to_absorb = []
+        if self.is_verb:
+            for child in self.children:
+                if 'prep' in child.get_deps():  # Only looking to agglomerate nodes with a 'prep' dependency
+                    if vocab is not None:       # Only allow agglomerations corresponding to a vocab entry
+                        if not combined_lemmas_in_vocab(vocab, self.get_lemmas_str(), child.get_lemmas_str()):
+                            continue
+                    to_absorb.append(child)     # Add to the list of children to absorb
+
+        # Execute absorptions in order, re-confirming vocab presence along the way
+        for child in to_absorb:
+            if combined_lemmas_in_vocab(vocab, self.get_lemmas_str(), child.get_lemmas_str()):
+                self.absorb(child)
+                altered = True
+                    
+        # Apply recursively to children
+        for child in self.children:
+            child.agglomerate_verbs_preps(vocab=vocab)
+            
+        return altered
+
+    # end ALTERATIONS
+    ############################################################################
     
     def get_text(self):
         """
@@ -349,6 +428,114 @@ class Node(Object):
             pass
         return pos
 
+
+    def get_pos_num(self):
+        """
+        Get the part of speech (could be multiple)
+
+        """
+        pos = []
+        try:
+            for token in self.tokens:
+                pos.append(token.pos)
+        except:
+            pass
+        return pos
+
+
+    def get_all_pos(self):
+        """
+        Get all POS from this Node and descendants
+        """
+        pos = set([])
+        pos.update(self.get_pos())
+        for child in self.children:
+            pos.update(child.get_all_pos())
+
+        return pos
+            
+
+    def get_ner(self):
+        """
+        Get the part of speech (could be multiple)
+
+        """
+        ner = []
+        try:
+            for token in self.tokens:
+                if token.ent_type > 0:
+                    ner.append(token.ent_type_)
+        except:
+            pass
+        return ner
+
+
+    def get_ner_num(self):
+        """
+        Get the part of speech (could be multiple)
+
+        """
+        ner = []
+        try:
+            for token in self.tokens:
+                if token.ent_type > 0:
+                    ner.append(token.ent_type)
+        except:
+            pass
+        return ner
+
+
+    def get_all_ner(self):
+        """
+        Get all NER from this Node and descendants
+        """
+        ner = set([])
+        ner.update(self.get_ner())
+        for child in self.children:
+            ner.update(child.get_all_ner())
+
+        return ner
+            
+
+    def get_deps(self):
+        """
+        Get the part of speech (could be multiple)
+
+        """
+        deps = []
+        try:
+            for token in self.tokens:
+                deps.append(token.dep_)
+        except:
+            pass
+        return deps
+
+
+    def get_deps_num(self):
+        """
+        Get the part of speech (could be multiple)
+
+        """
+        deps = []
+        try:
+            for token in self.tokens:
+                deps.append(token.dep)
+        except:
+            pass
+        return deps
+
+
+    def get_all_deps(self):
+        """
+        Get all Dependencies from this Node and descendants
+        """
+        deps = set([])
+        deps.update(self.get_deps())
+        for child in self.children:
+            deps.update(child.get_all_deps())
+
+        return deps
+            
 
     def is_verb(self):
         if 'VERB' in self.get_pos():
@@ -470,7 +657,7 @@ class Node(Object):
 
     def get_semantic_roles(self, options={}):
         """
-        Glean what we can about semantic roles if self is_verb
+        Glean what we can about semantic roles.  Especially applicable if self is_verb
 
         Returns
         -------
@@ -494,66 +681,24 @@ class Node(Object):
         return roles
 
 
-    def agglomerate_entities(self, options={}):
+    def get_embedded_semantic_roles(self, vocab=default['sr_embedding'], options={}):
         """
-        For the purpose of dealing sensibly with extracted entities, agglomerate tokens from a single entity into a node.
-
-        No need to apply this function recursively as it is applied separately to all Nodes that represent the beginning
-        of an entity.
-
+        Get a vectorized representation of this Node's semantic roles
         """
-        altered = False
-        if self.is_dead:
-            return altered
-
-        if self.get_entity_position() == 'B':
-            next_token = self.get_next_token()            # Get token immediately following last token of this Node
-            next_node = self.node_of_token(next_token)    # Get the Node containing that token
-            if next_node is not None:
-                if next_node.get_entity_position() == 'I':
-                    self.absorb(next_node)
-                    altered = True
-
-        return altered
-
-
-    def agglomerate_verbs_preps(self, vocab=None, options={}):
-        """
-        For the purpose of sense disambiguation, agglomerate verbs with prepositional children
-
-        e.g. If "jump" is used to describe A jumping over B, the real sense of the verb is "jump over"
-
-        """
-        altered = False
-        if self.is_dead:
-            return altered
+        # Begin with self.  Self's SR along with POS
+        self_dep = vocab.get('_empty_')
+        for dep in self.get_deps():
+            self_vector
             
-        if self.is_leaf():
-            return altered
+        roles = self.get_semantic_roles(options=options)
+        if len(roles) == 0:
+            return vocab.get('_empty_')
+        
+        for dep, nodes in roles.items():
+            print('    {%s}'% dep, get_support_for_nodes(nodes))   # An child having a role under self
 
-        # Select which children, if any, to absorb
-        to_absorb = []
-        if self.is_verb:
-            for child in self.children:
-                if 'prep' in child.get_deps():  # Only looking to agglomerate nodes with a 'prep' dependency
-                    if vocab is not None:       # Only allow agglomerations corresponding to a vocab entry
-                        if not combined_lemmas_in_vocab(vocab, self.get_lemmas_str(), child.get_lemmas_str()):
-                            continue
-                    to_absorb.append(child)     # Add to the list of children to absorb
-
-        # Execute absorptions in order, re-confirming vocab presence along the way
-        for child in to_absorb:
-            if combined_lemmas_in_vocab(vocab, self.get_lemmas_str(), child.get_lemmas_str()):
-                self.absorb(child)
-                altered = True
-                    
-        # Apply recursively to children
-        for child in self.children:
-            child.agglomerate_verbs_preps(vocab=vocab)
-            
-        return altered
-
-
+        
+    
     def get_verb_nodes(self):
         """
         From each of the constituent trees, return a list of all nodes that are verbs
@@ -568,6 +713,17 @@ class Node(Object):
         return verbs
 
 
+    def get_index(self):
+        """
+        Return lowest token index
+        """
+        lowest = None
+        for token in self.tokens:
+            if lowest is None  or  token.i < lowest:
+                lowest = token.i
+        return lowest
+        
+    
     def embed(self, vocab):
         """
         Given some vocab (embedding) produce a vector that represents this node
@@ -604,7 +760,18 @@ class Node(Object):
             for child in self.children:
                 child.embed(vocab)
             
+
+    def get_nodes(self):
+        """
+        Returns a self-inclusive list of this Node and all descendants
+        """
+        nodes = set([])
+        for node in self.children:
+            nodes.update(node.get_nodes())
+
+        return sorted(nodes, key=lambda x: x.get_index())
     
+                
     ############################################################################
     # Printing
 
@@ -713,7 +880,7 @@ def combined_lemmas_in_vocab(vocab, lemmas_str_A, lemmas_str_B):
 
     return False
 
-        
+
 ################################################################################
 # MAIN
 

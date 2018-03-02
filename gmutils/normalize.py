@@ -187,11 +187,14 @@ def normalize(text, options=None):
     # options.set('verbose', True)
 
     if options.get('verbose'):
-        err([tarray])
+        err([[text]])
 
     if options.get('remove_citations'):
         text = remove_citations(text)
         
+    if options.get('verbose'):
+        err([[text]])
+
     # Punctuation normalization
     text = re.sub(r"“\s+", '“', text)
     text = re.sub(r"\s+”", '”', text)
@@ -211,14 +214,12 @@ def normalize(text, options=None):
     text = re.sub(r"\.*…+\.*", "...", text)
 
     if options.get('verbose'):
-        tarray = [text]
-        err([tarray])
+        err([[text]])
 
     # Char-by-char scrubbing
     text = scrub_charByChar(text)
     if options.get('verbose'):
-        tarray = [text]
-        err([tarray])
+        err([[text]])
 
     # Some final options
     if options.get('no_urls'):                 # Remove URLs and Emails if requested in options
@@ -226,8 +227,7 @@ def normalize(text, options=None):
 
     text = final_clean(text)
     if options.get('verbose'):
-        tarray = [text]
-        err([tarray])
+        err([[text]])
 
     return text
 
@@ -245,7 +245,7 @@ def clean_spaces(line):
 
 def remove_citations(line):
     line = re.sub(r"\[citation needed\]", '', line)
-    line = re.sub(r"(?<=[a-zA-Z])\.[\d,]* ", '. ', line)
+    line = re.sub(r"(?<=[a-zA-Z])\.\d[\d,]* ", '. ', line)
     
     return line
 
@@ -360,7 +360,7 @@ if __name__ == '__main__':
     args = parser.parse_args()   # Get inputs and options
 
     if args.str:
-        print(normalize(args.str[0]))
+        print(normalize(args.str[0], options={'verbose':args.verbose, 'remove_citations':True}))
 
     elif args.ascii_fold:
         print(ascii_fold(args.ascii_fold))
