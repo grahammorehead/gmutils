@@ -46,7 +46,7 @@ class Dataset(Object):
         self.set_options(options, default)        # For more on 'self.set_options()' see object.Object
 
         
-    def load(self, input=None, read_data=None):
+    def load(self, input, read_data=None):
         """
         Using a prescribed reading function, 'read_data', this function loads data into the object's attributes.
 
@@ -58,14 +58,51 @@ class Dataset(Object):
 
         """
         if read_data is not None:
-            self.read_data = read_data
+            self.x_train, self.x_test, self.y_train, self.y_test = read_data(input)
         else:
-            self.read_data = default_read_data
+            self.x_train, self.x_test, self.y_train, self.y_test = self.read_data(input)
             
-        self.x_train, self.x_test, self.y_train, self.y_test = self.read_data(input)
         self.print_set_sizes()
 
-            
+
+    def read_data(self, inputs):
+        """
+        Default function for reading data into a Dataset.  Will accept one of:
+            - file
+            - list of files
+            - dir
+
+        Parameters
+        ----------
+        inputs : DataFrame or array thereof
+
+        Returns
+        -------
+        array of DataFrame (4 of them: x_train, x_test, y_train, y_test)
+
+        """
+        if isinstance(inputs, list):
+            if len(inputs) == 1:
+                inputs = inputs[0]
+            elif len(inputs) > 1:
+                return default_read_data_files(inputs)
+            else:
+                err([],{'ex':"ERROR: zero-length array of inputs"})
+
+        if isinstance(inputs, str):
+            if os.path.isfile(inputs):
+                return default_read_data_file(inputs)
+            elif os.path.isdir(inputs):
+                return default_read_data_dir(inputs)
+            else:
+                err([],{'ex':"ERROR: inputs neither file nor dir."})
+
+        else:
+            err([], {'ex':'Unrecognized input type: %s'% type(inputs)})
+
+        return x_train, x_test, y_train, y_test
+
+        
     def print_set_sizes(self):
         """
         Print info about the training and test sets
@@ -182,43 +219,6 @@ def default_read_data_dir(input_dir):
     return default_read_data_files(files)
     
     
-def default_read_data(inputs):
-    """
-    Default function for reading data into a Dataset.  Will accept one of:
-        - file
-        - list of files
-        - dir
-
-    Parameters
-    ----------
-    inputs : DataFrame or array thereof
-
-    Returns
-    -------
-    array of DataFrame (4 of them: x_train, x_test, y_train, y_test)
-
-    """
-    if isinstance(inputs, list):
-        if len(inputs) == 1:
-            inputs = inputs[0]
-        elif len(inputs) > 1:
-            return default_read_data_files(inputs)
-        else:
-            err([],{'ex':"ERROR: zero-length array of inputs"})
-            
-    if isinstance(inputs, str):
-        if os.path.isfile(inputs):
-            return default_read_data_file(inputs)
-        elif os.path.isdir(inputs):
-            return default_read_data_dir(inputs)
-        else:
-            err([],{'ex':"ERROR: inputs neither file nor dir."})
-        
-    else:
-        err([], {'ex':'Unrecognized input type: %s'% type(inputs)})
-
-    return x_train, x_test, y_train, y_test
-
 
 ################################################################################
 ##   MAIN   ##

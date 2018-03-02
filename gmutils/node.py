@@ -129,6 +129,9 @@ class Node(Object):
         Return the token just after the last token currently held by this Node
         """
         highest = 0
+        if len(self.tokens) < 1:
+            return None
+        
         for token in self.tokens:
             if token.i > highest:
                 highest = token.i
@@ -296,8 +299,11 @@ class Node(Object):
 
         """
         texts = []
-        for token in self.tokens:
-            texts.append(token.text)
+        try:
+            for token in self.tokens:
+                texts.append(token.text)
+        except:
+            pass
         return ' '.join(texts)
 
 
@@ -307,8 +313,12 @@ class Node(Object):
 
         """
         lemmas = []
-        for token in self.tokens:
-            lemmas.append(token.lemma_)
+        try:
+            for token in self.tokens:
+                lemmas.append(token.lemma_)
+        except:
+            pass
+        
         return lemmas
 
 
@@ -332,8 +342,11 @@ class Node(Object):
 
         """
         pos = []
-        for token in self.tokens:
-            pos.append(token.pos_)
+        try:
+            for token in self.tokens:
+                pos.append(token.pos_)
+        except:
+            pass
         return pos
 
 
@@ -365,11 +378,14 @@ class Node(Object):
 
         """
         ents = []
-        for token in self.tokens:
-            ent_type = self.ner_by_token(token)
-            if not ent_type in ents:
-                ents.append(ent_type)
-                
+        try:
+            for token in self.tokens:
+                ent_type = self.ner_by_token(token)
+                if not ent_type in ents:
+                    ents.append(ent_type)
+        except:
+            pass
+
         return ents
 
 
@@ -384,13 +400,15 @@ class Node(Object):
 
         """
         position = 'O'
-        for token in self.tokens:
-            iob = self.iob_by_token(token)
-            if iob == 'B':
-                position = 'B'
-            if iob == 'I'  and  position == 'O':
-                position = 'I'
-                
+        try:
+            for token in self.tokens:
+                iob = self.iob_by_token(token)
+                if iob == 'B':
+                    position = 'B'
+                if iob == 'I'  and  position == 'O':
+                    position = 'I'
+        except:
+            pass
         return position
 
 
@@ -415,8 +433,11 @@ class Node(Object):
 
         """
         deps = []
-        for token in self.tokens:
-            deps.append(token.dep_)
+        try:
+            for token in self.tokens:
+                deps.append(token.dep_)
+        except:
+            pass
         return sorted(deps)
 
 
@@ -434,6 +455,9 @@ class Node(Object):
 
         """
         left = right = None
+        if len(self.tokens) < 1:
+            return ''
+        
         for token in self.tokens:
             if left is None or token.left_edge.i < left:
                 left = token.left_edge.i
@@ -551,8 +575,6 @@ class Node(Object):
         """
         verbose = False
 
-        self.get_entity_type()
-        
         # First try full lemma string
         lemmas_str = self.get_lemmas_str()
         lemmas_str = re.sub(r' ', '_', lemmas_str)
@@ -578,8 +600,9 @@ class Node(Object):
             self.embedding = vec
 
         # Recursive application
-        for child in self.children:
-            child.embed(vocab)
+        if self.children is not None:
+            for child in self.children:
+                child.embed(vocab)
             
     
     ############################################################################
@@ -661,6 +684,8 @@ def get_support_for_nodes(nodes):
     left = right = None
     doc = nodes[0].doc
     for node in nodes:
+        if len(node.tokens) < 1:
+            return ''
         for token in node.tokens:
             if left is None or token.left_edge.i < left:
                 left = token.left_edge.i
