@@ -4,25 +4,27 @@ Tools to manage nodes in a parse tree
 
 """
 import os, sys, re, json
+import numpy as np
 
 from gmutils.objects import Object
 from gmutils.utils import err, argparser, vector_average
+from gmutils.nlp import generate_onehot_vocab
 
 ################################################################################
 # DEFAULTS
 
-default = {
-    'sr_embedding' : {
-        '_empty_' : [0, 0, 0, 0, 0]
-        }
-    }
-
 pos_indices = ['ADJ', 'ADP', 'ADV', 'CCONJ', 'DET', 'INTJ', 'NOUN', 'NUM', 'PART', 'PRON', 'PROPN', 'PUNCT', 'SYM', 'VERB', 'X']
 
-ner_indices = []
+ner_indices = ['CARDINAL', 'DATE', 'EVENT', 'FAC', 'GPE', 'LANGUAGE', 'LAW', 'LOC', 'MONEY', 'NORP', 'ORDINAL', 'ORG', 'PERCENT', 'PERSON', 'PRODUCT', 'QUANTITY', 'TIME', 'WORK_OF_ART']
 
-dep_indices = []
+dep_indices = ['ROOT', 'acl', 'acomp', 'advcl', 'advmod', 'agent', 'amod', 'appos', 'attr', 'aux', 'auxpass', 'case', 'cc', 'ccomp', 'compound', 'conj', 'csubj', 'csubjpass', 'dative', 'dep', 'det', 'dobj', 'expl', 'intj', 'mark', 'meta', 'neg', 'nmod', 'npadvmod', 'nsubj', 'nsubjpass', 'nummod', 'oprd', 'parataxis', 'pcomp', 'pobj', 'poss', 'preconj', 'predet', 'prep', 'prt', 'punct', 'quantmod', 'relcl', 'xcomp']
     
+default = {
+    'pos_embedding' : generate_onehot_vocab(pos_indices),
+    'ner_embedding' : generate_onehot_vocab(ner_indices),
+    'dep_embedding' : generate_onehot_vocab(dep_indices)
+    }
+
 ################################################################################
 # OBJECTS
 
@@ -351,7 +353,7 @@ class Node(Object):
         to_absorb = []
         if self.is_verb:
             for child in self.children:
-                if 'prep' in child.get_deps():  # Only looking to agglomerate nodes with a 'prep' dependency
+                if 'prep' in child.get_dep():  # Only looking to agglomerate nodes with a 'prep' dependency
                     if vocab is not None:       # Only allow agglomerations corresponding to a vocab entry
                         if not combined_lemmas_in_vocab(vocab, self.get_lemmas_str(), child.get_lemmas_str()):
                             continue
@@ -497,44 +499,44 @@ class Node(Object):
         return ner
             
 
-    def get_deps(self):
+    def get_dep(self):
         """
         Get the part of speech (could be multiple)
 
         """
-        deps = []
+        dep = []
         try:
             for token in self.tokens:
-                deps.append(token.dep_)
+                dep.append(token.dep_)
         except:
             pass
-        return deps
+        return dep
 
 
-    def get_deps_num(self):
+    def get_dep_num(self):
         """
         Get the part of speech (could be multiple)
 
         """
-        deps = []
+        dep = []
         try:
             for token in self.tokens:
-                deps.append(token.dep)
+                dep.append(token.dep)
         except:
             pass
-        return deps
+        return dep
 
 
-    def get_all_deps(self):
+    def get_all_dep(self):
         """
         Get all Dependencies from this Node and descendants
         """
-        deps = set([])
-        deps.update(self.get_deps())
+        dep = set([])
+        dep.update(self.get_dep())
         for child in self.children:
-            deps.update(child.get_all_deps())
+            dep.update(child.get_all_dep())
 
-        return deps
+        return dep
             
 
     def is_verb(self):
@@ -614,26 +616,27 @@ class Node(Object):
         return beginners
 
         
-    def get_deps(self):
+    def get_dep(self):
         """
         Get the dependency relation type (could be multiple)
 
         """
-        deps = []
+        dep = []
         try:
             for token in self.tokens:
-                deps.append(token.dep_)
+                dep.append(token.dep_)
         except:
             pass
-        return sorted(deps)
+        return sorted(dep)
 
 
-    def get_deps_str(self):
+    def get_dep_str(self):
         """
         A simple str representation of the dependency type
 
         """
-        return ' ' .join(self.get_deps())
+        deps = self.get_dep()
+        return ' ' .join( sorted(deps) )
     
     
     def get_supporting_text(self):
@@ -655,50 +658,110 @@ class Node(Object):
         return subtree_span.text
     
 
-    def get_semantic_roles(self, options={}):
+    def get_semantic_roles_str(self, options={}):
         """
-        Glean what we can about semantic roles.  Especially applicable if self is_verb
+        Like a poor man's semantic roles
+
+        Glean what we can about semantic roles, represented in a str.  Applies best if self is_verb
 
         Returns
         -------
         dict
-          dep_type : list of spacy.Token
-          Maps the dependency type onto an array of Tokens and therefore a substring
+          dep_str : support_str
+          Maps the dependency type string onto a substring in the text
 
         """
-        roles = {}
+        nodes_by_type = {}
         for child in self.children:
-            deps = child.get_deps_str()
-
-            if deps == 'punct'  and  child.is_leaf():
+            dep = child.get_dep_str()   # Could be a string with multiple dep types
+            if dep == 'punct'  and  child.is_leaf():
                 continue
+            if nodes_by_type.get(dep):
+                nodes_by_type[dep].append(child)
+            else
+                nodes_by_type[dep] = [child]
+
+        role = {}
+        for t, nodes in nodes_by_type.items():
+            text = get_support_for_nodes(nodes)
+            role[t] = text
+                
+        return role
+
+
+    def get_semantic_roles_vector(self, options={}):
+        """
+        Like a poor man's semantic roles vectorization
+
+        Glean what we can about semantic roles, represented in a vector.  Applies best if self is_verb
+
+        Returns
+        -------
+        numpy array
+            Represents the state of this Node with respect to POS, NER, and Dependencies
+        """
+        nodes_by_type = {}
+        vector = None
+        for child in self.children:
+            dep_str = child.get_dep_str()   # Could be a string with multiple dep types
+            if dep_str == 'punct'  and  child.is_leaf():
+                continue
+
+            pos = child.get_pos_embedding()
+            ner = child.get_ner_embedding()
+            dep = child.get_dep_embedding()
+            concat = np.concatenate([pos, ner, dep])
             
-            if deps in roles:
-                roles[deps].append(child)
+            if vector is None:
+                vector = concat
             else:
-                roles[deps] = [child]
+                vector = np.maximum.reduce([vector, concat])  # maintain one-hot vector
+                
+        return vector
 
-        return roles
 
-
-    def get_embedded_semantic_roles(self, vocab=default['sr_embedding'], options={}):
+    def get_pos_embedding(self, vocab=default['pos_embedding'], options={}):
         """
-        Get a vectorized representation of this Node's semantic roles
+        Return a vectorized representation of the POS of this Node
         """
-        # Begin with self.  Self's SR along with POS
-        self_dep = vocab.get('_empty_')
-        for dep in self.get_deps():
-            self_vector
-            
-        roles = self.get_semantic_roles(options=options)
-        if len(roles) == 0:
-            return vocab.get('_empty_')
-        
-        for dep, nodes in roles.items():
-            print('    {%s}'% dep, get_support_for_nodes(nodes))   # An child having a role under self
-
-        
+        pos_vector = None
+        for pos in self.get_pos():
+            if pos_vector is None:
+                pos_vector = vocab[pos]
+            else:
+                pos_vector = np.maximum.reduce([ pos_vector, vocab[pos] ])  # maintain one-hot vector
+                
+        return pos_vector
     
+
+    def get_ner_embedding(self, vocab=default['ner_embedding'], options={}):
+        """
+        Return a vectorized representation of the NER of this Node
+        """
+        ner_vector = None
+        for ner in self.get_ner():
+            if ner_vector is None:
+                ner_vector = vocab[ner]
+            else:
+                ner_vector = np.maximum.reduce([ ner_vector, vocab[ner] ])  # maintain one-hot vector
+                
+        return ner_vector
+    
+
+    def get_dep_embedding(self, vocab=default['dep_embedding'], options={}):
+        """
+        Return a vectorized representation of the DEP of this Node
+        """
+        dep_vector = None
+        for dep in self.get_dep():
+            if dep_vector is None:
+                dep_vector = vocab[dep]
+            else:
+                dep_vector = np.maximum.reduce([ dep_vector, vocab[dep] ])  # maintain one-hot vector
+                
+        return dep_vector
+    
+
     def get_verb_nodes(self):
         """
         From each of the constituent trees, return a list of all nodes that are verbs
@@ -797,7 +860,7 @@ class Node(Object):
 
         """
         indent = depth * '    '
-        print(indent + self.get_text() + ' {%s}'% self.get_deps_str())
+        print(indent + self.get_text() + ' {%s}'% self.get_dep_str())
 
         # Options
         if options.get('supporting text'):  # Print the text supporting subtree

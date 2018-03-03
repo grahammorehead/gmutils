@@ -186,6 +186,24 @@ class Document(Object):
             print (tree.get_supporting_text())
 
 
+    def get_head_verb_node(self):
+        """
+        Look for a Node with the head verb.  Returns first reasonable option.
+        """
+        possible = []
+        for tree in self.trees:
+            if tree.is_verb():
+                possible.append(tree)
+                
+        for p in possible:
+            if p.get_lemma_str() == 'be':
+                pass
+            else:
+                return p
+
+        return possible[0]
+
+            
     def get_all_pos(self):
         """
         Get all POS from this Document

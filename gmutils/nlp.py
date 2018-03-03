@@ -267,7 +267,19 @@ def parse(text):
     spacy_doc = spacy_parsing(text)
 
 
-    
+def generate_onehot_vocab(words):
+    """
+    For a list of words, generate a one-hot vocab of the appropriate size
+    """
+    vocab = {}
+    vocab['_empty_'] = np.array([0] * len(words))
+    for i, word in enumerate(words):
+        vocab[word] = vocab['_empty_']
+        vocab[word][i] = 1
+        
+    return vocab
+
+
 ################################################################################
 # MAIN
 
