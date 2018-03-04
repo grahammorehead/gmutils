@@ -678,7 +678,7 @@ class Node(Object):
                 continue
             if nodes_by_type.get(dep):
                 nodes_by_type[dep].append(child)
-            else
+            else:
                 nodes_by_type[dep] = [child]
 
         role = {}
