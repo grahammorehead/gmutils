@@ -7,7 +7,7 @@ import sys
 import os, re
 import numpy as np
 import itertools
-
+from copy import deepcopy
 import pandas as pd
 from sklearn.model_selection import train_test_split
 import spacy
@@ -274,7 +274,7 @@ def generate_onehot_vocab(words):
     vocab = {}
     vocab['_empty_'] = np.array([0] * len(words))
     for i, word in enumerate(words):
-        vocab[word] = vocab['_empty_']
+        vocab[word] = deepcopy(vocab['_empty_'])
         vocab[word][i] = 1
         
     return vocab

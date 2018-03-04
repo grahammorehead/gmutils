@@ -710,6 +710,7 @@ class Node(Object):
             pos = child.get_pos_embedding()
             ner = child.get_ner_embedding()
             dep = child.get_dep_embedding()
+
             concat = np.concatenate([pos, ner, dep])
             
             if vector is None:
@@ -731,6 +732,9 @@ class Node(Object):
             else:
                 pos_vector = np.maximum.reduce([ pos_vector, vocab[pos] ])  # maintain one-hot vector
                 
+        if pos_vector is None:
+            pos_vector = vocab['_empty_']
+            
         return pos_vector
     
 
@@ -745,6 +749,9 @@ class Node(Object):
             else:
                 ner_vector = np.maximum.reduce([ ner_vector, vocab[ner] ])  # maintain one-hot vector
                 
+        if ner_vector is None:
+            ner_vector = vocab['_empty_']
+            
         return ner_vector
     
 
@@ -759,6 +766,9 @@ class Node(Object):
             else:
                 dep_vector = np.maximum.reduce([ dep_vector, vocab[dep] ])  # maintain one-hot vector
                 
+        if dep_vector is None:
+            dep_vector = vocab['_empty_']
+            
         return dep_vector
     
 
@@ -828,7 +838,7 @@ class Node(Object):
         """
         Returns a self-inclusive list of this Node and all descendants
         """
-        nodes = set([])
+        nodes = set([self])
         for node in self.children:
             nodes.update(node.get_nodes())
 

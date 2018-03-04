@@ -196,7 +196,7 @@ class Document(Object):
                 possible.append(tree)
                 
         for p in possible:
-            if p.get_lemma_str() == 'be':
+            if p.get_lemmas_str() == 'be':
                 pass
             else:
                 return p
