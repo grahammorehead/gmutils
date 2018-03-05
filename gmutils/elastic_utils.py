@@ -62,7 +62,7 @@ def store_line(line, index=None, field='name'):
     es.index(index=index, doc_type=doc_type, body=doc)
 
 
-def store_dict(datum, index=None):
+def index_dict(datum, index=None):
     """
     Store a dict as a single document in an index
 
@@ -77,6 +77,29 @@ def store_dict(datum, index=None):
     """
     if index is None:
         index = 'default'
+    doc_type = 'dict'
+    es.index(index=index, doc_type=doc_type, body=datum)
+
+
+def index_text_with_synonyms(names, index=None):
+    """
+    Store a list of names as a single document in an index, where each string following the first is a synonym
+
+    Parameters
+    ----------
+    names : array of str
+
+    index : str
+        name of index where things are to be stored
+
+    """
+    if index is None:
+        index = 'default'
+
+    datum = {
+        'name' : names[0],
+        'names' : names
+        }
     doc_type = 'dict'
     es.index(index=index, doc_type=doc_type, body=datum)
 

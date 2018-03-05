@@ -3,7 +3,7 @@ from .utils import err, argparser, argparser_ml, serialize, deserialize, set_mis
 
 from .normalize import normalize, ascii_fold
 
-from .elastic_utils import list_indices, index_dicts, store_dict
+from .elastic_utils import list_indices, index_dicts, index_dict, index_text_with_synonyms
 
 try:
     from .kinesis_utils import KinesisStream

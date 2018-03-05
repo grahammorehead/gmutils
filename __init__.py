@@ -4,7 +4,7 @@ from gmutils import err, argparser, argparser_ml, serialize, deserialize, set_mi
 from gmutils import normalize, ascii_fold
 
 # elastic_utils
-from gmutils import list_indices, index_dicts, store_dict
+from gmutils import list_indices, index_dicts, index_dict, index_text_with_synonyms
 
 from gmutils import KinesisStream
 

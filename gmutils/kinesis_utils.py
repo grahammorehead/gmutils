@@ -11,7 +11,7 @@ from gmutils.objects import Object
 
 try:
     from boto import kinesis
-except Exception as e: err([], {'exception':e, 'level':1})
+except Exception as e: err([], {'exception':e, 'level':0})
 
 
 ################################################################################

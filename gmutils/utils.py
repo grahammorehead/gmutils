@@ -189,8 +189,8 @@ def err(vars=[], options={}):
         exception = options['exception']
         if not isTrue(options, 'silent'):
             for arg in exception.args:
-                print("ERROR: {}".format(arg))
-            print("\n\t", sys.exc_info()[0], "\n")
+                sys.stderr.write("ERROR: {}\n".format(arg))
+            sys.stderr.write("\n\t"+ str(sys.exc_info()[0]) +"\n")
 
     # Print vars to STDERR if present
     if len(vars) > 0:

@@ -7,7 +7,7 @@ import os, sys, re
 from pprint import pprint
 from pymongo import MongoClient
 
-from gmutils.utils import argparser
+from gmutils.utils import argparser, err
 
 ################################################################################
 
@@ -39,7 +39,7 @@ def mongo_iterator(db_name='default', collection_name='default', host='localhost
     iterator
 
     """
-    verbose = True
+    verbose = False
     if verbose:
         print("Mongo host:", host, "    port:", port,  "   type:", type(port))
         print("Will iterate on collection:", collection_name)
@@ -47,8 +47,10 @@ def mongo_iterator(db_name='default', collection_name='default', host='localhost
     client = MongoClient(host, port)
     db = client[db_name]
     coll = db[collection_name]
-    return coll.find()
+    f = coll.find()
 
+    return f
+    
 
 def mongo_find_one(db_name='default', collection_name='default', host='localhost', port=27017):
     """
@@ -72,7 +74,7 @@ def mongo_find_one(db_name='default', collection_name='default', host='localhost
     verbose = True
     if verbose:
         print("Mongo host:", host, "    port:", port,  "   type:", type(port))
-        print("Will iterate on collection:", collection_name)
+        print("Will find one from collection:", collection_name)
     
     client = MongoClient(host, port)
     db = client[db_name]
