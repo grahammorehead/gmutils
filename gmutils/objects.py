@@ -125,10 +125,10 @@ class Object(object):
             return self._value_[key]
         except KeyError:
             # raise AttributeError(key)
-            return False
+            return None
         except:
             self._value_ = {}
-            return False
+            return None
 
 
     def __repr__(self):
