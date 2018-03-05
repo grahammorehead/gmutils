@@ -489,7 +489,6 @@ def serialize(thing, file=None, directory=None, options={}):
     file : str
 
     directory : str
-
     """
     # Informative STDERR output
     if isVerbose(options):
@@ -497,19 +496,23 @@ def serialize(thing, file=None, directory=None, options={}):
         thingType = re.sub(r"__main__\.", "", thingType)
         sys.stderr.write("Saving %s to %s ...\n"% ( thingType, file))
 
+    err([directory])
     # Determine location
     try:
         if file is None:
             file  = thing.get('default_file')        # assumes 'thing' is a subclass of object>Object
         if directory is None:
             directory = thing.get('default_dir')     # assumes 'thing' is a subclass of object>Object
+            err([thing, directory])
     except: pass
             
+    err([directory])
     # Serialize a Keras Model
     if is_KerasModel(thing):
         return serialize_KerasModel(thing, directory)
         
     # Default action
+    err([directory, file])
     if directory is None:
         filepath = file
     else:
