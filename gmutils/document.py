@@ -201,7 +201,14 @@ class Document(Object):
             else:
                 return p
 
-        return possible[0]
+        if len(possible) == 0:
+            # Ignore for now, but should deal with later
+            # self.pretty_print()
+            # err([self.get_text()], {'ex':"Couldn't find head verb node!  Providing root in its stead.", 'level':1})
+            return self.trees[0]
+        
+        else:
+            return possible[0]   # Of the head verbs found, return the first one
 
             
     def get_all_pos(self):

@@ -205,6 +205,10 @@ def err(vars=[], options={}):
     if isTrue(options, 'exit'):
         exit(1)
     if isTrue(options, 'warning')  or  isTrue(options, 'silent')  or  call_level < 2:
+        if not isTrue(options, 'silent'):
+            for arg in exception.args:
+                sys.stderr.write("ERROR: {}\n".format(arg))
+            sys.stderr.write("\n\t"+ str(sys.exc_info()[0]) +"\n")
         return
     if exception:
         raise exception

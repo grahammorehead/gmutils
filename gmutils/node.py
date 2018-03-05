@@ -707,18 +707,25 @@ class Node(Object):
             if dep_str == 'punct'  and  child.is_leaf():
                 continue
 
+            # Get each part of the embedding for this child
             pos = child.get_pos_embedding()
             ner = child.get_ner_embedding()
             dep = child.get_dep_embedding()
 
-            concat = np.concatenate([pos, ner, dep])
+            c = np.concatenate([pos, ner, dep])
             
             if vector is None:
-                vector = concat
+                vector = c
             else:
-                vector = np.maximum.reduce([vector, concat])  # maintain one-hot vector
-                
-        return vector
+                vector = np.maximum.reduce([vector, c])  # maintain one-hot vector
+
+        if vector is None:
+            pos    = self.get_empty_pos_embedding()
+            ner    = self.get_empty_ner_embedding()
+            dep    = self.get_empty_dep_embedding()
+            vector = np.concatenate([pos, ner, dep])
+
+        return vector.astype(float)
 
 
     def get_pos_embedding(self, vocab=default['pos_embedding'], options={}):
@@ -738,6 +745,10 @@ class Node(Object):
         return pos_vector
     
 
+    def get_empty_pos_embedding(self, vocab=default['pos_embedding'], options={}):
+        return vocab['_empty_']
+    
+
     def get_ner_embedding(self, vocab=default['ner_embedding'], options={}):
         """
         Return a vectorized representation of the NER of this Node
@@ -755,6 +766,10 @@ class Node(Object):
         return ner_vector
     
 
+    def get_empty_ner_embedding(self, vocab=default['ner_embedding'], options={}):
+        return vocab['_empty_']
+    
+
     def get_dep_embedding(self, vocab=default['dep_embedding'], options={}):
         """
         Return a vectorized representation of the DEP of this Node
@@ -770,6 +785,10 @@ class Node(Object):
             dep_vector = vocab['_empty_']
             
         return dep_vector
+    
+
+    def get_empty_dep_embedding(self, vocab=default['dep_embedding'], options={}):
+        return vocab['_empty_']
     
 
     def get_verb_nodes(self):
@@ -829,7 +848,7 @@ class Node(Object):
             self.embedding = vec
 
         else:
-            self.embedding = vocab.get('_empty_')
+            self.embedding = None
             
         # Recursive application
         if self.children is not None:
