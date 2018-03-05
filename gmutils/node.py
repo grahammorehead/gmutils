@@ -828,6 +828,9 @@ class Node(Object):
                 vec = vecs[0]
             self.embedding = vec
 
+        else:
+            self.embedding = vocab.get('_empty_')
+            
         # Recursive application
         if self.children is not None:
             for child in self.children:
