@@ -3,12 +3,10 @@ from gmutils import err, argparser, argparser_ml, serialize, deserialize, set_mi
 
 from gmutils import normalize, ascii_fold
 
-# elastic_utils
-from gmutils import list_indices, index_dicts, index_dict, index_text_with_synonyms
+from gmutils import list_indices, index_dicts, index_dict, index_text_with_synonyms, match_search, prefix_search, wildcard_search, synonym_search
 
 from gmutils import KinesisStream
 
-# mongo_utils
 from gmutils import mongo_iterator, mongo_find_one
 
 from gmutils import generate_spacy_data, spacy_ner, spacy_parsing

@@ -10,9 +10,9 @@ from elasticsearch import Elasticsearch
 from elasticsearch import helpers
 es = Elasticsearch()
 
-from .utils import argparser, isTrue
-from .normalize import normalize
-from .lexical import damerauLevenshtein, phrase_similarity
+from gmutils.utils import err, argparser, isTrue
+from gmutils.normalize import normalize
+from gmutils.lexical import damerauLevenshtein, phrase_similarity
 
 ################################################################################
 # ADMIN FUNCTIONS
@@ -211,7 +211,7 @@ def get_docs(index='default'):
     Parameters
     ----------
     index : str
-        name of index where things are to be stored
+        name of index where things are stored
 
     Check in browser:
     http://localhost:9200/default/_search?pretty=true&q=*:*
@@ -254,7 +254,24 @@ def match_search(line, index='default'):
     return res['hits']['hits']
 
 
+def synonym_search(line, index='default'):
+    body = {
+        "query": {
+            "match": {
+                "names": {
+                    "query":     line,
+                    "fuzziness": "AUTO",
+                    "operator":  "and"
+                }
+            }
+        }
+    }
+    res = es.search(index=index, body=body)
+    return res['hits']['hits']
+
+
 def prefix_search(line, index='default'):
+    err([line])
     body = {
         "query": {
             "match": {
