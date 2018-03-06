@@ -8,7 +8,8 @@ import json
 import pickle
 from copy import deepcopy
 import random
-
+import pandas as pd
+from sklearn.preprocessing import Binarizer
 from sklearn import metrics
 
 try:
@@ -16,8 +17,8 @@ try:
 except:
     pass
 
-from gmutils.utils import *
-from gmutils.objects import *
+from gmutils.utils import err, argparser, pandasize
+from gmutils.objects import Object
 
 
 ################################################################################
@@ -133,13 +134,17 @@ class Model(Object):
         Uses a stored threshold to binarize predictions
 
         """
+        if not self.get('thresh'):
+            self.set_thresh()
+        
         if not self.get('binarizer'):
-            thresh = self.get('thresh')
-            self.set('binarizer', Binarizer(threshold=thresh))
-        binarizer = self.get('binarizer')
+            self.set('binarizer', Binarizer(threshold=self.get('thresh')))
         
-        return binarizer.transform(X)
+        X = self.get('binarizer').transform(X.values.reshape(1, -1))
+        X = pandasize(X)
         
+        return X
+    
         
     def predict(self, X, binarizer=None):
         """
@@ -149,16 +154,21 @@ class Model(Object):
         ----------
         X : array of str, Sentence objects, ints, floats, etc
 
-        Returns : array of float
+        Returns
+        -------
+        pandas.Series
 
         """
         if self.get('vocab'):
             X = self.embed(X)
         preds = self.model.predict(X)
-        
+
         if self.get('binarize_predictions'):
             preds = self.binarize(preds)
-        
+
+        preds = pandasize(preds)
+        if not isinstance(preds, pd.Series):  err([], {'ex':"ERROR: preds not a pd.Series."})
+
         return preds
 
     
@@ -170,12 +180,18 @@ class Model(Object):
         ----------
         X : array of str, Sentence objects, ints, floats, etc
 
-        Returns : array of float
+        Returns
+        -------
+        pandas.Series
+
         """
         if self.get('vocab'):
             X = self.embed(X)
         preds = self.model.predict_proba(X)
 
+        preds = pandasize(preds)
+        if not isinstance(preds, pd.Series):  err([], {'ex':"ERROR: preds not a pd.Series."})
+        
         return preds
 
 
@@ -219,6 +235,7 @@ class Model(Object):
             thresh = self.next_thresh(thresh, F1)
             n -= 1
             
+        self.set('thresh', best_thresh)
         self.set('binarizer', Binarizer(threshold=best_thresh))
                 
     
@@ -236,11 +253,11 @@ class Model(Object):
         Y = dataset.y_test
 
         if self.get('binarize_predictions'):
-            sys.stderr.write("\nSetting threshold ...\n")
-            self.set_thresh(X, Y)
+            Y = self.binarize(Y)
         
         sys.stderr.write("\nMaking predictions ...\n")
         preds = self.predict(X)
+        err([Y, preds])
         report = metrics.classification_report(Y, preds)
         cm = metrics.confusion_matrix(Y, preds)
         print(report)

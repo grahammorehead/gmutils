@@ -782,7 +782,48 @@ def start_with_same_word(A, B):
         return True
     return False
     
-            
+
+def pandasize(X):
+    """
+    Convert some incoming data to a pandas DataFrame or Series, depending on its dimensionality
+
+    Parameters
+    ----------
+    X : list, array, or numpy Array
+
+    Returns
+    -------
+    pandas Series or DataFrame
+    """
+    make_series = False   # Assume DataFrame until otherwise indicated
+    
+    if isinstance(X, pd.Series):
+        return X
+    elif isinstance(X, pd.DataFrame):
+        return X
+        
+    elif isinstance(X, list):
+        make_series = True
+    
+    elif isinstance(X, np.ndarray):
+
+        if len(X.shape) == 1:
+            make_series = True
+
+        if len(X.shape) == 2:
+            if X.shape[0] == 1:
+                make_series = True
+                X = X[0]
+
+    if make_series:
+        X = pd.Series(X)
+
+    else:
+        X = pd.DataFrame(X)
+
+    return X
+
+
 ################################################################################
 # MAIN
 
