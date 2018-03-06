@@ -13,6 +13,7 @@ import csv
 import math
 
 from sklearn.linear_model import SGDClassifier
+from sklearn.svm import SVR
 from sklearn.tree import DecisionTreeClassifier
 from sklearn.neural_network import MLPClassifier
 from sklearn.ensemble import RandomForestClassifier
@@ -95,6 +96,12 @@ class SklearnModel(Model):
         if 'svm' in self.get('estimators'):
             svm = SGDClassifier(loss='log', alpha=0.0001, n_iter=50, penalty='l2', verbose=verbose)
             estimators.append(('SVM', svm))
+
+        """  SVR Support-Vector Regression
+        """
+        if 'svr' in self.get('estimators'):
+            svr = SVR(kernel='rbf', degree=3, gamma='auto', coef0=0.0, tol=0.001, C=1.0, epsilon=0.1, shrinking=True, cache_size=200, verbose=False, max_iter=-1)
+            estimators.append(('SVR', svr))
 
         """  Multi-Layer Perceptron (AKA Fully-connected feed-forward Neural Net)
                  more info: http://scikit-learn.org/stable/modules/generated/sklearn.neural_network.MLPClassifier.html#sklearn.neural_network.MLPClassifier
