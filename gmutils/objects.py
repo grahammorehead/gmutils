@@ -208,7 +208,10 @@ class Object(object):
         caller = sys._getframe(1).f_code.co_name   # name of the function in which 'done()' was called
         tracker = '_DONE_' + caller                # name of stored key to track how many times 'caller' has been called for this object
         so_far = self.get(tracker)                 # number of times 'caller' has been called so far
-        self.set(tracker, so_far + 1)              # increment the number of times
+        try:
+            self.set(tracker, so_far + 1)          # increment the number of times
+        except:
+            self.set(tracker, 1)                   # first time
 
         return so_far
         

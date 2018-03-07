@@ -425,6 +425,17 @@ class Document(Object):
         return sorted(nodes, key=lambda x: x.get_index())
         
 
+    def get_num_nodes(self):
+        """
+        Return int number of nodes in this Document
+        """
+        if not self.done():
+            nodes = self.get_nodes()
+            self.set('num_nodes', len(nodes))
+
+        return self.get('num_nodes')
+    
+    
     def get_nodes_covering_span(self, span):
         """
         Get set of nodes in this Document that cover the span in question
