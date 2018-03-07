@@ -159,8 +159,11 @@ class Model(Object):
         pandas.Series
 
         """
+        if X is None:
+            return None
         if self.get('vocab'):
             X = self.embed(X)
+
         preds = self.model.predict(X)
 
         if self.get('binarize_predictions'):

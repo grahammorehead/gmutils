@@ -8,6 +8,8 @@ import traceback
 import json
 import zipfile
 import pickle
+from sklearn.externals import joblib
+import dill
 import inspect
 import requests
 import argparse
@@ -15,7 +17,6 @@ import csv
 import numpy as np
 import scipy
 import pandas as pd
-from sklearn.externals import joblib
 from sklearn.model_selection import ShuffleSplit
 
 ################################################################################
@@ -516,6 +517,9 @@ def serialize(thing, file=None, directory=None, options={}):
         
     if isTrue(options, 'joblib'):
         joblib.dump(thing, file)
+    elif isTrue(options, 'dill'):
+        with open(file,'wb') as FH:
+            dill.dump(thing, FH)
     else:
         with open(file,'wb') as FH:
             pickle.dump(thing, FH)
@@ -533,7 +537,6 @@ def deserialize(file=None, directory=None, options={}):
 
     """
     # options['verbose'] = True
-    options['joblib'] = True
     
     # Deserialize a Model
     if directory is not None:
@@ -547,6 +550,10 @@ def deserialize(file=None, directory=None, options={}):
     if isTrue(options, 'joblib'):
         thing = joblib.load(file)
         return thing
+    elif isTrue(options, 'dill'):
+        with open(file,'rb') as FH:
+            thing = dill.load(FH)
+            return thing
     else:
         with open(file,'rb') as FH:
             thing = pickle.load(FH)
