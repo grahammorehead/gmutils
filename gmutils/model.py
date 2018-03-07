@@ -175,6 +175,25 @@ class Model(Object):
         return preds
 
     
+    def predict_one(self, x, binarizer=None):
+        """
+        Return the prediction for one input line
+
+        Parameters
+        ----------
+        x : str, or Sentence object, int, float, etc
+
+        Returns
+        -------
+        float or label (model output for one input)
+
+        """
+        x = x.reshape(1, -1)
+        X = pd.DataFrame(x)
+        preds = self.predict(X, binarizer=binarizer)
+        return preds[0]
+        
+        
     def predict_proba(self, X):
         """
         Return the prediction for each input line.
