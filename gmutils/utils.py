@@ -158,6 +158,9 @@ def err(vars=[], options={}):
         Lowest value allows all errors and warnings to print
 
     """
+    verbose = False
+    if verbose:  sys.stderr.write("err 162\n")
+    
     # Information about the urgency of this call
     call_level = options.get('level')
     if call_level is None:  call_level = 2    # default is 2
@@ -170,16 +173,25 @@ def err(vars=[], options={}):
     if call_level < os_level:
         options['silent'] = True
 
+    if verbose:  sys.stderr.write("err 176\n")
+        
     # Gather frame
     callerframerecord = inspect.stack()[1]    # 0 represents this line
                                               # 1 represents line at caller
+    if verbose:  sys.stderr.write("err 181\n")
+        
     frame = callerframerecord[0]
     info = inspect.getframeinfo(frame)
     file = os.path.basename(info.filename)
+    
+    if verbose:  sys.stderr.write("err 187\n")
+        
     line = info.lineno
     if not isTrue(options, 'silent'):
         sys.stderr.write("\nDEBUG (Line %d) from file %s:\n"% (line, info.filename))
 
+    if verbose:  sys.stderr.write("err 193\n")
+        
     # Parse exception
     exception = options.get('exception')
     if exception is None:
@@ -193,15 +205,23 @@ def err(vars=[], options={}):
                 sys.stderr.write("ERROR: {}\n".format(arg))
             sys.stderr.write("\n\t"+ str(sys.exc_info()[0]) +"\n")
 
+    if verbose:  sys.stderr.write("err 208\n")
+            
     # Print vars to STDERR if present
     if len(vars) > 0:
+        if verbose:  sys.stderr.write("err 212\n")
         if isinstance(vars, str):
+            if verbose:  sys.stderr.write("err 214\n")
             sys.stderr.write('\tVAR  |%s|\n' % vars)
         else:
+            if verbose:  sys.stderr.write("err 217: " + str(vars) + "\n")
             for v in vars:
+                if verbose:  sys.stderr.write("err 219: " + str(v) + "\n")
                 sys.stderr.write('\tVAR  |%s|  %s\n'% (str(v), str(type(v))) )
             sys.stderr.write('\n')
 
+    if verbose:  sys.stderr.write("err 223\n")
+            
     # Conditional return
     if isTrue(options, 'exit'):
         exit(1)
@@ -657,6 +677,7 @@ def monitor(_monitor):
     if done < 100.0  and  done - lastDone > 0.1:
         sys.stderr.write("\b\b\b\b\b\b")
         sys.stderr.write("%04.1f%% "% done)
+        sys.stderr.flush()
         lastDone = done
 
     _monitor = total_i, i, lastDone
