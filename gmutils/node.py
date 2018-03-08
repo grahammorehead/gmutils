@@ -84,10 +84,11 @@ class Node(Object):
         """
         Remove a Node and make sure it doesn't get used accidentally
         """
+        if self.is_dead:
+            err([], {'ex':"ERROR: Node was already dead!"})
+            
         self.is_dead = True
-        print("Killing", self.get_text())
-        #self.tokens = self.children = self.embedding = None
-        self.children = self.embedding = None
+        self.tokens = self.children = self.embedding = None
         
                 
     def __repr__(self):
@@ -266,7 +267,6 @@ class Node(Object):
         parent.disown(node)                # Separate child from old parent
         self.tokens.extend(node.tokens)    # Absorb their tokens
         self.adopt(node.children)          # Adopt their children
-        err()
         node.kill()
 
 
@@ -292,7 +292,6 @@ class Node(Object):
             self.tokens.extend(node.tokens)    # Absorb node's tokens
             self.adopt(node.children)          # Adopt node's children (ignores self, of course)
             grandparent.adopt(self)            # New parental relationship with grandparent
-            err()
             node.kill()
 
             
@@ -316,7 +315,6 @@ class Node(Object):
         old_parent.disown(node)                # Cut old parental ties
         self.tokens.extend(node.tokens)        # Absorb their tokens
         self.adopt(node.children)              # Adopt their children (if any)
-        err()
         node.kill()
 
         
@@ -875,9 +873,6 @@ class Node(Object):
         Returns a self-inclusive list of this Node and all descendants
         """
         nodes = set([self])
-        t = self.get_text()
-        if t == 'Black':
-            err([t])
         for node in self.children:
             nodes.update(node.get_nodes())
 

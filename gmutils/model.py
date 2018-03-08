@@ -188,8 +188,9 @@ class Model(Object):
         float or label (model output for one input)
 
         """
-        x = x.reshape(1, -1)
-        X = pd.DataFrame(x)
+        #x = x.reshape(1, -1)
+        #X = pd.DataFrame(x)
+        X = [x]
         preds = self.predict(X, binarizer=binarizer)
         return preds[0]
         

@@ -15,7 +15,7 @@ import math
 from sklearn.linear_model import SGDClassifier
 from sklearn.svm import SVR
 from sklearn.tree import DecisionTreeClassifier
-from sklearn.neural_network import MLPClassifier
+from sklearn.neural_network import MLPClassifier, MLPRegressor
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.ensemble import VotingClassifier
 
@@ -114,6 +114,13 @@ class SklearnModel(Model):
             nn = MLPClassifier(hidden_layer_sizes=self.get('nn_hl'), activation='relu', solver='sgd', alpha=0.0001, batch_size='auto', learning_rate='adaptive', learning_rate_init=1.0, power_t=0.05, max_iter=self.get('nn_max_iter'), shuffle=True, tol=1e-08, verbose=True, warm_start=False, momentum=0.9, nesterovs_momentum=True, early_stopping=False, validation_fraction=0.01, beta_1=0.9, beta_2=0.999, epsilon=1e-08)
             estimators.append(('NN', nn))
 
+        """  NN Regressor
+                 more info: http://scikit-learn.org/stable/modules/generated/sklearn.neural_network.MLPRegressor.html
+        """
+        if 'nnr' in self.get('estimators'):
+            nnr = MLPRegressor(hidden_layer_sizes=self.get('nn_hl'), activation='relu', solver='sgd', alpha=0.0001, batch_size='auto', learning_rate='adaptive', learning_rate_init=0.1, power_t=0.5, max_iter=self.get('nn_max_iter'), shuffle=True, tol=0.0001, verbose=True, warm_start=False, momentum=0.9, nesterovs_momentum=True, early_stopping=False, validation_fraction=0.1, beta_1=0.9, beta_2=0.999, epsilon=1e-08)
+            estimators.append(('NNR', nnr))
+            
         """  Ada Boost Ensemble Decision Tree Classifier
                  more info: http://scikit-learn.org/stable/modules/generated/sklearn.ensemble.AdaBoostClassifier.html
         """
