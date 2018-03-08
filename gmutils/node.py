@@ -644,18 +644,22 @@ class Node(Object):
         Find the shortest substring in the original text such that all nodes on this subtree are represented
 
         """
-        left = right = None
-        if len(self.tokens) < 1:
-            return ''
-        
-        for token in self.tokens:
-            if left is None or token.left_edge.i < left:
-                left = token.left_edge.i
-            if right is None or token.right_edge.i > right:
-                right = token.right_edge.i
-                
-        subtree_span = self.doc.get_span(left, right+1)
-        return subtree_span.text
+        if not self.done():   # perform once
+
+            left = right = None
+            if len(self.tokens) < 1:
+                return ''
+
+            for token in self.tokens:
+                if left is None or token.left_edge.i < left:
+                    left = token.left_edge.i
+                if right is None or token.right_edge.i > right:
+                    right = token.right_edge.i
+
+            subtree_span = self.doc.get_span(left, right+1)
+            self.set('supporting_text', subtree_span.text)
+
+        return self.get('supporting_text')
     
 
     def get_semantic_roles_str(self, options={}):
@@ -725,7 +729,9 @@ class Node(Object):
             dep    = self.get_empty_dep_embedding()
             vector = np.concatenate([pos, ner, dep])
 
-        return vector.astype(float)
+        vector = vector.astype(float).tolist()
+        
+        return vector
 
 
     def get_pos_embedding(self, vocab=default['pos_embedding'], options={}):
