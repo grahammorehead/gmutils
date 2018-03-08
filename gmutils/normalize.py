@@ -244,8 +244,12 @@ def clean_spaces(line):
 
 
 def remove_citations(line):
+    """
+    Removes things that look like citations from Wikipedia-sourced data
+    """
     line = re.sub(r"\[citation needed\]", '', line)
-    line = re.sub(r"(?<=[a-zA-Z])\.\d[\d,]* ", '. ', line)
+    line = re.sub(r"(?<=[a-zA-Z])\.\d[\d,]*$", '.', line)
+    line = re.sub(r"(?<=[a-zA-Z])\.\d[\d,]* \s*([A-Z])", r'.  \1', line)
     
     return line
 

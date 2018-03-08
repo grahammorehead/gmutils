@@ -14,10 +14,12 @@ import inspect
 import requests
 import argparse
 import csv
+import math
 import numpy as np
 import scipy
 import pandas as pd
 from sklearn.model_selection import ShuffleSplit
+from scipy import spatial
 
 ################################################################################
 # FUNCTIONS
@@ -852,6 +854,16 @@ def pandasize(X):
     return X
 
 
+def cosine_distance(A, B):
+    """
+    The cosine distance between two vectors, A and B
+    """
+    distance = spatial.distance.cosine(A, B)
+    if math.isnan(distance):
+        return 1.0
+    return distance
+
+
 ################################################################################
 # MAIN
 
@@ -873,9 +885,9 @@ if __name__ == '__main__':
                         
         elif args.test:
             a = [1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 3.0, 1.0]
-            b = [2.0, 2.0, 2.0, 2.0, 2.0, 2.0, 2.0, 2.0, 2.0, 2.0]
-            c = [3.5, 3.5, 3.5, 3.5, 3.5, 3.5, 3.5, 3.5, 3.5, 3.5]
-            print(vector_average([a,b,c]))
+            #b = [2.0, 2.0, 2.0, 2.0, 2.0, 2.0, 2.0, 2.0, 2.0, 2.0]
+            b = [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
+            print(cosine_distance(a,b))
                     
         else:
             print(__doc__)

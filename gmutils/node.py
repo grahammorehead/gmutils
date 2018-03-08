@@ -85,7 +85,9 @@ class Node(Object):
         Remove a Node and make sure it doesn't get used accidentally
         """
         self.is_dead = True
-        self.tokens = self.children = self.embedding = None
+        print("Killing", self.get_text())
+        #self.tokens = self.children = self.embedding = None
+        self.children = self.embedding = None
         
                 
     def __repr__(self):
@@ -264,6 +266,7 @@ class Node(Object):
         parent.disown(node)                # Separate child from old parent
         self.tokens.extend(node.tokens)    # Absorb their tokens
         self.adopt(node.children)          # Adopt their children
+        err()
         node.kill()
 
 
@@ -274,9 +277,12 @@ class Node(Object):
         if self.is_root():                     # self is root.  There is no parent
             pass
         
-        elif self.parent.is_root():                   # parent is root
-            self.tokens.extend(self.parent.tokens)    # Absorb node's tokens
-            self.adopt(self.parent.children)          # Adopt node's children (ignores self, of course)
+        elif self.parent.is_root():            # parent is root
+            node = self.parent
+            self.doc.disown(node)              # take parent out of the list of doc.trees
+            self.doc.adopt(self)               # add self to that list
+            self.tokens.extend(node.tokens)    # Absorb node's tokens
+            self.adopt(node.children)          # Adopt node's children (ignores self, of course)
             self.parent = None                        # self is the new root
             
         else:
@@ -286,6 +292,7 @@ class Node(Object):
             self.tokens.extend(node.tokens)    # Absorb node's tokens
             self.adopt(node.children)          # Adopt node's children (ignores self, of course)
             grandparent.adopt(self)            # New parental relationship with grandparent
+            err()
             node.kill()
 
             
@@ -309,6 +316,7 @@ class Node(Object):
         old_parent.disown(node)                # Cut old parental ties
         self.tokens.extend(node.tokens)        # Absorb their tokens
         self.adopt(node.children)              # Adopt their children (if any)
+        err()
         node.kill()
 
         
@@ -867,6 +875,9 @@ class Node(Object):
         Returns a self-inclusive list of this Node and all descendants
         """
         nodes = set([self])
+        t = self.get_text()
+        if t == 'Black':
+            err([t])
         for node in self.children:
             nodes.update(node.get_nodes())
 

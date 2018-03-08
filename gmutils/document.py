@@ -177,6 +177,21 @@ class Document(Object):
             self.trees.append(Node(self, sen.root))
 
 
+    def disown(self, node):
+        """
+        Remove <node> from self.trees
+        """
+        self.trees.remove(node)
+        
+        
+
+    def adopt(self, node):
+        """
+        Add <node> to self.trees
+        """
+        self.trees.append(node)
+        
+
     def print_sentences(self):
         """
         Print the supporting text for each tree
