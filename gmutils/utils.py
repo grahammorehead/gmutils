@@ -855,14 +855,16 @@ def pandasize(X):
     return X
 
 
-def cosine_distance(A, B):
+def cosine_similarity(A, B):
     """
     The cosine distance between two vectors, A and B
     """
     distance = spatial.distance.cosine(A, B)
     if math.isnan(distance):
-        return 1.0
-    return distance
+        return 0.0
+    similarity = 1.0 - distance
+    
+    return similarity
 
 
 ################################################################################
