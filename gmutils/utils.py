@@ -114,6 +114,7 @@ def argparser_ml(options={}):
     parser = argparser(options)
     
     # Boolean flags
+    parser.add_argument('--balance_by_copies', help='Balance the data classes (training only) by simply copying some samples', required=False, action='store_true')
     parser.add_argument('--classify',         help='Use the model to classify the data in the input file, the train', required=False, action='store_true')
     parser.add_argument('--eval',             help='Separate data into train/eval sets, then evaluate a trained model', required=False, action='store_true')
     parser.add_argument('--load_dataset',     help='Load a prebuilt vectorizer from disk', required=False, action='store_true')
@@ -132,6 +133,7 @@ def argparser_ml(options={}):
     parser.add_argument('--model',            help='File to save the model to', required=False, type=str)
     parser.add_argument('--model_dir',        help='Directory to save the model in', required=False, type=str)
     parser.add_argument('--model_file',       help='Load a specific model file', required=False, type=str)
+    parser.add_argument('--thresh',           help='Threshold for some output label operations such as binarization', type=float, required=False)
     parser.add_argument('--train_file',       help='Training files local or GCS', required=False, type=str)
     parser.add_argument('--steps_per_epoch',  help='Steps per epoch', required=False, type=int)
     parser.add_argument('--weights',          help='A weights file to load', required=False, type=str)

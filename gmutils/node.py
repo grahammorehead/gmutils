@@ -877,8 +877,29 @@ class Node(Object):
             nodes.update(node.get_nodes())
 
         return sorted(nodes, key=lambda x: x.get_index())
-    
-                
+
+
+    def get_depth(self):
+        """
+        Number of links to root
+        """
+        if self.is_root():
+            return 0
+        else:
+            return 1 + self.parent.get_depth()
+
+
+    def get_num_siblings(self):
+        """
+        Number of parent's children minus one
+        """
+        if self.is_root():
+            return 0
+        
+        num = len(self.parent.children)
+        return num - 1
+        
+        
     ############################################################################
     # Printing
 

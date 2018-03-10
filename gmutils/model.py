@@ -11,6 +11,7 @@ import random
 import pandas as pd
 from sklearn.preprocessing import Binarizer
 from sklearn import metrics
+from sklearn.metrics import mean_absolute_error
 
 try:
     from keras.utils.vis_utils import plot_model
@@ -262,6 +263,37 @@ class Model(Object):
         self.set('binarizer', Binarizer(threshold=best_thresh))
                 
     
+    def evaluate_regression(self, dataset):
+        """
+        Evaluate this regression model against the test portion of a TrainingDataset
+
+        Parameters
+        ----------
+        dataset : TrainingDataset object
+            This function only pays attention to the testing data: dataset.test
+
+        """
+        X = dataset.x_test
+        Y = dataset.y_test
+
+        # sys.stderr.write("\nMaking predictions ...\n")
+        preds = self.predict(X)
+        # err([Y, preds])
+        
+        mae = mean_absolute_error(Y, preds)
+        print("MAE:", mae)
+
+        # Same for positive cases
+        X, Y = dataset.get_positive_testdata()
+
+        # sys.stderr.write("\nMaking predictions ...\n")
+        preds = self.predict(X)
+        # err([Y, preds])
+        
+        mae = mean_absolute_error(Y, preds)
+        print("MAE:", mae)
+        
+        
     def evaluate(self, dataset):
         """
         Evaluate this model against the test portion of a TrainingDataset
@@ -280,7 +312,7 @@ class Model(Object):
         
         sys.stderr.write("\nMaking predictions ...\n")
         preds = self.predict(X)
-        err([Y, preds])
+        # err([Y, preds])
         report = metrics.classification_report(Y, preds)
         cm = metrics.confusion_matrix(Y, preds)
         print(report)

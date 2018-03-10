@@ -26,16 +26,16 @@ class Dataset(Object):
     """
     A dataset object to simplify the training and use of a model
 
-    Attributes
+    Attributes (some optional)
     ----------
-    x_train : numpy ndarray
-    y_train : numpy ndarray
+    x_train : pandas DataFrame
+    y_train : pandas Series
 
-    x_test : numpy ndarray
-    y_test : numpy ndarray
+    x_test : pandas DataFrame
+    y_test : pandas Series
 
-    x_validation : numpy ndarray
-    y_validation : numpy ndarray
+    x_validation : pandas DataFrame
+    y_validation : pandas Series
 
     """
     def __init__(self, options=None):
@@ -64,6 +64,9 @@ class Dataset(Object):
             
         self.print_set_sizes()
 
+        if self.get('balance_by_copies'):   # only affects training data
+            self.balance_by_copies()
+        
 
     def read_data(self, inputs):
         """
@@ -109,32 +112,195 @@ class Dataset(Object):
         """
         n_train = len(self.y_train)         # Lines of input text for training
         n_test  = len(self.y_test)          # Lines of input text for testing
-        sys.stderr.write('Training set:  %s\n'% str(n_train))
+        sys.stderr.write('\nTraining set:  %s\n'% str(n_train))
         sys.stderr.write('Test set:      %s\n'% str(n_test))
 
     
     def get_class_counts(self, Y):
         """
-        To know how many of each class is in the training samples
+        To know how many of each class is in a given set of output labels
 
         Parameters
         ----------
         Y : pandas.Series
+        
+        Options
+        -------
+        thresh : float 
+            Uses this object-wide option in the case that the labels are continuous
 
         Returns
         -------
         counts : a dict having each class name and number of occurrences
         """
         counts = {}
-        for y in Y:
-            y = int(y)
-            if y in counts:
-                counts[y] += 1
-            else:
-                counts[y] = 1
+
+        # For continuous data, a threshold must have been set
+        thresh = self.get('thresh')
+
+        if thresh is not None:
+            counts[0] = 0
+            counts[1] = 0
+            for y in Y:
+                if y > thresh:
+                    counts[1] += 1
+                else:
+                    counts[0] += 1
+
+        else:
+            vc = Y.value_counts()
+            for i,v in vc.iteritems():
+                counts[i] = v
                 
         return counts
+
+
+    def get_positive_testdata(self):
+        """
+        Return a subset of the test data: only that which is either positive or above <thresh> (if provided)
+
+        Options
+        -------
+        thresh : float
+            Object-level option for dealing with continuous labels
+
+        Returns
+        -------
+        X : pandas DataFrame
+
+        Y : pandas Series
+            either floats with a thresh, or (0,1, other), or boolean
+
+        """
+        out_x = []
+        out_y = []
+        thresh = self.get('thresh')
+        
+        for i, row in self.x_test.iterrows():
+            y = self.y_test.loc[i]
+
+            if thresh is None  and  y:
+                out_x.append(row)
+                out_y.append(y)
             
+            elif y > thresh:
+                out_x.append(row)
+                out_y.append(y)
+
+        X = pd.DataFrame(out_x)
+        Y = pd.Series(out_y)
+
+        return X, Y
+
+
+    def iter_training_samples_by_thresh(self, aorb, thresh):
+        """
+        Yield training samples above or below a threshold
+        """
+        if aorb == 'above':
+            while True:
+                for i, row in self.x_test.iterrows():
+                    y = self.y_test.loc[i]
+                    if y > thresh:
+                        yield row, y
+                    
+        elif aorb == 'below':        
+            while True:
+                for j, row in self.x_test.iterrows():
+                    y = self.y_test.loc[j]
+                    if y <= thresh:
+                        yield row, y
+                    
+        else:  err([], {'ex':"Unexpected"})
+
+
+    def get_combined_training_copy(self, thresh=None, aorb=None):
+        """
+        For the purposes of oversampling a minority set, return a deepcopy of the training data with X and Y in one DataFrame
+        """
+        df = self.x_train.copy()
+        df['Y'] = self.y_train.copy()
+
+        if thresh is None:
+            pass
+        elif aorb == 'above':
+            df = df[df['Y'] > thresh]
+            cc = self.get_class_counts(df['Y'])
+        elif aorb == 'below':
+            df = df[df['Y'] <= thresh]
+            
+        return df
+    
+            
+    def get_training_samples_by_thresh(self, aorb, thresh, diff):
+        """
+        Gather 'diff' training samples above or below a threshold
+        """
+        x_new = pd.DataFrame([])
+        y_new = pd.Series([])
+
+        tdf = self.get_combined_training_copy(thresh, aorb)
+        
+        while len(y_new) < diff:
+            x_new = x_new.append(tdf.drop(['Y'], axis=1))
+            y_new = y_new.append(tdf['Y'])
+
+        if len(y_new) > diff:
+            x_new = x_new[:diff]
+            y_new = y_new[:diff]
+            
+        return x_new, y_new
+
+    
+    def balance_by_copies(self):
+        """
+        If one or more classes are minority, increase their ranks by copying original set enough times to reach
+        size parity with the majority class.  AKA "Minority Oversampling"
+
+        This applies ONLY to the training set.  Test and validation or left untouched.
+        """
+        cc = self.get_class_counts(self.y_train)
+        print("Training class counts:", cc)
+        sys.stderr.write('Balancing by oversampling copies of the minority set ...\n')
+        X = self.x_train
+        Y = self.y_train
+        x_new = pd.DataFrame([])
+        y_new = pd.Series([])
+        thresh = self.get('thresh')  # set IFF output labeling is continous
+        
+        ### Balancing with classes
+        if thresh is None:
+            sizes = {}
+            vc = Y.value_counts()
+            max_cl = 0
+            
+            for cl, times in vc.iteritems():
+                if cl > max_cl:
+                    max_cl = cl
+                    
+            for cl, times in vc.iteritems():
+                lack = max_cl - cl
+                xn, yn = self.get_training_samples(cl)  # to be implemented
+                x_new.extend(xn)
+                y_new.extend(yn)
+
+        ### Balancing by threshold  (for continuous data)
+        else:
+            max_count = max(cc.values())
+            diff0 = max_count - cc[0]
+            diff1 = max_count - cc[1]
+
+            if diff0 > 0:
+                x_new, y_new = self.get_training_samples_by_thresh('below', thresh, diff0)
+            elif diff1 > 0:
+                x_new, y_new = self.get_training_samples_by_thresh('above', thresh, diff1)
+                    
+        self.x_train = self.x_train.append(x_new)
+        self.y_train = self.y_train.append(y_new)
+                
+        cc = self.get_class_counts(self.y_train)
+        print("Training class counts:", cc)
+        
             
 ################################################################################
 # FUNCTIONS
