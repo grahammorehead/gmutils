@@ -179,9 +179,10 @@ class Dataset(Object):
         for i, row in self.x_test.iterrows():
             y = self.y_test.loc[i]
 
-            if thresh is None  and  y:
-                out_x.append(row)
-                out_y.append(y)
+            if thresh is None:
+                if y:
+                    out_x.append(row)
+                    out_y.append(y)
             
             elif y > thresh:
                 out_x.append(row)
@@ -216,7 +217,9 @@ class Dataset(Object):
 
     def get_combined_training_copy(self, thresh=None, aorb=None):
         """
-        For the purposes of oversampling a minority set, return a deepcopy of the training data with X and Y in one DataFrame
+        For the purposes of oversampling a minority set, return a deepcopy of the training data with X and Y in one DataFrame.
+
+        If specified, use a threshold to prune some of the data.
         """
         df = self.x_train.copy()
         df['Y'] = self.y_train.copy()
@@ -232,6 +235,40 @@ class Dataset(Object):
         return df
     
             
+    def get_combined_training_copy_for_class(self, cl):
+        """
+        For the purposes of oversampling a minority set, return a deepcopy of the training data with X and Y in one DataFrame.
+
+        Only returns the subset with output labels matching class 'cl'
+
+        """
+        df = self.x_train.copy()
+        df['Y'] = self.y_train.copy()
+        df = df[df['Y']==cl]
+        
+        return df
+    
+            
+    def get_training_samples_by_class(self, cl, diff):
+        """
+        Gather 'diff' training samples matching class 'cl'
+        """
+        x_new = pd.DataFrame([])
+        y_new = pd.Series([])
+
+        tdf = self.get_combined_training_copy_for_class(cl)
+        
+        while len(y_new) < diff:
+            x_new = x_new.append(tdf.drop(['Y'], axis=1))
+            y_new = y_new.append(tdf['Y'])
+
+        if len(y_new) > diff:
+            x_new = x_new[:diff]
+            y_new = y_new[:diff]
+            
+        return x_new, y_new
+
+    
     def get_training_samples_by_thresh(self, aorb, thresh, diff):
         """
         Gather 'diff' training samples above or below a threshold
@@ -267,6 +304,7 @@ class Dataset(Object):
         x_new = pd.DataFrame([])
         y_new = pd.Series([])
         thresh = self.get('thresh')  # set IFF output labeling is continous
+        max_count = max(cc.values())
         
         ### Balancing with classes
         if thresh is None:
@@ -278,15 +316,15 @@ class Dataset(Object):
                 if cl > max_cl:
                     max_cl = cl
                     
-            for cl, times in vc.iteritems():
-                lack = max_cl - cl
-                xn, yn = self.get_training_samples(cl)  # to be implemented
-                x_new.extend(xn)
-                y_new.extend(yn)
+            for cl in cc.keys():
+                diff = max_count - cc[cl]
+                if diff > 0:
+                    xn, yn = self.get_training_samples_by_class(cl, diff)
+                    x_new = x_new.append(xn)
+                    y_new = y_new.append(yn)
 
         ### Balancing by threshold  (for continuous data)
         else:
-            max_count = max(cc.values())
             diff0 = max_count - cc[0]
             diff1 = max_count - cc[1]
 
