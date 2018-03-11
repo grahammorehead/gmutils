@@ -672,7 +672,7 @@ class Node(Object):
         """
         Like a poor man's semantic roles
 
-        Glean what we can about semantic roles, represented in a str.  Applies best if self is_verb
+        Glean what we can about semantic roles, represented in a str.  Applies best theoretically if self is a verb
 
         Returns
         -------
@@ -684,7 +684,7 @@ class Node(Object):
         nodes_by_type = {}
         for child in self.children:
             dep = child.get_dep_str()   # Could be a string with multiple dep types
-            if dep == 'punct'  and  child.is_leaf():
+            if dep == 'PUNCT'  and  child.is_leaf():
                 continue
             if nodes_by_type.get(dep):
                 nodes_by_type[dep].append(child)
@@ -699,43 +699,43 @@ class Node(Object):
         return role
 
 
-    def get_semantic_roles_vector(self, options={}):
+    def get_role_vector(self, options={}):
         """
-        Like a poor man's semantic roles vectorization
+        Like a poor man's semantic role vectorization.  For the role-taking argument, not the head verb.
 
-        Glean what we can about semantic roles, represented in a vector.  Applies best if self is_verb
+        Glean what we can about the semantic role of a node, represented in a vector.  Applies best theoretically if parent is a verb
 
         Returns
         -------
         numpy array
             Represents the state of this Node with respect to POS, NER, and Dependencies
         """
-        nodes_by_type = {}
         vector = None
-        for child in self.children:
-            dep_str = child.get_dep_str()   # Could be a string with multiple dep types
-            if dep_str == 'punct'  and  child.is_leaf():
-                continue
 
-            # Get each part of the embedding for this child
-            pos = child.get_pos_embedding()
-            ner = child.get_ner_embedding()
-            dep = child.get_dep_embedding()
+        dep_str = self.get_dep_str()   # Could be a string with multiple dep types
+        if dep_str == 'PUNCT'  and  self.is_leaf():
+            pass
 
+        else:
+            # Get each part of the embedding
+            pos = self.get_pos_embedding()
+            ner = self.get_ner_embedding()
+            dep = self.get_dep_embedding()
             c = np.concatenate([pos, ner, dep])
-            
+
             if vector is None:
                 vector = c
             else:
-                vector = np.maximum.reduce([vector, c])  # maintain one-hot vector
+                vector = np.maximum.reduce([vector, c])  # binary OR: maintain sparse vector
 
-        if vector is None:
+        if vector is None:  # For cases such as leaf punctuation
             pos    = self.get_empty_pos_embedding()
             ner    = self.get_empty_ner_embedding()
             dep    = self.get_empty_dep_embedding()
             vector = np.concatenate([pos, ner, dep])
 
-        vector = vector.astype(float).tolist()
+        if options.get('as_float'):
+            vector = vector.astype(float).tolist()
         
         return vector
 

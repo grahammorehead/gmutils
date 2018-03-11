@@ -577,8 +577,12 @@ def deserialize(file=None, directory=None, options={}):
         return thing
     elif isTrue(options, 'dill'):
         with open(file,'rb') as FH:
-            thing = dill.load(FH)
-            return thing
+            thing = None
+            try:
+                thing = dill.load(FH)
+                return thing
+            except:
+                return thing
     else:
         with open(file,'rb') as FH:
             thing = pickle.load(FH)

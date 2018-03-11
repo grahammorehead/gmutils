@@ -249,7 +249,8 @@ def remove_citations(line):
     """
     # line = re.sub(r"\[citation needed\]", '', line)
     line = re.sub(r"(?<=[a-zA-Z])\.\d[\d,]*$", '.', line)
-    line = re.sub(r"(?<=[a-zA-Z])\.\d[\d,]* \s*([A-Z])", r'.  \1', line)
+    line = re.sub(r"(?<=[a-zA-Z])\.\d[\d,]* \s*([A-Z][a-z])", r'.  \1', line)
+    line = re.sub(r"(?<=[a-zA-Z])\.\d[\d,]* \s*([A-Z] )", r'.  \1', line)
     line = re.sub(r"\<[\w\.\,\'\-\?\!\%\&\*\@ ]+\>", "", line)
     
     return line
