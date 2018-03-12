@@ -379,7 +379,7 @@ class Node(Object):
 
     # end ALTERATIONS
     ############################################################################
-    
+
     def get_text(self):
         """
         Get a string representing, in tree order, the tokens comprising this Node
@@ -645,10 +645,22 @@ class Node(Object):
         return ' ' .join( sorted(deps) )
     
     
+    def get_supporting_tokens(self):
+        """
+        Find all tokens in this subtree, including this Node
+        """
+        if not self.done():   # perform once
+            tokens = set(self.tokens)
+            for child in self.children:
+                tokens.update( child.get_supporting_tokens() )
+            self.set('supporting_tokens', tokens)
+
+        return self.get('supporting_tokens')
+    
+
     def get_supporting_text(self):
         """
         Find the shortest substring in the original text such that all nodes on this subtree are represented
-
         """
         if not self.done():   # perform once
 
@@ -656,7 +668,7 @@ class Node(Object):
             if len(self.tokens) < 1:
                 return ''
 
-            for token in self.tokens:
+            for token in self.get_supporting_tokens():
                 if left is None or token.left_edge.i < left:
                     left = token.left_edge.i
                 if right is None or token.right_edge.i > right:
@@ -932,7 +944,7 @@ class Node(Object):
         print(indent + self.get_text() + ' {%s}'% self.get_dep_str())
 
         # Options
-        if options.get('supporting text'):  # Print the text supporting subtree
+        if options.get('supporting_text'):  # Print the text supporting subtree
             print(indent + '[ST]: ' + self.get_supporting_text())
         
         # Recursion
