@@ -705,6 +705,10 @@ class Node(Object):
 
         Glean what we can about the semantic role of a node, represented in a vector.  Applies best theoretically if parent is a verb
 
+        Options
+        -------
+        as_float : boolean
+
         Returns
         -------
         numpy array
@@ -718,10 +722,10 @@ class Node(Object):
 
         else:
             # Get each part of the embedding
+            dep = self.get_dep_embedding()
             pos = self.get_pos_embedding()
             ner = self.get_ner_embedding()
-            dep = self.get_dep_embedding()
-            c = np.concatenate([pos, ner, dep])
+            c = np.concatenate([dep, pos, ner])
 
             if vector is None:
                 vector = c
@@ -729,10 +733,10 @@ class Node(Object):
                 vector = np.maximum.reduce([vector, c])  # binary OR: maintain sparse vector
 
         if vector is None:  # For cases such as leaf punctuation
+            dep    = self.get_empty_dep_embedding()
             pos    = self.get_empty_pos_embedding()
             ner    = self.get_empty_ner_embedding()
-            dep    = self.get_empty_dep_embedding()
-            vector = np.concatenate([pos, ner, dep])
+            vector = np.concatenate([dep, pos, ner])
 
         if options.get('as_float'):
             vector = vector.astype(float).tolist()

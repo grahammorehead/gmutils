@@ -110,8 +110,15 @@ class Dataset(Object):
         """
         Print info about the training and test sets
         """
-        n_train = len(self.y_train)         # Lines of input text for training
-        n_test  = len(self.y_test)          # Lines of input text for testing
+        try:
+            n_train = len(self.y_train)         # Lines of input text for training
+        except:
+            n_train = 0
+        try:
+            n_test  = len(self.y_test)          # Lines of input text for testing
+        except:
+            n_test  = 0
+            
         sys.stderr.write('\nTraining set:  %s\n'% str(n_train))
         sys.stderr.write('Test set:      %s\n'% str(n_test))
 

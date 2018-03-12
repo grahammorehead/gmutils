@@ -19,8 +19,8 @@ from sklearn.neural_network import MLPClassifier, MLPRegressor
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.ensemble import VotingClassifier
 
-from .utils import err
-from .model import Model
+from gmutils.utils import err
+from gmutils.model import Model
 
 ################################################################################
 # CONFIG
@@ -61,31 +61,9 @@ class SklearnModel(Model):
         Names of the underlying estimator(s) to be used
 
     """
-    def __init__(self, options=None):
-        """
-        Instantiate the object and set options
-
-        """
-        self.set_options(options, default)        # For more on 'self.set_options()' see object.Object
-        self.generate()
-
-
     def generate(self):
         """
-        Generate the guts of a capsule network
-
-        Parameters
-        ----------
-        input_shape : data shape, 3d, [width, height, channels]
-
-        n_class : number of classes
-
-        routings: number of routing iterations
-
-        Generates
-        ---------
-        Two Keras Models, the first one used for training, and the second one for evaluation.
-            `eval_model` can also be used for training.
+        Generate the guts of the model
 
         """
         verbose = True
