@@ -1,7 +1,7 @@
 
 from gmutils import err, argparser, argparser_ml, serialize, deserialize, set_missing_attributes, isTrue, read_file, monitor_setup, monitor, read_conceptnet_vectorfile, cosine_similarity
 
-from gmutils import normalize, ascii_fold
+from gmutils import normalize, ascii_fold, simplify_for_distance
 
 from gmutils import list_indices, index_dicts, index_dict, index_text_with_synonyms, match_search, prefix_search, wildcard_search, synonym_search
 
