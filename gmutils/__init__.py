@@ -10,7 +10,7 @@ try:
 except Exception as e: err([], {'exception':e, 'level':0})
 
 try:
-    from .mongo_utils import mongo_iterator, mongo_find_one
+    from .mongo_utils import mongo_iterator, mongo_find_one, mongo_count
 except Exception as e: err([], {'exception':e, 'level':0})
 
 from .nlp import generate_spacy_data, spacy_ner, spacy_parsing

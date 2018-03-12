@@ -82,6 +82,32 @@ def mongo_find_one(db_name='default', collection_name='default', host='localhost
     return coll.find_one()
 
 
+def mongo_count(db_name='default', collection_name='default', host='localhost', port=27017):
+    """
+    Return the number of documents in a collection
+    """
+    client = MongoClient(host, port)
+    db = client[db_name]
+    coll = db[collection_name]
+
+    return coll.count()
+
+    # Alternative method on mothballs:
+    n = 0
+    iterator = coll.find()
+    try:
+        for item in iterator:
+            n += 1
+            if n % 1000 == 0:
+                print("n =", n)
+    except StopIteration:
+        pass
+    except Exception as e:
+        err([], {'exception':e})
+        
+    return n
+
+
 ################################################################################
 # MAIN
 

@@ -7,7 +7,7 @@ from gmutils import list_indices, index_dicts, index_dict, index_text_with_synon
 
 from gmutils import KinesisStream
 
-from gmutils import mongo_iterator, mongo_find_one
+from gmutils import mongo_iterator, mongo_find_one, mongo_count
 
 from gmutils import generate_spacy_data, spacy_ner, spacy_parsing
 
