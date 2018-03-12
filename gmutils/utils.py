@@ -872,6 +872,19 @@ def cosine_similarity(A, B):
     return similarity
 
 
+def binary_distance(a, b):
+    """
+    Same as the Levenshtein distance between two strings of 1s and 0s, but computed using binary operations.
+    """
+    if isinstance(a, str):
+        a = int(a, 2)
+    if isinstance(b, str):
+        b = int(b, 2)
+    c = bin(a ^ b)
+    
+    return c.count('1')
+
+
 ################################################################################
 # MAIN
 
@@ -879,6 +892,7 @@ if __name__ == '__main__':
     try:
         parser = argparser({'desc': "utils.py"})
         parser.add_argument('--pklfile', help='Target pickle file.', required=False, type=str)
+        parser.add_argument('--binary_dist', help='Binary distance between two str (comma delim)', required=False, type=str)
         args = parser.parse_args()   # Get inputs and options
 
         if args.file:   # Can be used for various one-off needs
@@ -890,6 +904,12 @@ if __name__ == '__main__':
                 for file in args.file:
                     for line in read_file(file):
                         print('Do something with Line:', line)
+
+        elif args.binary_dist:
+            a, b = args.binary_dist.split(',')
+            a = int(a)
+            b = int(b)
+            print(binary_distance(a, b))
                         
         elif args.test:
             a = [1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 3.0, 1.0]

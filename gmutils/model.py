@@ -122,7 +122,7 @@ class Model(Object):
             Y : array of supervised outputs
 
         """
-        verbose = self.get('verbose')     # For more on 'self.get(option_name)' see objects.py DSObject class
+        verbose = self.get('verbose')
 
         X = dataset.x_train
         Y = dataset.y_train.values.ravel()   # to prevent DataConversionWarning

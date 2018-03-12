@@ -1,5 +1,5 @@
 
-from gmutils import err, argparser, argparser_ml, serialize, deserialize, set_missing_attributes, isTrue, read_file, monitor_setup, monitor, read_conceptnet_vectorfile, cosine_similarity
+from gmutils import err, argparser, argparser_ml, serialize, deserialize, set_missing_attributes, isTrue, read_file, monitor_setup, monitor, read_conceptnet_vectorfile, cosine_similarity, binary_distance
 
 from gmutils import normalize, ascii_fold, simplify_for_distance
 
