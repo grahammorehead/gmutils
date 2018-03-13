@@ -1,0 +1,13 @@
+export ZSH=/Users/graham/.oh-my-zsh
+alias rm="rm -i"
+alias mv="mv -i"
+alias cp="cp -i"
+alias python=python3
+alias python2=/usr/bin/python
+ZSH_THEME="robbyrussell"
+plugins=(
+  git
+)
+source $ZSH/oh-my-zsh.sh
+unsetopt share_history
+setopt no_share_history

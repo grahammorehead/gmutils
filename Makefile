@@ -55,32 +55,29 @@ install_mac2:
 	defaults write -g KeyRepeat -int 2 # normal minimum is 2 (30 ms)
 
 
-install1:
+install_ubuntu1:
 	# By hand:
 	# sudo apt-get update
 	# sudo apt-get install -y build-essential cython python-numpy
 	# sudo apt-get install -y zsh
 	# sudo chsh -s /usr/bin/zsh ubuntu
 	# zsh
-	# sh -c "$(curl -fsSL https://raw.github.com/robbyrussell/oh-my-zsh/master/tools/install.sh)"
-	# export LC_ALL=C
-	# sudo apt-get upgrade
+	# sudo sh -c "$(curl -fsSL https://raw.github.com/robbyrussell/oh-my-zsh/master/tools/install.sh)"
+	# sudo apt-get upgrade  (if prompted, select "Package maintainer's version")
+	# (might need) add contents of /etc/hostname to localhost line of /etc/hosts
 	# reboot
-	mkdir ../envs
-	mkdir ../downloads
+	mkdir envs
+	mkdir downloads
 	sudo apt-get install -y mosh
-	wget https://bootstrap.pypa.io/get-pip.py
-	sudo python3 get-pip.py
 	sudo apt-get install -y python3-dev
 	sudo apt-get install -y emacs
 	sudo apt-get install -y python3-tk
-	# sudo apt-get install -y virtualenv
 	sudo apt-get install -y python3-venv
 
 
 ES_DIR = https://artifacts.elastic.co/downloads/elasticsearch/
-ES_FILE = elasticsearch-6.1.3.deb
-install2:
+ES_FILE = elasticsearch-6.2.2.deb
+install_ubuntu2:
 	# source envs/sample/bin/activate
 	# Latest Elastic Search as of this writing:
 	sudo apt-get install -y default-jdk
