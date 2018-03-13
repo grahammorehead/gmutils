@@ -863,7 +863,21 @@ def pandasize(X):
 def cosine_similarity(A, B):
     """
     The cosine distance between two vectors, A and B
+
+    Parameters
+    ----------
+    A, B : lists of equal length
+
+    Returns
+    -------
+    float
+        0.0 : least similar
+        1.0 : most similar
+
     """
+    if A is None or B is None:
+        return 0.0   # more useful that None is many situations
+    
     distance = spatial.distance.cosine(A, B)
     if math.isnan(distance):
         return 0.0
