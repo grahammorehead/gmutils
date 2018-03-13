@@ -75,25 +75,26 @@ install_ubuntu1:
 	sudo apt-get install -y python3-venv
 
 
-ES_DIR = https://artifacts.elastic.co/downloads/elasticsearch/
+# Latest Elastic Search as of this writing:
+ES_DIR = https://artifacts.elastic.co/downloads/elasticsearch
 ES_FILE = elasticsearch-6.2.2.deb
+ENV     = default
 install_ubuntu2:
-	# source envs/sample/bin/activate
-	# Latest Elastic Search as of this writing:
 	sudo apt-get install -y default-jdk
 	wget -P downloads $(ES_DIR)/$(ES_FILE)
 	sudo dpkg -i downloads/$(ES_FILE)
+	# next command merely enables, not starts
 	sudo systemctl enable elasticsearch.service
-	# sudo emacs /etc/elasticsearch/elasticsearch.yml
-	# sudo systemctl start elasticsearch
 	python3 -m venv ../envs/$(ENV)
 	source ../envs/$(ENV)/bin/activate
 	pip install --upgrade pip
-	pip install -r requirements
+	pip install -r requirements.txt
 	pip install awscli
-	pip install pip-review
 	pip-review --local --interactive
 	python -m spacy download en_core_web_lg
+	# if desired
+	# sudo emacs /etc/elasticsearch/elasticsearch.yml
+	# sudo systemctl start elasticsearch
 
 
 #########################################################################################################################
