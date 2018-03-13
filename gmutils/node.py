@@ -915,7 +915,44 @@ class Node(Object):
         
         num = len(self.parent.children)
         return num - 1
+
+
+    def get_idx(self):
+        """
+        Find the start/end character offset of the aggregate of tokens represented by this node.  Those tokens in many but not all
+        cases will be contiguous in the text.
+        """
+        idxs = []
+        for token in self.tokens:
+            idxs.append(token.idx)
+            end = token.idx + len(token.text)
+            idxs.append(end)
+        idxs.sort()
         
+        return (idxs[0], idxs[-1])
+        
+
+    def overlap_idx(self, idx):
+        """
+        Determine if this nodes's idx (character start/end offsets) overlaps the given idx
+
+        Parameters
+        ----------
+        idx : (int, int)
+
+        Returns
+        -------
+        boolean
+
+        """
+        sidx = self.get_idx()
+        bot  = max( idx[0], sidx[0] )
+        top  = min( idx[1], sidx[1] )
+        spr  = top - bot
+        if spr > 0:
+            return True
+        return False
+    
         
     ############################################################################
     # Printing
@@ -1038,8 +1075,9 @@ def get_group_ancestor(nodes):
     -------
     Node
     """
+    nodes_copy = []
+    nodes_copy.extend(nodes)
     sorted_nodes  = sorted(nodes, key=lambda x: x.get_depth())
-    nodes_copy    = deepcopy(nodes)
     first_node    = None
     
     for i in sorted_nodes:
