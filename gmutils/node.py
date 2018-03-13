@@ -4,6 +4,7 @@ Tools to manage nodes in a parse tree
 
 """
 import os, sys, re, json
+from copy import deepcopy
 import numpy as np
 
 from gmutils.objects import Object
@@ -132,7 +133,7 @@ class Node(Object):
 
     def is_descendant(self, node):
         """
-        is <node> a descendant?
+        is <node> a descendant of self?
         """
         if self.is_child(node):       # Base case
             return True
@@ -1023,6 +1024,42 @@ def combined_lemmas_in_vocab(vocab, lemmas_str_A, lemmas_str_B):
         return True
 
     return False
+
+
+def get_group_ancestor(nodes):
+    """
+    For a given set of nodes (from same Document), find the lowest ancestor of all nodes.  It may be a member of 'nodes'
+
+    Parameters
+    ----------
+    nodes : set of Node
+
+    Returns
+    -------
+    Node
+    """
+    sorted_nodes  = sorted(nodes, key=lambda x: x.get_depth())
+    nodes_copy    = deepcopy(nodes)
+    first_node    = None
+    
+    for i in sorted_nodes:
+        if first_node is None:
+            first_node = i
+        if i.is_root():
+            return i
+        
+        is_the_ancestor = True
+        for j in nodes_copy:
+            if i != j:
+                if not i.is_descendant(j):
+                    is_the_ancestor = False
+
+        if is_the_ancestor:
+            return i
+
+    # No ancestor was found. Add a parent an recurse
+    nodes.add(first_node.parent)
+    return get_group_ancestor(nodes)
 
 
 ################################################################################

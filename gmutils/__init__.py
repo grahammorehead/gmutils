@@ -19,6 +19,8 @@ from .dataset import Dataset
 
 from .document import Document
 
+from .node import get_group_ancestor
+
 from .model import Model
 
 from .sklearn_model import SklearnModel
