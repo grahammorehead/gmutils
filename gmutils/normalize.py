@@ -185,7 +185,6 @@ def normalize(text, options=None):
     """
     options = Options(options)
     # options.set('verbose', True)
-
     if options.get('verbose'):
         err([[text]])
 
@@ -213,6 +212,11 @@ def normalize(text, options=None):
     text = re.sub(r"\-+", "-", text)
     text = re.sub(r"\.*…+\.*", "...", text)
 
+    # Attention to end of text
+    text = re.sub(r" +\?$", "?", text)
+    text = re.sub(r" +\!$", "!", text)
+    text = re.sub(r" +\.$", ".", text)
+    
     if options.get('verbose'):
         err([[text]])
 

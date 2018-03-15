@@ -345,14 +345,13 @@ class Node(Object):
             if verbose:  print("\tReturning:", self.children)
             return self.children
 
-
         ddts = []
         for child in self.children:
             ddts.extend( child.get_descendants_at_relative_depth(d-1) )
             
-        if len(ddts) == 0:
-            if verbose:
-                print("NO children of", self.get_text())
+        if verbose:
+            if len(ddts) == 0:
+                print("NO descendants at depth %d under: [%s]"% (d, self.get_text()))
             
         return ddts
     
@@ -571,6 +570,18 @@ class Node(Object):
             return True
         return False
 
+
+    def shares_pos(self, node):
+        """
+        Boolean.  Determine if 'node' shares at least one POS with self
+        """
+        s      = set(self.get_pos())
+        other  = set(node.get_pos())
+        insec  = s.intersection(other)
+        if len(insec) > 0:
+            return True
+        return False
+    
 
     def get_entity_type(self):
         """
