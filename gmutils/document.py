@@ -309,9 +309,9 @@ class Document(Object):
         while altered:
             altered = False
             for tree in self.trees:
-                beginners = tree.get_entity_beginners()
-                for node in beginners:
-                    altered = node.agglomerate_entities()
+                for node in tree.get_entity_beginners():
+                    a = node.agglomerate_entities()
+                    if a:  altered = a  # only switch if going to True
         
 
     def agglomerate_verbs_preps(self, vocab=None):
@@ -320,14 +320,32 @@ class Document(Object):
 
         e.g. If "jump" is used to describe A jumping over B, the real sense of the verb is "jump over"
 
-        When an embedding (vocab) is provided, it will be consulted before agglomeration
+        When an embedding (vocab) is provided, it will be consulted for the best embedding before agglomeration.
 
         """
         altered = True
         while altered:
             altered = False
             for tree in self.trees:
-                altered = tree.agglomerate_verbs_preps(vocab=vocab)
+                for node in tree.get_verb_nodes():
+                    a = node.agglomerate_verbs_preps(vocab=vocab)
+                    if a:  altered = a  # only switch if going to True
+        
+
+    def agglomerate_compound_adj(self, vocab=None):
+        """
+        For the purpose of sense disambiguation, agglomerate compound adjectives, like "full-time", and "cross-country".
+
+        When an embedding (vocab) is provided, it will be consulted before agglomeration for the best embedding.
+
+        """
+        altered = True
+        while altered:
+            altered = False
+            for tree in self.trees:
+                for node in tree.get_compound_prefix_nodes():
+                    a = node.agglomerate_compound_adj()   #  vocab=vocab)  No vocab for now!
+                    if a:  altered = a  # only switch if going to True
         
 
     def embed(self, vocab, options={}):
@@ -350,6 +368,7 @@ class Document(Object):
 
         """
         self.agglomerate_verbs_preps(vocab)
+        self.agglomerate_compound_adj(vocab)
         self.agglomerate_entities()
         self.embed(vocab)
 

@@ -23,7 +23,8 @@ dep_indices = ['ROOT', 'acl', 'acomp', 'advcl', 'advmod', 'agent', 'amod', 'appo
 default = {
     'pos_embedding' : generate_onehot_vocab(pos_indices),
     'ner_embedding' : generate_onehot_vocab(ner_indices),
-    'dep_embedding' : generate_onehot_vocab(dep_indices)
+    'dep_embedding' : generate_onehot_vocab(dep_indices),
+    'compound_adj_prefixes' : set(['all', 'cross', 'full', 'part', 'half', 'high', 'low', 'upper', 'lower', 'middle', 'mid', 'like', 'self'])
     }
 
 ################################################################################
@@ -263,17 +264,53 @@ class Node(Object):
                             continue
                     to_absorb.append(child)     # Add to the list of children to absorb
 
-        # Execute absorptions in order, re-confirming vocab presence along the way
+        # Execute absorptions in order
         for child in to_absorb:
-            if combined_lemmas_in_vocab(vocab, self.get_lemmas_str(), child.get_lemmas_str()):
-                self.absorb(child)
-                altered = True
+            self.absorb(child)
+            altered = True
                     
-        # Apply recursively to children
-        for child in self.children:
-            child.agglomerate_verbs_preps(vocab=vocab)
-            
         return altered
+
+
+    def agglomerate_compound_adj(self, options={}):
+        """
+        For the purpose of sense disambiguation, agglomerate compound adjectives
+
+        e.g. If "jump" is used to describe A jumping over B, the real sense of the verb is "jump over"
+        """
+        verbose = False
+        if verbose:  err([self])
+        
+        altered = False
+        if self.is_dead:
+            return altered
+            
+        # Select which children, if any, to absorb
+        to_absorb = []
+        if self.is_compound_prefix():
+            if verbose:  err([self])
+            hyphen = None
+            suffix = None
+            
+            for node in self.get_siblings():
+                if node.get_text() == '-':
+                    hyphen = node
+
+            if self.has_dep( set(['amod', 'compound']) ):
+                if self.parent.has_pos( set(['NOUN']) ):
+                    suffix = self.parent
+            
+            if  hyphen  and  suffix:
+                to_absorb.append(hyphen)     # Add to the list of children to absorb
+                to_absorb.append(suffix)
+
+        # Execute absorptions in order
+        for child in to_absorb:
+            self.absorb(child)
+            altered = True
+                    
+        return altered
+
 
     # end ALTERATIONS
     ############################################################################
@@ -453,6 +490,24 @@ class Node(Object):
         return ' '.join(self.get_lemmas())
 
 
+    def has_lemma(self, lemma_set):
+        verbose = False
+        self_lemmas = set(self.get_lemmas())
+        insec = self_lemmas.intersection(lemma_set)
+        if verbose:  err([self_lemmas, lemma_set, insec])
+        if len(insec) > 0:
+            return True
+        return False
+
+    
+    def is_compound_prefix(self):
+        if len(self.tokens) > 1:
+            return False
+        if self.has_lemma(default.get('compound_adj_prefixes')):
+            return True
+        return False
+    
+
     def get_pos(self):
         """
         Get the part of speech (could be multiple)
@@ -483,6 +538,15 @@ class Node(Object):
         return pos
             
 
+    def has_pos(self, pos_set):
+        self_pos = set(self.get_pos())
+        insec = self_pos.intersection(pos_set)
+
+        if len(insec) > 0:
+            return True
+        return False
+
+    
     def get_ner(self):
         """
         Get the part of speech (could be multiple)
@@ -493,21 +557,6 @@ class Node(Object):
             for token in self.tokens:
                 if token.ent_type > 0:
                     ner.append(token.ent_type_)
-        except:
-            pass
-        return ner
-
-
-    def get_ner_num(self):
-        """
-        Get the part of speech (could be multiple)
-
-        """
-        ner = []
-        try:
-            for token in self.tokens:
-                if token.ent_type > 0:
-                    ner.append(token.ent_type)
         except:
             pass
         return ner
@@ -539,18 +588,12 @@ class Node(Object):
         return dep
 
 
-    def get_dep_num(self):
-        """
-        Get the part of speech (could be multiple)
-
-        """
-        dep = []
-        try:
-            for token in self.tokens:
-                dep.append(token.dep)
-        except:
-            pass
-        return dep
+    def has_dep(self, dep_set):
+        self_deps = set(self.get_dep())
+        insec = self_deps.intersection(dep_set)
+        if len(insec) > 0:
+            return True
+        return False
 
 
     def get_all_dep(self):
@@ -788,7 +831,7 @@ class Node(Object):
         return vector
 
 
-    def get_pos_embedding(self, vocab=default['pos_embedding'], options={}):
+    def get_pos_embedding(self, vocab=default.get('pos_embedding'), options={}):
         """
         Return a vectorized representation of the POS of this Node
         """
@@ -805,11 +848,11 @@ class Node(Object):
         return pos_vector
     
 
-    def get_empty_pos_embedding(self, vocab=default['pos_embedding'], options={}):
+    def get_empty_pos_embedding(self, vocab=default.get('pos_embedding'), options={}):
         return vocab['_empty_']
     
 
-    def get_ner_embedding(self, vocab=default['ner_embedding'], options={}):
+    def get_ner_embedding(self, vocab=default.get('ner_embedding'), options={}):
         """
         Return a vectorized representation of the NER of this Node
         """
@@ -826,11 +869,11 @@ class Node(Object):
         return ner_vector
     
 
-    def get_empty_ner_embedding(self, vocab=default['ner_embedding'], options={}):
+    def get_empty_ner_embedding(self, vocab=default.get('ner_embedding'), options={}):
         return vocab['_empty_']
     
 
-    def get_dep_embedding(self, vocab=default['dep_embedding'], options={}):
+    def get_dep_embedding(self, vocab=default.get('dep_embedding'), options={}):
         """
         Return a vectorized representation of the DEP of this Node
         """
@@ -847,7 +890,7 @@ class Node(Object):
         return dep_vector
     
 
-    def get_empty_dep_embedding(self, vocab=default['dep_embedding'], options={}):
+    def get_empty_dep_embedding(self, vocab=default.get('dep_embedding'), options={}):
         return vocab['_empty_']
     
 
@@ -863,6 +906,19 @@ class Node(Object):
         for child in self.children:
             verbs.extend( child.get_verb_nodes() )
         return verbs
+
+
+    def get_compound_prefix_nodes(self):
+        """
+        From each of the constituent trees, return a list of all nodes that are compound prefixes
+        """
+        nodes = []
+        if self.is_compound_prefix():
+            nodes = [self]
+        
+        for child in self.children:
+            nodes.extend( child.get_compound_prefix_nodes() )
+        return nodes
 
 
     def get_index(self):
@@ -882,32 +938,63 @@ class Node(Object):
 
         """
         verbose = False
+        found_embedding = False
 
         # First try full lemma string
         lemmas_str = self.get_lemmas_str()
+        lemmas_str = re.sub(r' - ', '-', lemmas_str)
         lemmas_str = re.sub(r' ', '_', lemmas_str)
+        lemmas_str = re.sub(r'_+', '_', lemmas_str)
         vec = vocab.get(lemmas_str)
+        
         if vec is not None:
             if verbose: print("Found vector for: %s"% lemmas_str)
             self.embedding = vec
-            
-        elif len(self.get_lemmas()) > 1:   # Use an averaging of as many vectors as available
-            if verbose: print("Found nothing for: %s"% lemmas_str)
-            vecs = []
-            for lemma in self.get_lemmas():
-                vec = vocab.get(lemma)
-                if vec is not None:
-                    if verbose: print("Found sub-vector for: %s"% lemma)
-                    vecs.append(vec)
-                else:
-                    if verbose: print("Found nothing for: %s"% lemma)
-            if len(vecs) > 1:
-                vec = vector_average(vecs)
-            elif len(vecs) == 1:
-                vec = vecs[0]
-            self.embedding = vec
+            found_embedding = True
 
-        else:
+        # Remove hyphens
+        if not found_embedding:
+            if re.search(r'-', lemmas_str):
+                lemmas_str = re.sub(r'-', '', lemmas_str)
+                lemmas_str = re.sub(r'_+', '_', lemmas_str)
+                vec = vocab.get(lemmas_str)
+            
+            if vec is not None:
+                if verbose: print("Found vector for: %s"% lemmas_str)
+                self.embedding = vec
+                found_embedding = True
+
+        # Remove underscores
+        if not found_embedding:
+            if re.search(r'_', lemmas_str):
+                lemmas_str = re.sub(r'_', '', lemmas_str)
+                vec = vocab.get(lemmas_str)
+            
+            if vec is not None:
+                if verbose: print("Found vector for: %s"% lemmas_str)
+                self.embedding = vec
+                found_embedding = True
+
+        # Use an averaging of as many vectors as available            
+        if not found_embedding:
+            if len(self.get_lemmas()) > 1:
+                if verbose: print("Found nothing for: %s ... Trying an average ..."% lemmas_str)
+                vecs = []
+                for lemma in self.get_lemmas():
+                    vec = vocab.get(lemma)
+                    if vec is not None:
+                        if verbose: print("Found sub-vector for: %s"% lemma)
+                        vecs.append(vec)
+                    else:
+                        if verbose: print("Found nothing for: %s"% lemma)
+                if len(vecs) > 1:
+                    vec = vector_average(vecs)
+                elif len(vecs) == 1:
+                    vec = vecs[0]
+                self.embedding = vec
+
+        # No embedding found
+        if not found_embedding:
             self.embedding = None
             
         # Recursive application
@@ -935,6 +1022,22 @@ class Node(Object):
             return 0
         else:
             return 1 + self.parent.get_depth()
+
+
+    def get_siblings(self):
+        """
+        Get sibling nodes
+        """
+        siblings = []
+        if self.is_root():
+            return siblings
+        
+        for node in self.parent.children:
+            if node == self:
+                continue
+            siblings.append(node)
+            
+        return siblings
 
 
     def get_num_siblings(self):
