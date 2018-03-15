@@ -333,16 +333,27 @@ class Node(Object):
 
         Children all have relative depth=1
         """
+        verbose = False
+        if verbose:
+            print('#'*10, d)
+            print("Seeking children of", self.get_text())
+                
         if d == 0:
             return [self]
         
         elif d == 1:
+            if verbose:  print("\tReturning:", self.children)
             return self.children
+
 
         ddts = []
         for child in self.children:
             ddts.extend( child.get_descendants_at_relative_depth(d-1) )
-        
+            
+        if len(ddts) == 0:
+            if verbose:
+                print("NO children of", self.get_text())
+            
         return ddts
     
     
@@ -457,18 +468,8 @@ class Node(Object):
         return pos
 
 
-    def get_pos_num(self):
-        """
-        Get the part of speech (could be multiple)
-
-        """
-        pos = []
-        try:
-            for token in self.tokens:
-                pos.append(token.pos)
-        except:
-            pass
-        return pos
+    def get_pos_str(self):
+        return ' '.join(self.get_pos())
 
 
     def get_all_pos(self):
@@ -1005,7 +1006,7 @@ class Node(Object):
 
         """
         indent = depth * '    '
-        print(indent + self.get_text() + ' {%s}'% self.get_dep_str())
+        print(indent + self.get_text() + ' {%s}'% self.get_dep_str() + ' (%s)'% self.get_pos_str())
 
         # Options
         if options.get('supporting_text'):  # Print the text supporting subtree
