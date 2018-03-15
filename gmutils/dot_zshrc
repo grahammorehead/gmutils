@@ -1,4 +1,4 @@
-export ZSH=/Users/graham/.oh-my-zsh
+export ZSH=~/.oh-my-zsh
 alias rm="rm -i"
 alias mv="mv -i"
 alias cp="cp -i"

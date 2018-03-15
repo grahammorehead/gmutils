@@ -22,3 +22,5 @@ from gmutils import Model
 from gmutils import SklearnModel
 
 from gmutils import Object, Options
+
+from gmutils import damerauLevenshtein

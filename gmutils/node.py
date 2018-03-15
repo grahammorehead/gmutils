@@ -8,7 +8,7 @@ from copy import deepcopy
 import numpy as np
 
 from gmutils.objects import Object
-from gmutils.utils import err, argparser, vector_average
+from gmutils.utils import err, argparser, vector_average, cosine_similarity
 from gmutils.nlp import generate_onehot_vocab
 
 ################################################################################
@@ -55,7 +55,7 @@ class Node(Object):
         Instantiate the object and set options
 
         doc : Document (as defined in document.py)
-
+        
         spacy_token : spacy.Token
 
         parent : Node
@@ -94,110 +94,7 @@ class Node(Object):
                 
     def __repr__(self):
         return self.get_text()
-
         
-    def is_root(self):
-        if self.parent is None:
-            return True
-        return False
-        
-            
-    def is_leaf(self):
-        if len(self.children) == 0:
-            return True
-        return False
-
-    
-    def is_child(self, node):
-        """
-        Is <node> one of my children?
-        """
-        if node in self.children:
-            return True
-        else:
-            return False
-
-
-    def is_ancestor(self, node):
-        """
-        Is <node> an ancestor?
-        """
-        focus = self
-        while focus:
-            if focus.parent == node:
-                return True
-            focus = focus.parent   # One step up the tree toward the root
-            
-        return False               # After reaching the root, <node> was not found
-
-
-    def is_descendant(self, node):
-        """
-        is <node> a descendant of self?
-        """
-        if self.is_child(node):       # Base case
-            return True
-
-        for child in self.children:   # Recursion
-            if child.is_descendant(node):
-                return True
-
-        return False   # After testing self and each child, node is not a descendant
-    
-    
-    def get_next_token(self):
-        """
-        Return the token just after the last token currently held by this Node
-        """
-        highest = 0
-        if len(self.tokens) < 1:
-            return None
-        
-        for token in self.tokens:
-            if token.i > highest:
-                highest = token.i
-        next_index = highest + 1
-        if next_index < self.doc.get_num_tokens():
-            return self.doc.token_by_index(next_index)
-        else:
-            return None
-
-
-    def get_root(self):
-        """
-        Recursive climb toward the root
-        """
-        if self.is_root():
-            return self
-        return self.parent.get_root()
-
-
-    def node_with_token(self, token):
-        """
-        Search locally and recursively down to the leaves for the Node containing <token>
-        """
-        if self.is_dead:
-            return None
-        
-        if token in self.tokens:                    # Base case
-            return self
-        
-        for child in self.children:
-            node = child.node_with_token(token)     # Recursion
-            if node is not None:
-                return node
-            
-        return None
-    
-
-    def node_of_token(self, token):
-        """
-        Given a token, find the Node to which it currently belongs
-        """
-        root = self.get_root()
-        node = root.node_with_token(token)
-        return node
-
     ############################################################################
     # ALTERATIONS
 
@@ -380,6 +277,128 @@ class Node(Object):
 
     # end ALTERATIONS
     ############################################################################
+    
+    def is_root(self):
+        if self.parent is None:
+            return True
+        return False
+        
+            
+    def is_leaf(self):
+        if len(self.children) == 0:
+            return True
+        return False
+
+    
+    def is_child(self, node):
+        """
+        Is <node> one of my children?
+        """
+        if node in self.children:
+            return True
+        else:
+            return False
+
+
+    def is_ancestor(self, node):
+        """
+        Is <node> an ancestor?
+        """
+        focus = self
+        while focus:
+            if focus.parent == node:
+                return True
+            focus = focus.parent   # One step up the tree toward the root
+            
+        return False               # After reaching the root, <node> was not found
+
+
+    def is_descendant(self, node):
+        """
+        is <node> a descendant of self?
+        """
+        if self.is_child(node):       # Base case
+            return True
+
+        for child in self.children:   # Recursion
+            if child.is_descendant(node):
+                return True
+
+        return False   # After testing self and each child, node is not a descendant
+    
+
+    def get_descendants_at_relative_depth(self, d):
+        """
+        Get all descendants at a depth of precisely d, relative to self.
+
+        Children all have relative depth=1
+        """
+        if d == 0:
+            return [self]
+        
+        elif d == 1:
+            return self.children
+
+        ddts = []
+        for child in self.children:
+            ddts.extend( child.get_descendants_at_relative_depth(d-1) )
+        
+        return ddts
+    
+    
+    def get_next_token(self):
+        """
+        Return the token just after the last token currently held by this Node
+        """
+        highest = 0
+        if len(self.tokens) < 1:
+            return None
+        
+        for token in self.tokens:
+            if token.i > highest:
+                highest = token.i
+        next_index = highest + 1
+        if next_index < self.doc.get_num_tokens():
+            return self.doc.token_by_index(next_index)
+        else:
+            return None
+
+
+    def get_root(self):
+        """
+        Recursive climb toward the root
+        """
+        if self.is_root():
+            return self
+        return self.parent.get_root()
+
+
+    def node_with_token(self, token):
+        """
+        Search locally and recursively down to the leaves for the Node containing <token>
+        """
+        if self.is_dead:
+            return None
+        
+        if token in self.tokens:                    # Base case
+            return self
+        
+        for child in self.children:
+            node = child.node_with_token(token)     # Recursion
+            if node is not None:
+                return node
+            
+        return None
+    
+
+    def node_of_token(self, token):
+        """
+        Given a token, find the Node to which it currently belongs. There can only be one.
+        """
+        root = self.get_root()
+        node = root.node_with_token(token)
+        return node
+
 
     def get_text(self):
         """
@@ -679,8 +698,8 @@ class Node(Object):
             self.set('supporting_text', subtree_span.text)
 
         return self.get('supporting_text')
-    
 
+    
     def get_semantic_roles_str(self, options={}):
         """
         Like a poor man's semantic roles
@@ -952,6 +971,13 @@ class Node(Object):
         if spr > 0:
             return True
         return False
+
+
+    def cosine_similarity(self, node):
+        """
+        The similarity between the embedding of this and some other node
+        """
+        return cosine_similarity(self.embedding, node.embedding)
     
         
     ############################################################################

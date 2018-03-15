@@ -65,7 +65,7 @@ class Model(Object):
         Instantiate the object and set options
 
         """
-        self.set_options(options, default)        # For more on 'self.set_options()' see object.Object
+        self.set_options(options, default)
         self.generate()
 
 

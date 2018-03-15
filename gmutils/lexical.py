@@ -274,8 +274,16 @@ def damerauLevenshtein(s, t, options={}):
     verbose = False
     if verbose:
         err([s, t])
-
     maxL = max(len(s), len(t))
+    minL = min(len(s), len(t))
+
+    if options.get('ignore_case'):
+        s = s.lower()
+        t = t.lower()
+    
+    if options.get('abridge'):  # Cut both strings to same length
+        s = s[:minL]
+        t = t[:minL]
         
     l = fast_levenshtein(s, t)
 
@@ -289,14 +297,17 @@ def damerauLevenshtein(s, t, options={}):
         d += tc
 
     dist = min(l, d)
-        
-    # Fancy adjustments
-    if dist < maxL:
-        # Higher cost for first letter
-        if s[0] != t[0]:
-            dist = sqrt(dist)
-            dist += 0.3 * (maxL - dist)
-        
+
+    if options.get('fancy'):          # Fancy adjustments
+        if dist < maxL:
+            
+            # Higher cost for first letter
+            if s[0].lower() != t[0].lower():
+                dist += 0.3 * (maxL - dist)
+
+    if options.get('ratio'):
+        return dist / maxL
+                
     return dist
 
 

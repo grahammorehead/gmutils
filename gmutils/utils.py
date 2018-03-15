@@ -100,6 +100,7 @@ def argparser(options={}):
     parser.add_argument('--output_dir',       help='Directory to save the output', required=False, type=str)
     parser.add_argument('--host',             help='Host/IP address', required=False, type=str)
     parser.add_argument('--port',             help='Port number', required=False, type=int)
+    parser.add_argument('--skip',             help='Skip (can be for skipping ahead through long files or processes)', required=False, type=str)
     
     return parser
 
@@ -674,7 +675,7 @@ def monitor_setup(file, total_i=None):
     return _monitor
 
         
-def monitor(_monitor):
+def monitor(_monitor, skip=None):
     """
     To monitor progress on the command line.  See monitor_setup() above.
 
@@ -689,7 +690,15 @@ def monitor(_monitor):
         lastDone = done
 
     _monitor = total_i, i, lastDone
-    return _monitor
+
+    if skip is None:
+        return _monitor
+
+    elif float(skip) > done:
+        return _monitor, True
+    
+    else:
+        return _monitor, False
 
 
 def split_data(X, Y, ratios):
@@ -862,7 +871,7 @@ def pandasize(X):
 
 def cosine_similarity(A, B):
     """
-    The cosine distance between two vectors, A and B
+    The cosine similarity between two vectors, A and B
 
     Parameters
     ----------

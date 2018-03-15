@@ -9,7 +9,7 @@ from collections import deque
 import numpy as np
 import pandas as pd
 
-from gmutils.utils import err, argparser, deserialize, read_file, read_conceptnet_vectorfile, start_with_same_word
+from gmutils.utils import err, argparser, deserialize, read_file, read_conceptnet_vectorfile, start_with_same_word, cosine_similarity
 from gmutils.normalize import normalize, clean_spaces, ascii_fold, ends_with_punctuation, close_enough
 from gmutils.nlp import generate_spacy_data, tokenize
 from gmutils.objects import Object
@@ -201,6 +201,31 @@ class Document(Object):
             print (tree.get_supporting_text())
 
 
+    def get_head_verb_nodes(self):
+        """
+        Look for a Node with the head verb.  Returns all reasonable options.
+        """
+        possible = []
+        for tree in self.trees:
+            if tree.is_verb():
+                possible.append(tree)
+
+        if len(possible) == 0:
+            possible = self.trees
+        
+        final = []
+        for p in possible:
+            if p.get_lemmas_str() == 'be':
+                pass
+            else:
+                final.append(p)
+
+        if len(final) == 0:
+            final = self.trees
+        
+        return final
+                
+                
     def get_head_verb_node(self):
         """
         Look for a Node with the head verb.  Returns first reasonable option.
@@ -334,9 +359,8 @@ class Document(Object):
         Print parsed elements in an easy-to-read format
 
         """
-        print('\nPARSED SENTENCE:')
         for tree in self.trees:
-            tree.pretty_print(options={'supporting_text':True})
+            tree.pretty_print(options={'supporting_text':False})
 
 
     def print_semantic_roles(self):
@@ -470,7 +494,23 @@ class Document(Object):
         err(tokens_in_span)
         
         
+    def get_related_nodes(self, head, thresh=0.7):
+        """
+        For a given node (not from this Document), sort this Document's nodes by embedding similarity.
+        """
+        sim = {}
+        for node in self.get_nodes():
+            s = head.cosine_similarity(node)
+            if s > thresh:
+                # print("(%0.5f)  %s  <=>  %s"% (s, node.get_text(), head.get_text())) 
+                sim[node] = s
 
+        rels = sorted(sim.keys(), key=lambda x: sim[x], reverse=True)
+
+        return rels
+
+        
+        
 ################################################################################
 ##  FUNCTIONS
 
@@ -525,6 +565,7 @@ if __name__ == '__main__':
             doc.preprocess(vocab)
             print("\nTEXT:", doc.get_text())
             doc.pretty_print()
+            print("LEMMAS:", doc.get_lemmas())
             #doc.print_semantic_roles()
                 
     else:
