@@ -21,6 +21,7 @@ ner_indices = ['CARDINAL', 'DATE', 'EVENT', 'FAC', 'GPE', 'LANGUAGE', 'LAW', 'LO
 dep_indices = ['ROOT', 'acl', 'acomp', 'advcl', 'advmod', 'agent', 'amod', 'appos', 'attr', 'aux', 'auxpass', 'case', 'cc', 'ccomp', 'compound', 'conj', 'csubj', 'csubjpass', 'dative', 'dep', 'det', 'dobj', 'expl', 'intj', 'mark', 'meta', 'neg', 'nmod', 'npadvmod', 'nsubj', 'nsubjpass', 'nummod', 'oprd', 'parataxis', 'pcomp', 'pobj', 'poss', 'preconj', 'predet', 'prep', 'prt', 'punct', 'quantmod', 'relcl', 'xcomp']
     
 default = {
+    'empty_embedding' : np.array( [0.0] * 300 ),
     'pos_embedding' : generate_onehot_vocab(pos_indices),
     'ner_embedding' : generate_onehot_vocab(ner_indices),
     'dep_embedding' : generate_onehot_vocab(dep_indices),
@@ -464,19 +465,51 @@ class Node(Object):
         return ' '.join(texts)
 
 
-    def get_lemmas(self):
+    def get_texts(self):
+        """
+        Like self.get_text(), but returns a list
+
+        """
+        texts = []
+        try:
+            for token in self.tokens:
+                texts.append(token.text)
+        except:
+            pass
+        return texts
+
+
+    def get_lemmas(self, options={'picky':True}):
         """
         Get a string representing, in tree order, the tokens comprising this Node
 
+        Can be choosy if self has multiple tokens
+
         """
+        if len(self.tokens) == 1:
+            options['picky'] = False
+        
         lemmas = []
         try:
             for token in self.tokens:
-                lemmas.append(token.lemma_)
+                if options.get('picky'):
+                    if token.pos_ in ['PUNCT', 'DET']:
+                        continue
+                if re.search(r'^-[A-Z]+-$', token.lemma_):
+                    lemmas.append(token.text.lower())
+                else:
+                    lemmas.append(token.lemma_)
         except:
             pass
+
+        if len(lemmas) == 0:  # Try again, but accept all
+            return self.get_lemmas(options={'picky':False})
         
         return lemmas
+
+
+    def get_lemmas_str(self):
+        return ' '.join(self.get_lemmas())
 
 
     def ner_by_token(self, token):
@@ -488,10 +521,6 @@ class Node(Object):
         ent_type, iob = self.doc.ner[token.i]
         return iob
     
-
-    def get_lemmas_str(self):
-        return ' '.join(self.get_lemmas())
-
 
     def has_lemma(self, lemma_set):
         verbose = False
@@ -944,15 +973,22 @@ class Node(Object):
         if node == self:
             return 0
 
-        branches = set([self.parent])
+        if self.is_root():
+            branches = set([])
+        else:
+            branches = set([self.parent])
+            
         for child in self.children:
             branches.add(child)
+            
         branches = branches - done   # Remove already-searched nodes
-        done     = branches + done   # Keep track of scheduled work
+        done     = branches | done   # Keep track of scheduled work
         
         lowest_d = None
         for b in branches:
             d = b.get_graph_distance(node, done)
+            if d is None:
+                continue
             if lowest_d is None:
                 lowest_d = d
             elif d < lowest_d:
@@ -1123,58 +1159,57 @@ class Node(Object):
             if verbose: print("Found vector for: %s"% lemmas_str)
             self.embedding = vec
             found_embedding = True
+        elif verbose: print("NO vector for: %s"% lemmas_str)
 
         # Remove hyphens
-        if not found_embedding:
+        if not found_embedding  and  is_non_numeric(lemmas_str):
             if re.search(r'-', lemmas_str):
                 lemmas_str = re.sub(r'-', '', lemmas_str)
                 lemmas_str = re.sub(r'_+', '_', lemmas_str)
                 vec = vocab.get(lemmas_str)
-            
-            if vec is not None:
-                if verbose: print("Found vector for: %s"% lemmas_str)
-                self.embedding = vec
-                found_embedding = True
+                if vec is not None:
+                    if verbose: print("Found vector for: %s"% lemmas_str)
+                    self.embedding = vec
+                    found_embedding = True
+                elif verbose: print("NO vector for: %s"% lemmas_str)
 
         # Remove underscores
-        if not found_embedding:
+        if not found_embedding  and  is_non_numeric(lemmas_str):
             if re.search(r'_', lemmas_str):
                 lemmas_str = re.sub(r'_', '', lemmas_str)
                 vec = vocab.get(lemmas_str)
-            
-            if vec is not None:
-                if verbose: print("Found vector for: %s"% lemmas_str)
-                self.embedding = vec
-                found_embedding = True
+                if vec is not None:
+                    if verbose: print("Found vector for: %s"% lemmas_str)
+                    self.embedding = vec
+                    found_embedding = True
+                elif verbose: print("NO vector for: %s"% lemmas_str)
 
         # Use an averaging of as many vectors as available            
+        if not found_embedding  and  len(self.get_lemmas()) > 1:
+            lemmas = self.get_lemmas()
+            if verbose:
+                print("Found nothing for: %s ... Trying an average ..."% lemmas)
+            self.embedding, found_embedding = average_of_word_embeddings(lemmas, vocab)
+
+        # Try averaging with original text
         if not found_embedding:
-            if len(self.get_lemmas()) > 1:
-                if verbose: print("Found nothing for: %s ... Trying an average ..."% lemmas_str)
-                vecs = []
-                for lemma in self.get_lemmas():
-                    vec = vocab.get(lemma)
-                    if vec is not None:
-                        if verbose: print("Found sub-vector for: %s"% lemma)
-                        vecs.append(vec)
-                    else:
-                        if verbose: print("Found nothing for: %s"% lemma)
-                if len(vecs) > 1:
-                    vec = vector_average(vecs)
-                elif len(vecs) == 1:
-                    vec = vecs[0]
-                self.embedding = vec
+            texts = self.get_texts()
+            self.embedding, found_embedding = average_of_word_embeddings(texts, vocab)
 
         # No embedding found
         if not found_embedding:
-            self.embedding = None
+            self.embedding = default.get('empty_embedding')
+            if re.search(r'[a-zA-Z]', self.get_text()):
+                if is_non_numeric(self.get_text()):
+                    print("EMPTY EMBEDDING: [%s]"% self.get_lemmas_str(), self.get_text())
             
         # Recursive application
         if self.children is not None:
             for child in self.children:
                 child.embed(vocab)
             
-    
+
+
     def cosine_similarity(self, node):
         """
         The similarity between the embedding of this and some other node
@@ -1189,11 +1224,8 @@ class Node(Object):
         Assumes that all tree-operations have already completed.
 
         """
-        vec = np.concatenate( [self.get_role_vector(), self.embedding] )
-        print("vec: for", self.get_text())
-        print(vec)
-        print("\n\n")
-        
+        return np.concatenate( [self.get_role_vector(), self.embedding] )
+    
 
     def get_tree_embedding(self):
         """
@@ -1201,6 +1233,7 @@ class Node(Object):
 
         Has a format like:
         { 'vec': [1,2,3,4,5],
+          'text': "blahblah",
           'children': { [
               { 'vec': [2,4,6,8,0] }, ...
 
@@ -1209,7 +1242,7 @@ class Node(Object):
         dict : nested like the format described above
 
         """
-        te = { 'vec' : self.get_vector() }
+        te = { 'vec' : self.get_vector(), 'text':self.get_text() }
         if len(self.children):
             te['children'] = []
             for child in self.children:
@@ -1364,6 +1397,39 @@ def get_group_ancestor(nodes):
     nodes.add(first_node.parent)
     return get_group_ancestor(nodes)
 
+
+def is_non_numeric(a):
+    """
+    Boolean : does a string have numbers in it?
+    """
+    if re.search(r'\d', a):
+        return False
+    return True
+    
+
+def average_of_word_embeddings(words, vocab):
+        """
+        Take a list of words and a vocab, and return an average embedding
+        """
+        verbose = False
+        found_embedding = False
+        vecs = []
+        for word in words:
+            vec = vocab.get(word)
+            if vec is None:
+                vecs.append(default.get('empty_embedding'))
+                if verbose: print("Found nothing for: %s"% word)
+            else:
+                if verbose: print("Found sub-vector for: %s"% word)
+                vecs.append(vec)
+                found_embedding = True
+        if len(vecs) > 1:
+            vec = vector_average(vecs)
+        elif len(vecs) == 1:
+            vec = vecs[0]
+
+        return vec, found_embedding
+            
 
 ################################################################################
 # MAIN
