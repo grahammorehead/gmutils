@@ -649,6 +649,18 @@ def num_lines_in_file(file):
     return -1
 
 
+def num_from_filename(file):
+    """
+    In such cases, the number of paragraphs will be included at the end of the filename, like "file_n25.json"
+    """
+    try:
+        n = re.sub(r'^.*_n(\d+)\.json$', r'\1', file)
+        n = int(n)
+    except:
+        n = 1
+    return n
+    
+
 def monitor_setup(file, total_i=None):
     """
     To setup monitoring for the progess of a loop.  Use in conjunction with monitor()
@@ -665,7 +677,10 @@ def monitor_setup(file, total_i=None):
 
     """
     if total_i is None:
-        total_i = num_lines_in_file(file)  # Assumes the input must be a file
+        if re.search(r'_n\d', file):
+            total_i = num_from_filename(file)
+        else:
+            total_i = num_lines_in_file(file)  # Assumes the input must be a file
         
     lastDone = 0.0
     print ("\tLines to read:", total_i)

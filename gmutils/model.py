@@ -13,26 +13,14 @@ from sklearn.preprocessing import Binarizer
 from sklearn import metrics
 from sklearn.metrics import mean_absolute_error
 
-try:
-    from keras.utils.vis_utils import plot_model
-except:
-    pass
-
 from gmutils.utils import err, argparser, pandasize
 from gmutils.objects import Object
-
 
 ################################################################################
 # CONFIG
 
 default = {
     'default_dir'        : 'model',
-    'batch_size'         : 100,
-    'epochs'             : 5,
-    'optimizer'          : 'adam',
-    'loss'               : 'binary_crossentropy',
-    'nn_max_iter'        : 1000,
-    'nn_hl'              : (9, 18, 18, 9, 3),   # hidden layer sizes
     'binarize_predictions' : False
 }
   
@@ -372,7 +360,7 @@ class Model(Object):
 
 if __name__ == '__main__':
     try:
-        parser = argparser({'desc': "Tools to model patterns in text using keras and TF: model.py"})
+        parser = argparser({'desc': "Tools to model patterns in text using scikit-learn, keras, and TF: model.py"})
         #  --  Tool-specific command-line args may be added here
         args = parser.parse_args()   # Get inputs and options
 

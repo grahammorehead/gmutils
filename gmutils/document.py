@@ -494,25 +494,6 @@ class Document(Object):
         return self.get('num_nodes')
     
     
-    def get_nodes_covering_span(self, span):
-        """
-        Get set of nodes in this Document that cover the span in question
-
-        Parameters
-        ----------
-        span : spacy.Span
-
-        Returns
-        -------
-        array of Node
-
-        """
-        covering = []  # array of Node
-        tokens_in_span = list(span)
-        print("tokens in span:")
-        err(tokens_in_span)
-        
-        
     def get_related_nodes(self, head, thresh=0.7):
         """
         For a given node (not from this Document), sort this Document's nodes by embedding similarity.

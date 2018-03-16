@@ -311,7 +311,6 @@ class Node(Object):
                     
         return altered
 
-
     # end ALTERATIONS
     ############################################################################
     
@@ -363,7 +362,9 @@ class Node(Object):
 
         return False   # After testing self and each child, node is not a descendant
     
-
+    ############################################################################
+    # Access
+    
     def get_descendants_at_relative_depth(self, d):
         """
         Get all descendants at a depth of precisely d, relative to self.
@@ -440,6 +441,8 @@ class Node(Object):
 
     def node_of_token(self, token):
         """
+        Starts at ROOT!
+
         Given a token, find the Node to which it currently belongs. There can only be one.
         """
         root = self.get_root()
@@ -624,8 +627,8 @@ class Node(Object):
         if len(insec) > 0:
             return True
         return False
-    
 
+    
     def get_entity_type(self):
         """
         Return an array containing the recognized entity types purely for this one entity (No Node should contain more than one).
@@ -737,23 +740,230 @@ class Node(Object):
         """
         Find the shortest substring in the original text such that all nodes on this subtree are represented
         """
-        if not self.done():   # perform once
+        if len(self.tokens) < 1:
+            return ''
+        left = right = None
 
-            left = right = None
-            if len(self.tokens) < 1:
-                return ''
+        for token in self.get_supporting_tokens():
+            if left is None or token.left_edge.i < left:
+                left = token.left_edge.i
+            if right is None or token.right_edge.i > right:
+                right = token.right_edge.i
 
-            for token in self.get_supporting_tokens():
-                if left is None or token.left_edge.i < left:
-                    left = token.left_edge.i
-                if right is None or token.right_edge.i > right:
-                    right = token.right_edge.i
+        subtree_span = self.doc.get_span(left, right+1)
+        return subtree_span.text
 
-            subtree_span = self.doc.get_span(left, right+1)
-            self.set('supporting_text', subtree_span.text)
+    
+    def get_left_node(self):
+        """
+        Find the Node containing the token immediately to the left of this Node's leftmost token
+        """
+        verbose = False
+        if len(self.tokens) < 1:
+            return None
+        left = right = None      # index of leftmost / rightmost token
 
-        return self.get('supporting_text')
+        for token in self.get_supporting_tokens():
+            if left is None or token.left_edge.i < left:
+                left = token.left_edge.i
+            #if right is None or token.right_edge.i > right:
+            #    right = token.right_edge.i
 
+        if left > 0:
+            lefter = self.doc.token_by_index(left - 1)
+            lnode = self.node_of_token(lefter)
+            if verbose:  err([self, left, lefter, lnode])
+            return lnode
+        else:
+            return None
+        
+    
+    def get_right_node(self):
+        """
+        Find the Node containing the token immediately to the right of this Node's rightmost token
+        """
+        verbose = False
+        if len(self.tokens) < 1:
+            return None
+        left = right = None      # index of leftmost / rightmost token
+
+        for token in self.get_supporting_tokens():
+            #if left is None or token.left_edge.i < left:
+            #    left = token.left_edge.i
+            if right is None or token.right_edge.i > right:
+                right = token.right_edge.i
+
+        if right < self.doc.get_num_tokens():
+            righter = self.doc.token_by_index(right + 1)
+            rnode = self.node_of_token(righter)
+            if verbose:  err([self, right, righter, rnode])
+            return rnode
+        else:
+            return None
+
+        
+    def get_verb_nodes(self):
+        """
+        From each of the constituent trees, return a list of all nodes that are verbs
+
+        """
+        verbs = []
+        if self.is_verb():
+            verbs = [self]
+        
+        for child in self.children:
+            verbs.extend( child.get_verb_nodes() )
+        return verbs
+
+
+    def get_compound_prefix_nodes(self):
+        """
+        From each of the constituent trees, return a list of all nodes that are compound prefixes
+        """
+        nodes = []
+        if self.is_compound_prefix():
+            nodes = [self]
+        
+        for child in self.children:
+            nodes.extend( child.get_compound_prefix_nodes() )
+        return nodes
+
+
+    def get_index(self):
+        """
+        Return lowest token index
+        """
+        lowest = None
+        for token in self.tokens:
+            if lowest is None  or  token.i < lowest:
+                lowest = token.i
+        return lowest
+
+    def get_nodes(self):
+        """
+        Returns a self-inclusive list of this Node and all descendants
+        """
+        nodes = set([self])
+        for node in self.children:
+            nodes.update(node.get_nodes())
+
+        return sorted(nodes, key=lambda x: x.get_index())
+
+
+    def get_depth(self):
+        """
+        Number of links to root
+        """
+        if self.is_root():
+            return 0
+        else:
+            return 1 + self.parent.get_depth()
+
+
+    def get_siblings(self):
+        """
+        Get sibling nodes
+        """
+        siblings = []
+        if self.is_root():
+            return siblings
+        
+        for node in self.parent.children:
+            if node == self:
+                continue
+            siblings.append(node)
+            
+        return siblings
+
+
+    def get_num_siblings(self):
+        """
+        Number of parent's children minus one
+        """
+        if self.is_root():
+            return 0
+        
+        num = len(self.parent.children)
+        return num - 1
+
+
+    def get_idx(self):
+        """
+        Find the start/end character offset of the aggregate of tokens represented by this node.  Those tokens in many but not all
+        cases will be contiguous in the text.
+        """
+        idxs = []
+        for token in self.tokens:
+            idxs.append(token.idx)
+            end = token.idx + len(token.text)
+            idxs.append(end)
+        idxs.sort()
+        
+        return (idxs[0], idxs[-1])
+        
+
+    def overlap_idx(self, idx):
+        """
+        Determine if this nodes's idx (character start/end offsets) overlaps the given idx
+
+        Parameters
+        ----------
+        idx : (int, int)
+
+        Returns
+        -------
+        boolean
+
+        """
+        sidx = self.get_idx()
+        bot  = max( idx[0], sidx[0] )
+        top  = min( idx[1], sidx[1] )
+        spr  = top - bot
+        if spr > 0:
+            return True
+        return False
+
+
+    def get_graph_distance(self, node, done=set([])):
+        """
+        Recursively find the number of steps from self to 'node', within the same tree.  Go in both directions (up and down the tree)
+        simultaneously.  Use 'done' to prevent duplicate work.
+
+        Parameters
+        ----------
+        node : Node
+    
+        done : set of Nodes
+
+        Returns
+        -------
+        int
+
+        """
+        # Base cases
+        if node == self:
+            return 0
+
+        branches = set([self.parent])
+        for child in self.children:
+            branches.add(child)
+        branches = branches - done   # Remove already-searched nodes
+        done     = branches + done   # Keep track of scheduled work
+        
+        lowest_d = None
+        for b in branches:
+            d = b.get_graph_distance(node, done)
+            if lowest_d is None:
+                lowest_d = d
+            elif d < lowest_d:
+                lowest_d = d
+
+        return lowest_d
+        
+    
+    # End Access
+    ############################################################################
+    # Vectorization
     
     def get_semantic_roles_str(self, options={}):
         """
@@ -894,44 +1104,6 @@ class Node(Object):
         return vocab['_empty_']
     
 
-    def get_verb_nodes(self):
-        """
-        From each of the constituent trees, return a list of all nodes that are verbs
-
-        """
-        verbs = []
-        if self.is_verb():
-            verbs = [self]
-        
-        for child in self.children:
-            verbs.extend( child.get_verb_nodes() )
-        return verbs
-
-
-    def get_compound_prefix_nodes(self):
-        """
-        From each of the constituent trees, return a list of all nodes that are compound prefixes
-        """
-        nodes = []
-        if self.is_compound_prefix():
-            nodes = [self]
-        
-        for child in self.children:
-            nodes.extend( child.get_compound_prefix_nodes() )
-        return nodes
-
-
-    def get_index(self):
-        """
-        Return lowest token index
-        """
-        lowest = None
-        for token in self.tokens:
-            if lowest is None  or  token.i < lowest:
-                lowest = token.i
-        return lowest
-        
-    
     def embed(self, vocab):
         """
         Given some vocab (embedding) produce a vector that represents this node
@@ -1002,99 +1174,51 @@ class Node(Object):
             for child in self.children:
                 child.embed(vocab)
             
-
-    def get_nodes(self):
-        """
-        Returns a self-inclusive list of this Node and all descendants
-        """
-        nodes = set([self])
-        for node in self.children:
-            nodes.update(node.get_nodes())
-
-        return sorted(nodes, key=lambda x: x.get_index())
-
-
-    def get_depth(self):
-        """
-        Number of links to root
-        """
-        if self.is_root():
-            return 0
-        else:
-            return 1 + self.parent.get_depth()
-
-
-    def get_siblings(self):
-        """
-        Get sibling nodes
-        """
-        siblings = []
-        if self.is_root():
-            return siblings
-        
-        for node in self.parent.children:
-            if node == self:
-                continue
-            siblings.append(node)
-            
-        return siblings
-
-
-    def get_num_siblings(self):
-        """
-        Number of parent's children minus one
-        """
-        if self.is_root():
-            return 0
-        
-        num = len(self.parent.children)
-        return num - 1
-
-
-    def get_idx(self):
-        """
-        Find the start/end character offset of the aggregate of tokens represented by this node.  Those tokens in many but not all
-        cases will be contiguous in the text.
-        """
-        idxs = []
-        for token in self.tokens:
-            idxs.append(token.idx)
-            end = token.idx + len(token.text)
-            idxs.append(end)
-        idxs.sort()
-        
-        return (idxs[0], idxs[-1])
-        
-
-    def overlap_idx(self, idx):
-        """
-        Determine if this nodes's idx (character start/end offsets) overlaps the given idx
-
-        Parameters
-        ----------
-        idx : (int, int)
-
-        Returns
-        -------
-        boolean
-
-        """
-        sidx = self.get_idx()
-        bot  = max( idx[0], sidx[0] )
-        top  = min( idx[1], sidx[1] )
-        spr  = top - bot
-        if spr > 0:
-            return True
-        return False
-
-
+    
     def cosine_similarity(self, node):
         """
         The similarity between the embedding of this and some other node
         """
         return cosine_similarity(self.embedding, node.embedding)
+
+    
+    def get_vector(self):
+        """
+        Get a single vector to represent this node, its meaning and its role
+
+        Assumes that all tree-operations have already completed.
+
+        """
+        vec = np.concatenate( [self.get_role_vector(), self.embedding] )
+        print("vec: for", self.get_text())
+        print(vec)
+        print("\n\n")
+        
+
+    def get_tree_embedding(self):
+        """
+        Generates a nested vectorization of the substree starting at this node
+
+        Has a format like:
+        { 'vec': [1,2,3,4,5],
+          'children': { [
+              { 'vec': [2,4,6,8,0] }, ...
+
+        Returns
+        -------
+        dict : nested like the format described above
+
+        """
+        te = { 'vec' : self.get_vector() }
+        if len(self.children):
+            te['children'] = []
+            for child in self.children:
+                te['children'].append( child.get_tree_embedding() )
+
+        return te
     
         
+    # End Vectorization
     ############################################################################
     # Printing
 
