@@ -5,6 +5,7 @@ Tools to manage nodes in a parse tree
 """
 import os, sys, re, json
 from copy import deepcopy
+from time import sleep
 import numpy as np
 
 from gmutils.objects import Object
@@ -66,21 +67,31 @@ class Node(Object):
         self.set_options(options)        # For more on 'self.set_options()' see object.Object
         self.is_dead = False
         self.doc = doc
-
-        if isinstance(spacy_token, list):
-            self.tokens = spacy_token
-        else:
-            self.tokens = [spacy_token]
+        self.tokens = []
         
+        if isinstance(spacy_token, list):
+            tokens = spacy_token
+        else:
+            tokens = [spacy_token]
+
+        # Remove whitespace tokens
+        for token in tokens:
+            if re.search(r'\S', token.text):
+                self.tokens.append(token)
+            
         self.parent = parent
         self.children = []
         
         # Base original tree on spacy Token tree.  Add a Node-child for every token-child
         if len(self.tokens) < 1:
-            err([], {'ex':"No tokens in this Node. See parent:\n%s\n\nSee Document:\n%s"% (self.parent, self.doc)})
+            print("No tokens in this Node. See parent:\n%s\n\nSee Document:\n%s"% (self.parent.get_text(), self.doc.get_text()))
+            sleep(1)
+            # err([], {'ex':"No tokens in this Node. See parent:\n%s\n\nSee Document:\n%s"% (self.parent.get_text(), self.doc.get_text())})
         for token in self.tokens:
             for child in token.children:
-                self.children.append(Node(self.doc, child, parent=self, options=options))
+                node = Node(self.doc, child, parent=self, options=options)
+                if len(node.tokens) > 0:
+                    self.children.append(node)
 
                 
     def kill(self):
@@ -608,7 +619,7 @@ class Node(Object):
 
     def get_dep(self):
         """
-        Get the part of speech (could be multiple)
+        Get the dependency relation type (could be multiple)
 
         """
         dep = []
@@ -617,9 +628,18 @@ class Node(Object):
                 dep.append(token.dep_)
         except:
             pass
-        return dep
+        return sorted(dep)
 
 
+    def get_dep_str(self):
+        """
+        A simple str representation of the dependency type
+
+        """
+        deps = self.get_dep()
+        return ' ' .join( sorted(deps) )
+    
+    
     def has_dep(self, dep_set):
         self_deps = set(self.get_dep())
         insec = self_deps.intersection(dep_set)
@@ -729,29 +749,6 @@ class Node(Object):
         return beginners
 
         
-    def get_dep(self):
-        """
-        Get the dependency relation type (could be multiple)
-
-        """
-        dep = []
-        try:
-            for token in self.tokens:
-                dep.append(token.dep_)
-        except:
-            pass
-        return sorted(dep)
-
-
-    def get_dep_str(self):
-        """
-        A simple str representation of the dependency type
-
-        """
-        deps = self.get_dep()
-        return ' ' .join( sorted(deps) )
-    
-    
     def get_supporting_tokens(self):
         """
         Find all tokens in this subtree, including this Node
@@ -1126,6 +1123,7 @@ class Node(Object):
         Return a vectorized representation of the DEP of this Node
         """
         dep_vector = None
+
         for dep in self.get_dep():
             if dep_vector is None:
                 dep_vector = vocab[dep]
