@@ -221,9 +221,10 @@ def normalize(text, options=None):
         err([[text]])
 
     # Char-by-char scrubbing
-    text = scrub_charByChar(text)
-    if options.get('verbose'):
-        err([[text]])
+    if options.get('scrub_charByChar'):
+        text = scrub_charByChar(text)
+        if options.get('verbose'):
+            err([[text]])
 
     # Some final options
     if options.get('no_urls'):                 # Remove URLs and Emails if requested in options
@@ -251,7 +252,9 @@ def remove_citations(line):
     """
     Removes things that look like citations from Wikipedia-sourced data
     """
-    # line = re.sub(r"\[citation needed\]", '', line)
+    line = re.sub(r"\[citation needed\]", '', line)
+    line = re.sub(r"\[citation issues\]", '', line)
+    line = re.sub(r"\[citation\]", '', line)
     line = re.sub(r"(?<=[a-zA-Z])\.\d[\d,]*$", '.', line)
     line = re.sub(r"(?<=[a-zA-Z])\.\d[\d,]* \s*([A-Z][a-z])", r'.  \1', line)
     line = re.sub(r"(?<=[a-zA-Z])\.\d[\d,]* \s*([A-Z] )", r'.  \1', line)

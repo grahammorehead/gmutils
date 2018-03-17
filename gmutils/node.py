@@ -1201,9 +1201,11 @@ class Node(Object):
         # No embedding found
         if not found_embedding:
             self.embedding = default.get('empty_embedding')
+            """
             if re.search(r'[a-zA-Z]', self.get_text()):
                 if is_non_numeric(self.get_text()):
-                    print("EMPTY EMBEDDING: [%s]"% self.get_lemmas_str(), self.get_text())
+                    print("\nEMPTY EMBEDDING: [%s]"% self.get_lemmas_str(), self.get_text())
+            """
             
         # Recursive application
         if self.children is not None:

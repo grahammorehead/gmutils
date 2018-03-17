@@ -6,7 +6,7 @@
 import os, sys, re
 import numpy as np
 
-from gmutils.utils import err
+from gmutils.utils import err, argparser
 from gmutils.model import Model
 
 ################################################################################

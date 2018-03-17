@@ -216,6 +216,20 @@ class Object(object):
         return so_far
         
 
+    def clear_done(self):
+        """
+        Used to enable a given function to be called again
+
+        Returns
+        -------
+        int : the number of times 'caller' has been called for this object
+
+        """
+        caller = sys._getframe(1).f_code.co_name   # name of the function in which 'done()' was called
+        tracker = '_DONE_' + caller                # name of stored key to track how many times 'caller' has been called for this object
+        self.set(tracker, 0)
+        
+
 class Options(Object):
     """
     A custom subclass of object>Object to assist in the handling of options outside of object code

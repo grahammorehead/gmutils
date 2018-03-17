@@ -52,10 +52,10 @@ class Document(Object):
         # If reading the document from a file, <text> should be None
         if text is None:
             options['one str'] = True
-            text = read_file(file, options)
+            text = read_file(file, options=options)
 
         if self.get('normalize'):
-            text = normalize(text, {'verbose':False, 'remove_citations':True})
+            text = normalize(text, options=options)
             
         self.spacy_doc, self.ner = generate_spacy_data(text)   # Parse with spacy, get NER
         self.generate_trees()                                  # Generate Node trees representing sentences
