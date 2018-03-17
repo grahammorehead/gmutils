@@ -989,6 +989,8 @@ class Node(Object):
             d = b.get_graph_distance(node, done)
             if d is None:
                 continue
+            d += 1  # must add one to the recursive computation
+            
             if lowest_d is None:
                 lowest_d = d
             elif d < lowest_d:
@@ -1209,7 +1211,6 @@ class Node(Object):
                 child.embed(vocab)
             
 
-
     def cosine_similarity(self, node):
         """
         The similarity between the embedding of this and some other node
@@ -1217,14 +1218,24 @@ class Node(Object):
         return cosine_similarity(self.embedding, node.embedding)
 
     
-    def get_vector(self):
+    def get_vector(self, options={}):
         """
         Get a single vector to represent this node, its meaning and its role
 
         Assumes that all tree-operations have already completed.
 
+        Options
+        -------
+        tolist : boolean
+            Convert from numpy array to list
+
         """
-        return np.concatenate( [self.get_role_vector(), self.embedding] )
+        vec = np.concatenate( [self.get_role_vector(), self.embedding] )
+
+        if options.get('tolist'):
+            return vec.tolist()
+        
+        return vec
     
 
     def get_tree_embedding(self):
