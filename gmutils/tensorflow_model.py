@@ -5,6 +5,7 @@
 """
 import os, sys, re
 import numpy as np
+import tensorflow as tf
 
 from gmutils.utils import err, argparser
 from gmutils.model import Model
@@ -47,10 +48,18 @@ class TensorflowModel(Model):
         Run the session
         """
         with tf.Session() as sess:
-            while True:
-                pass
+            sess.run(tf.global_variables_initializer())
+            print(sess.run(self.main))
 
 
+    def local_string(self, name, value):
+        # return tf.get_variable(name, shape=(), dtype=tf.string, initializer=init, collections=[tf.GraphKeys.LOCAL_VARIABLES])
+        return tf.Variable(value, name=name, dtype=tf.string, collections=[tf.GraphKeys.LOCAL_VARIABLES])
+
+    
+    def local_vec(self, name, shape):
+        return tf.get_variable(name, shape=shape, dtype=tf.float16, collections=[tf.GraphKeys.LOCAL_VARIABLES])
+            
 
         
 ################################################################################

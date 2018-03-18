@@ -56,9 +56,12 @@ class Document(Object):
 
         if self.get('normalize'):
             text = normalize(text, options=options)
-            
-        self.spacy_doc, self.ner = generate_spacy_data(text)   # Parse with spacy, get NER
-        self.generate_trees()                                  # Generate Node trees representing sentences
+
+        try:
+            self.spacy_doc, self.ner = generate_spacy_data(text)   # Parse with spacy, get NER
+            self.generate_trees()                                  # Generate Node trees representing sentences
+        except:
+            raise
 
             
     def __repr__(self):

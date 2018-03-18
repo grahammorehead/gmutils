@@ -3,10 +3,11 @@
 Helper functions for Elasticsearch
 
 """
+from elasticsearch import Elasticsearch
+
 import os, sys, re
 from editdistance import eval as fast_levenshtein
 
-from elasticsearch import Elasticsearch
 from elasticsearch import helpers
 es = Elasticsearch()
 
