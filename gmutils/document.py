@@ -480,7 +480,12 @@ class Document(Object):
         for tree in self.trees:
             nodes.update(tree.get_nodes())
 
-        return sorted(nodes, key=lambda x: x.get_index())
+        final = []
+        for node in nodes:
+            if len(node.tokens) > 0:
+                final.append(node)
+
+        return sorted(final, key=lambda x: x.get_index())
         
 
     def get_num_nodes(self):

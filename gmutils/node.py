@@ -517,7 +517,8 @@ class Node(Object):
             pass
 
         if len(lemmas) == 0:  # Try again, but accept all
-            return self.get_lemmas(options={'picky':False})
+            if not options.get('last_chance'):
+                return self.get_lemmas(options={'picky':False, 'last_chance':True})
         
         return lemmas
 
