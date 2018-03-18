@@ -28,3 +28,5 @@ from .sklearn_model import SklearnModel
 from .objects import Object, Options
 
 from .lexical import damerauLevenshtein
+
+from .tensorflow_model import TensorflowModel

@@ -42,15 +42,17 @@ class TensorflowModel(Model):
         Names of the underlying estimator(s) to be used
 
     """
-    def generate(self):
+    def run(self):
         """
-        Generate the guts of the model
-
+        Run the session
         """
-        verbose = True
+        with tf.Session() as sess:
+            while True:
+                pass
 
 
 
+        
 ################################################################################
 # FUNCTIONS
 

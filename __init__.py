@@ -24,3 +24,5 @@ from gmutils import SklearnModel
 from gmutils import Object, Options
 
 from gmutils import damerauLevenshtein
+
+from .tensorflow_model import TensorflowModel
