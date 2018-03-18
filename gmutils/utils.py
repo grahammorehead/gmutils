@@ -6,6 +6,7 @@ Helper functions
 import os, sys, re
 import traceback
 import json
+import gzip
 import zipfile
 import pickle
 from sklearn.externals import joblib
@@ -921,6 +922,25 @@ def binary_distance(a, b):
     c = bin(a ^ b)
     
     return c.count('1')
+
+
+def json_dump_gz(filepath, data):
+    """
+    Dump 'data' into a JSON str and save it in a .gz file
+    """
+    json_str = json.dumps(data) + "\n"
+    json_bytes = json_str.encode('utf-8')
+    with gzip.GzipFile(filepath, 'w') as fout:
+        fout.write(json_bytes)
+
+
+def json_load_gz(filepath):
+    with gzip.GzipFile(filepath, 'r') as fin:
+        json_bytes = fin.read()
+    json_str = json_bytes.decode('utf-8')
+    data = json.loads(json_str)
+    
+    return data
 
 
 ################################################################################

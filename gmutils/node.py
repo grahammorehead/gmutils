@@ -64,6 +64,7 @@ class Node(Object):
         parent : Node
 
         """
+        verbose = False
         self.set_options(options)        # For more on 'self.set_options()' see object.Object
         self.is_dead = False
         self.doc = doc
@@ -81,12 +82,14 @@ class Node(Object):
             
         self.parent = parent
         self.children = []
-        
+
+        if verbose:
+            if len(self.tokens) < 1:
+                print("No tokens in this Node. See parent:\n%s\n\nSee Document:\n%s"% (self.parent.get_text(), self.doc.get_text()))
+                sleep(1)
+                # err([], {'ex':"No tokens in this Node. See parent:\n%s\n\nSee Document:\n%s"% (self.parent.get_text(), self.doc.get_text())})
+                
         # Base original tree on spacy Token tree.  Add a Node-child for every token-child
-        if len(self.tokens) < 1:
-            print("No tokens in this Node. See parent:\n%s\n\nSee Document:\n%s"% (self.parent.get_text(), self.doc.get_text()))
-            sleep(1)
-            # err([], {'ex':"No tokens in this Node. See parent:\n%s\n\nSee Document:\n%s"% (self.parent.get_text(), self.doc.get_text())})
         for token in self.tokens:
             for child in token.children:
                 node = Node(self.doc, child, parent=self, options=options)
