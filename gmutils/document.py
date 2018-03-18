@@ -68,12 +68,8 @@ class Document(Object):
         """
         str version of Object in an easily-understood manner
         """
-        text = self.get_text()
+        return self.get_text()
         
-    
-    def __str__(self):
-        return self.__repr__()
-
     
     def get_text(self):
         return self.spacy_doc[:].text
@@ -349,17 +345,27 @@ class Document(Object):
                 for node in tree.get_compound_prefix_nodes():
                     a = node.agglomerate_compound_adj()   #  vocab=vocab)  No vocab for now!
                     if a:  altered = a  # only switch if going to True
-        
 
-    def embed(self, vocab, options={}):
-        """
-        Use a given embedding (vocab) to vectorize this node and its children
 
+    def embed(self, vocab):
         """
-        # Recursively embed each tree in this vector space
+        Use a given vocab to embed each node in some vector space
+        """
         for tree in self.trees:
             tree.embed(vocab)
+                        
 
+    def get_embedding(self, options={}):
+        """
+        After a given embedding (vocab) has already been used to vectorize each node, use this method to compile it together.
+        """
+        ems = []
+        for tree in self.trees:
+            em = tree.get_tree_embedding(options)
+            if em:
+                ems.append(em)
+        return ems
+    
         
     def preprocess(self, vocab):
         """

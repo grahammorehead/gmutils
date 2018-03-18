@@ -1242,7 +1242,7 @@ class Node(Object):
         return vec
     
 
-    def get_tree_embedding(self):
+    def get_tree_embedding(self, options={}):
         """
         Generates a nested vectorization of the substree starting at this node
 
@@ -1257,11 +1257,11 @@ class Node(Object):
         dict : nested like the format described above
 
         """
-        te = { 'vec' : self.get_vector(), 'text':self.get_text() }
+        te = { 'vec' : self.get_vector(options), 'text':self.get_text() }
         if len(self.children):
             te['children'] = []
             for child in self.children:
-                te['children'].append( child.get_tree_embedding() )
+                te['children'].append( child.get_tree_embedding(options) )
 
         return te
     
