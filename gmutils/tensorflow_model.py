@@ -14,9 +14,9 @@ from gmutils.model import Model
 # CONFIG
 
 default = {
-    'default_dir'        : 'model',
     'batch_size'         : 100,
     'epochs'             : 5,
+    'vec_dtype'          : tf.float16,
 }
 
 ################################################################################
@@ -43,24 +43,43 @@ class TensorflowModel(Model):
         Names of the underlying estimator(s) to be used
 
     """
-    def run(self):
+    def __init__(self, options=None):
         """
-        Run the session
+        Instantiate the object and set options
         """
-        with tf.Session() as sess:
-            sess.run(tf.global_variables_initializer())
-            print(sess.run(self.main))
+        self.set_options(options, default)
+        super().__init__(options)
 
-
+        
     def local_string(self, name, value):
         # return tf.get_variable(name, shape=(), dtype=tf.string, initializer=init, collections=[tf.GraphKeys.LOCAL_VARIABLES])
         return tf.Variable(value, name=name, dtype=tf.string, collections=[tf.GraphKeys.LOCAL_VARIABLES])
 
     
     def local_vec(self, name, shape):
+        """
+        Generate a local variable for use by a TF graph
+        """
+        if isinstance(shape, int):
+            shape = (shape)
         return tf.get_variable(name, shape=shape, dtype=tf.float16, collections=[tf.GraphKeys.LOCAL_VARIABLES])
-            
 
+    
+    def placeholder_float(self):
+        """
+        Generate a placeholder float for use by a TF graph
+        """
+        return tf.placeholder(self.get('vec_dtype'), shape=(1))
+                                              
+        
+    def placeholder_vec(self, shape):
+        """
+        Generate a placeholder vec for use by a TF graph
+        """
+        if isinstance(shape, int):
+            shape = (shape)
+        return tf.placeholder(self.get('vec_dtype'), shape=shape)
+                                              
         
 ################################################################################
 # FUNCTIONS

@@ -21,7 +21,6 @@ from gmutils.objects import Object
 
 default = {
     'default_dir'        : 'model',
-    'binarize_predictions' : False
 }
   
 ################################################################################
@@ -51,11 +50,10 @@ class Model(Object):
     def __init__(self, options=None):
         """
         Instantiate the object and set options
-
         """
         self.set_options(options, default)
-        self.generate()
-
+        super().__init__(options)
+        
 
     def generate(self):
         """

@@ -10,6 +10,12 @@ import types
 from .utils import mkdir
 
 ################################################################################
+# CONFIG
+
+default = {
+    }
+
+################################################################################
 # OBJECTS
 
 class Object(object):
@@ -18,7 +24,14 @@ class Object(object):
     to result in cleaner code overall
 
     """
-    def set_options(self, options=None, default=None):
+    def __init__(self, options=None):
+        """
+        Instantiate the object and set options
+        """
+        self.set_options(options, default)
+
+        
+    def set_options(self, options=None, default=default):
         """
         The purpose of this and related functions is to enable getting and setting of options without having to check first if a dict key exists-- results in cleaner code.
 
