@@ -27,7 +27,6 @@ def get_mongo_client(db_name='default', collection_name='default', host='localho
     """
     if user and password:
         host = "mongodb://%s:%s@%s:%d" % ( quote_plus(user), quote_plus(password), host, port )
-        err([host])
         client = MongoClient(host)
     else:
         client = MongoClient(host, port)
