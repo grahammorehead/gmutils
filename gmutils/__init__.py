@@ -45,5 +45,7 @@ from .objects import Object, Options
 
 from .lexical import damerauLevenshtein
 
-if verbose:  sys.stderr.write("\tLoading TensorFlow ...\n")
-from .tensorflow_model import TensorflowModel
+try:
+    if verbose:  sys.stderr.write("\tLoading TensorFlow ...\n")
+    from .tensorflow_model import TensorflowModel
+except Exception as e: err([], {'exception':e, 'level':0})

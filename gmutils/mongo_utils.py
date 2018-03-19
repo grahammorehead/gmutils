@@ -6,6 +6,7 @@ Helper functions for Mongo
 import os, sys, re
 from pprint import pprint
 from pymongo import MongoClient
+from urllib.parse import quote_plus
 
 from gmutils.utils import argparser, err
 
@@ -20,7 +21,21 @@ def test(host='localhost', port=27017, db_name='default', collection_name='defau
     print("Loaded collection", collection_name,"  type:", type(coll))
 
 
-def mongo_iterator(db_name='default', collection_name='default', host='localhost', port=27017):
+def get_mongo_client(db_name='default', collection_name='default', host='localhost', port=27017, user=None, password=None):
+    """
+    Simplify getting the client
+    """
+    if user and password:
+        host = "mongodb://%s:%s@%s:%d" % ( quote_plus(user), quote_plus(password), host, port )
+        err([host])
+        client = MongoClient(host)
+    else:
+        client = MongoClient(host, port)
+
+    return client
+
+    
+def mongo_iterator(db_name='default', collection_name='default', host='localhost', port=27017, user=None, password=None):
     """
     Iterate over all docs in a Mongo DB
 
@@ -40,11 +55,12 @@ def mongo_iterator(db_name='default', collection_name='default', host='localhost
 
     """
     verbose = False
+    client = get_mongo_client(db_name=db_name, collection_name=collection_name, host=host, port=port, user=user, password=password)
+    
     if verbose:
         print("Mongo host:", host, "    port:", port,  "   type:", type(port))
         print("Will iterate on collection:", collection_name)
     
-    client = MongoClient(host, port)
     db = client[db_name]
     coll = db[collection_name]
     f = coll.find()
@@ -52,7 +68,7 @@ def mongo_iterator(db_name='default', collection_name='default', host='localhost
     return f
     
 
-def mongo_find_one(db_name='default', collection_name='default', host='localhost', port=27017):
+def mongo_find_one(db_name='default', collection_name='default', host='localhost', port=27017, user=None, password=None):
     """
     Iterate over all docs in a Mongo DB
 
@@ -72,21 +88,23 @@ def mongo_find_one(db_name='default', collection_name='default', host='localhost
 
     """
     verbose = True
+    client = get_mongo_client(db_name=db_name, collection_name=collection_name, host=host, port=port, user=user, password=password)
+
     if verbose:
         print("Mongo host:", host, "    port:", port,  "   type:", type(port))
         print("Will find one from collection:", collection_name)
     
-    client = MongoClient(host, port)
     db = client[db_name]
     coll = db[collection_name]
     return coll.find_one()
 
 
-def mongo_count(db_name='default', collection_name='default', host='localhost', port=27017):
+def mongo_count(db_name='default', collection_name='default', host='localhost', port=27017, user=None, password=None):
     """
     Return the number of documents in a collection
     """
-    client = MongoClient(host, port)
+    client = get_mongo_client(db_name=db_name, collection_name=collection_name, host=host, port=port, user=user, password=password)
+    
     db = client[db_name]
     coll = db[collection_name]
 
