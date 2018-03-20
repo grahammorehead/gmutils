@@ -18,6 +18,7 @@ default = {
     'epochs'             : 50,
     'vec_dtype'          : tf.float16,
     'learning_rate'      : 0.01,
+    'activation'         : tf.nn.relu,
 }
 
 ################################################################################
@@ -29,6 +30,8 @@ class TensorflowModel(Model):
 
     Attributes  (depends on subclass)
     ----------
+    sess : a TensorFlow session
+
     label : str
         The supervised label
 
@@ -43,6 +46,15 @@ class TensorflowModel(Model):
     estimators : array of str
         Names of the underlying estimator(s) to be used
 
+    global_initializer : TF variable initializer
+
+    graph : initial default tf.Graph
+
+    finals : list of final output Tensors
+
+    feed_dict : dict
+        dict of vars to be fed into graph just before running.  Best case scenario run once
+
     """
     def __init__(self, options=None):
         """
@@ -50,8 +62,40 @@ class TensorflowModel(Model):
         """
         self.set_options(options, default)
         super().__init__(options)
+        self.graph = tf.get_default_graph()
+        self.feed_dict = {}
+        self.finals = []
 
 
+    def initialize(self, sess):
+        """
+        Initialize all global vars in the graph
+        """
+        global_vars          = tf.global_variables()
+        is_not_initialized   = sess.run([tf.is_variable_initialized(var) for var in global_vars])
+        not_initialized_vars = [v for (v, f) in zip(global_vars, is_not_initialized) if not f]
+
+        # print [str(i.name) for i in not_initialized_vars] # only for testing
+        if len(not_initialized_vars):
+            sess.run(tf.variables_initializer(not_initialized_vars))
+
+
+    def add(self, placeholder, val):
+        """
+        Add this placeholder and val to self.feed_dict
+        """
+        self.feed_dict[placeholder] = [val]   # listified to add a dimension
+            
+
+    def run(self):
+        """
+        Run the session
+        """
+        with tf.Session() as sess:
+            self.initialize(sess)
+            print(sess.run(self.finals, feed_dict=self.feed_dict))
+
+            
     def print(self, tensors):
         """
         Make it easier to generate a print statement.  Prints multiple tensors, but shape info only about the first one.
@@ -62,9 +106,15 @@ class TensorflowModel(Model):
             Tensors to be printed
 
         """
-        null_a = tf.Print(tensors[0], tensors, "\ninput %s  "% str(tensors[0].get_shape()), summarize=100 )
-        return tf.identity(null_a, name='null')
+        if isinstance(tensors, list):
+            pass
+        else:
+            tensors = [tensors]
             
+        null_a = tf.Print(tensors[0], tensors, "\ninput %s  "% str(tensors[0].get_shape()), summarize=1000 )
+        # null_b = tf.identity(null_a, name='null')
+        return null_a
+        
         
     def local_string(self, name, value):
         # return tf.get_variable(name, shape=(), dtype=tf.string, initializer=init, collections=[tf.GraphKeys.LOCAL_VARIABLES])
@@ -96,21 +146,36 @@ class TensorflowModel(Model):
         return tf.placeholder(self.get('vec_dtype'), shape=shape)
                                               
 
-    def node_tensor(self):
+    def node_placeholder(self, name=None):
         """
         Return a basic placeholder for a Node
         """
-        return tf.placeholder(self.get('vec_dtype'), shape=(self.get('dim')))
+        try:
+            self.placeholder_i += 1
+        except:
+            self.placeholder_i  = 1
+        if name is not None:
+            name += '_' + str(self.placeholder_i)
+            
+        return tf.placeholder(self.get('vec_dtype'), shape=[None, self.get('dim')], name=name)
 
 
     def node_layer(self):
         """
         Return a basic dense layer for processing a node tensor
         """
-        x = tf.placeholder(self.get('vec_dtype'), shape=[None, 3])
-        linear_model = tf.layers.Dense(units=self.get('dim'))
-        y = linear_model(x)
+        return tf.layers.Dense(units=self.get('dim'), activation=self.get('activation'))
 
+
+    def average(self, tensors):
+        """
+        Output a tensor which is the average of the inputs
+
+        Parameters
+        ----------
+        array of TF Tensors all having identical shape
+        """
+        return tf.reduce_mean(tensors, 0)
 
         
     
