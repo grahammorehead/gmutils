@@ -15,8 +15,9 @@ from gmutils.model import Model
 
 default = {
     'batch_size'         : 100,
-    'epochs'             : 5,
+    'epochs'             : 50,
     'vec_dtype'          : tf.float16,
+    'learning_rate'      : 0.01,
 }
 
 ################################################################################
@@ -50,6 +51,20 @@ class TensorflowModel(Model):
         self.set_options(options, default)
         super().__init__(options)
 
+
+    def print(self, tensors):
+        """
+        Make it easier to generate a print statement.  Prints multiple tensors, but shape info only about the first one.
+
+        Parameters
+        ----------
+        tensors : array of Tensor
+            Tensors to be printed
+
+        """
+        null_a = tf.Print(tensors[0], tensors, "\ninput %s  "% str(tensors[0].get_shape()), summarize=100 )
+        return tf.identity(null_a, name='null')
+            
         
     def local_string(self, name, value):
         # return tf.get_variable(name, shape=(), dtype=tf.string, initializer=init, collections=[tf.GraphKeys.LOCAL_VARIABLES])
@@ -80,7 +95,25 @@ class TensorflowModel(Model):
             shape = (shape)
         return tf.placeholder(self.get('vec_dtype'), shape=shape)
                                               
+
+    def node_tensor(self):
+        """
+        Return a basic placeholder for a Node
+        """
+        return tf.placeholder(self.get('vec_dtype'), shape=(self.get('dim')))
+
+
+    def node_layer(self):
+        """
+        Return a basic dense layer for processing a node tensor
+        """
+        x = tf.placeholder(self.get('vec_dtype'), shape=[None, 3])
+        linear_model = tf.layers.Dense(units=self.get('dim'))
+        y = linear_model(x)
+
+
         
+    
 ################################################################################
 # FUNCTIONS
 
