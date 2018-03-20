@@ -55,6 +55,9 @@ class TensorflowModel(Model):
     feed_dict : dict
         dict of vars to be fed into graph just before running.  Best case scenario run once
 
+    to_print : dict
+        array of tensors to print when the session is run
+
     """
     def __init__(self, options=None):
         """
@@ -65,6 +68,7 @@ class TensorflowModel(Model):
         self.graph = tf.get_default_graph()
         self.feed_dict = {}
         self.finals = []
+        self.to_print = []
 
 
     def initialize(self, sess):
@@ -80,40 +84,46 @@ class TensorflowModel(Model):
             sess.run(tf.variables_initializer(not_initialized_vars))
 
 
-    def add(self, placeholder, val):
+    def add_to_feed(self, placeholder, val):
         """
         Add this placeholder and val to self.feed_dict
         """
         self.feed_dict[placeholder] = [val]   # listified to add a dimension
             
 
+    def add_node(self, val):
+        """
+        Add a new node to the graph and add it's val to the feed_dict
+        """
+        placeholder = self.node_placeholder()
+        self.add_to_feed(placeholder, val)
+        return placeholder
+
+        
     def run(self):
         """
         Run the session
         """
         with tf.Session() as sess:
             self.initialize(sess)
-            print(sess.run(self.finals, feed_dict=self.feed_dict))
-
+            output = sess.run(self.to_print + self.finals, feed_dict=self.feed_dict)
+            # print(output)
             
-    def print(self, tensors):
+            
+    def print(self, tensor, text):
         """
-        Make it easier to generate a print statement.  Prints multiple tensors, but shape info only about the first one.
+        Make it easier to generate a print statement.  Prints a tensor with shape info and some specified text
 
         Parameters
         ----------
-        tensors : array of Tensor
-            Tensors to be printed
+        tensor : tf Tensor
+
+        text : str
 
         """
-        if isinstance(tensors, list):
-            pass
-        else:
-            tensors = [tensors]
-            
-        null_a = tf.Print(tensors[0], tensors, "\ninput %s  "% str(tensors[0].get_shape()), summarize=1000 )
-        # null_b = tf.identity(null_a, name='null')
-        return null_a
+        text = "\n\nTENSOR shape=%s : |%s|\n"% (str(tensor.get_shape()), text)
+        nullT = tf.Print(tensor, [tensor], text, summarize=1000 )
+        self.to_print.append(nullT)
         
         
     def local_string(self, name, value):
