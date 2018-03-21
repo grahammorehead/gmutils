@@ -99,6 +99,22 @@ class TensorflowModel(Model):
         self.add_to_feed(placeholder, val)
         return placeholder
 
+
+    def add_final(self, T):
+        """
+        Add a tf Tensor T to the list of finals
+        """
+        self.finals.append(T)
+        
+        
+    def empty_node(self):
+        """
+        Get the empty node and use it again.  It's a constant.  Assumes all node vectors same dim
+        """
+        if not self.done():
+            self.set('empty_node', tf.constant([0.0]*self.get('dim'), dtype=self.get('dtype')) )
+        return self.get('empty_node')
+
         
     def run(self):
         """

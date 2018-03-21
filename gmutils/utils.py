@@ -943,6 +943,16 @@ def json_load_gz(filepath):
     return data
 
 
+def deepcopy_list(X):
+    """
+    Deepcopy the list X (Python deepcopy fails for many object types)
+    """
+    out = []
+    for x in X:
+        out.append(x)
+    return out
+    
+
 ################################################################################
 # MAIN
 
