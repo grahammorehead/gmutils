@@ -120,9 +120,20 @@ class TensorflowModel(Model):
         """
         Run the session
         """
+        verbose = True
         with tf.Session() as sess:
             self.initialize(sess)
-            output = sess.run(self.to_print + self.finals, feed_dict=self.feed_dict)
+            targets = self.to_print + self.finals
+
+            if verbose:
+                err(self.to_print)
+                err(self.finals)
+                names = []
+                for key in self.feed_dict.keys():
+                    names.append(key.name)
+                err(names)
+            
+            output = sess.run(targets, feed_dict=self.feed_dict)
             # print(output)
             
             
@@ -137,7 +148,17 @@ class TensorflowModel(Model):
         text : str
 
         """
-        text = "\n\nTENSOR shape=%s : |%s|\n"% (str(tensor.get_shape()), text)
+        try:
+            shape = str(tensor.get_shape())
+        except:
+            shape = str(len(tensor))
+        try:
+            tensor_type = str(type(tensor))
+            tensor_type += ' ' + tensor.dtype
+        except:
+            pass
+        
+        text = "\n\nTENSOR (%s) shape=%s : |%s|\n"% (tensor_type, shape, text)
         nullT = tf.Print(tensor, [tensor], text, summarize=1000 )
         self.to_print.append(nullT)
         
