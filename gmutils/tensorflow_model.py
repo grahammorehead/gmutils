@@ -16,7 +16,7 @@ from gmutils.model import Model
 default = {
     'batch_size'         : 100,
     'epochs'             : 50,
-    'vec_dtype'          : tf.float16,
+    'dtype'          : tf.float16,
     'learning_rate'      : 0.01,
     'activation'         : tf.nn.relu,
 }
@@ -95,11 +95,11 @@ class TensorflowModel(Model):
         self.feed_dict[placeholder] = [val]   # listified to add a dimension
             
 
-    def add_node(self, val):
+    def add_node(self, val, name=None):
         """
         Add a new node to the graph and add it's val to the feed_dict
         """
-        placeholder = self.node_placeholder()
+        placeholder = self.node_placeholder(name)
         self.add_to_feed(placeholder, val)
         return placeholder
 
@@ -111,15 +111,35 @@ class TensorflowModel(Model):
         self.finals.append(T)
         
         
+    def empty_float(self):
+        """
+        Get the empty float and use it again.  It's a constant and it's empty
+        """
+        if not self.done():
+            enode = tf.constant(0.0, dtype=self.get('dtype'), shape=(1, 1))
+            self.set('empty_float', enode)
+        return self.get('empty_float')
+
+        
     def empty_node(self):
         """
         Get the empty node and use it again.  It's a constant.  Assumes all node vectors same dim
         """
         if not self.done():
-            self.set('empty_node', tf.constant([0.0]*self.get('dim'), dtype=self.get('dtype')) )
+            enode = tf.constant( [0.0]*self.get('dim'), dtype=self.get('dtype'), shape=(1, self.get('dim')) )
+            self.set('empty_node', enode)
         return self.get('empty_node')
 
-        
+    """
+    def run(self):
+        #Run the session
+
+        verbose = False
+        tf.logging.set_verbosity(tf.logging.INFO)
+        tf.app.run(main)
+        # print(output)
+    """
+            
     def run(self):
         """
         Run the session
@@ -191,7 +211,7 @@ class TensorflowModel(Model):
         if name is not None:
             name += '_' + str(self.placeholder_i)
             
-        return tf.placeholder(self.get('vec_dtype'), shape=[None, 1], name=name)
+        return tf.placeholder(self.get('dtype'), shape=[None, 1], name=name)
 
 
     def node_placeholder(self, name=None):
@@ -205,7 +225,7 @@ class TensorflowModel(Model):
         if name is not None:
             name += '_' + str(self.placeholder_i)
             
-        return tf.placeholder(self.get('vec_dtype'), shape=[None, self.get('dim')], name=name)
+        return tf.placeholder(self.get('dtype'), shape=[None, self.get('dim')], name=name)
 
 
     def node_layer(self):
@@ -223,9 +243,32 @@ class TensorflowModel(Model):
         ----------
         array of TF Tensors all having identical shape
         """
-        return tf.reduce_mean(tensors, 0)
+        avg = tf.reduce_mean(tensors, 0)
+        # self.immediate_print(avg, 'avg')
+        return avg
 
+
+    def print_feed_dict(self):
+        """
+        Show some info about the feed dict
+        """
+        print("\nFEED DICT:")
+        for k,v in self.feed_dict.items():
+            print(k, ':', type(v))
+        print()
+
+    
+    def immediate_print(self, target, text):
+        """
+        Initialize and run a session merely to print the print tensors
+        """
+        self.print(target, text)
+        with tf.Session() as sess:
+            self.initialize(sess)
+            self.print_feed_dict()
+            sess.run(self.to_print, feed_dict=self.feed_dict)
         
+
     
 ################################################################################
 # FUNCTIONS

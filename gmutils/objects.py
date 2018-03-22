@@ -7,7 +7,7 @@ import sys, os, re
 import argparse
 import types
 
-from .utils import mkdir
+from .utils import mkdir, err
 
 ################################################################################
 # CONFIG
@@ -95,6 +95,7 @@ class Object(object):
                 exit()
 
         self.set_missing_attributes(default)
+
         self.mkdirs()  # Some settings require that a given directory exists
                     
 

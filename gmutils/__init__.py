@@ -48,4 +48,6 @@ from .lexical import damerauLevenshtein
 try:
     if verbose:  sys.stderr.write("\tLoading TensorFlow ...\n")
     from .tensorflow_model import TensorflowModel
-except Exception as e: err([], {'exception':e, 'level':0})
+except Exception as e:
+    err([], {'exception':e, 'level':1})
+    raise
