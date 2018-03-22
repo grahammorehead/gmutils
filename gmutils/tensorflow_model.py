@@ -43,8 +43,6 @@ class TensorflowModel(Model):
     model_file : str
         File path where the model is stored
 
-    estimators : array of str
-        Names of the underlying estimator(s) to be used
 
     global_initializer : TF variable initializer
 
@@ -57,6 +55,12 @@ class TensorflowModel(Model):
 
     to_print : dict
         array of tensors to print when the session is run
+
+    loss : array of tensor
+        Where loss tensors are stored
+
+    label : array of label - typically a float on (0,1)
+        One-to-one correspondence with self.loss
 
     """
     def __init__(self, options=None):
@@ -120,7 +124,7 @@ class TensorflowModel(Model):
         """
         Run the session
         """
-        verbose = True
+        verbose = False
         with tf.Session() as sess:
             self.initialize(sess)
             targets = self.to_print + self.finals
@@ -177,21 +181,19 @@ class TensorflowModel(Model):
         return tf.get_variable(name, shape=shape, dtype=tf.float16, collections=[tf.GraphKeys.LOCAL_VARIABLES])
 
     
-    def placeholder_float(self):
+    def float_placeholder(self, name=None):
         """
-        Generate a placeholder float for use by a TF graph
+        Return a basic placeholder for a float
         """
-        return tf.placeholder(self.get('vec_dtype'), shape=(1))
-                                              
-        
-    def placeholder_vec(self, shape):
-        """
-        Generate a placeholder vec for use by a TF graph
-        """
-        if isinstance(shape, int):
-            shape = (shape)
-        return tf.placeholder(self.get('vec_dtype'), shape=shape)
-                                              
+        try:
+            self.placeholder_i += 1
+        except:
+            self.placeholder_i  = 1
+        if name is not None:
+            name += '_' + str(self.placeholder_i)
+            
+        return tf.placeholder(self.get('vec_dtype'), shape=[None, 1], name=name)
+
 
     def node_placeholder(self, name=None):
         """

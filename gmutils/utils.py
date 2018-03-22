@@ -126,10 +126,11 @@ def argparser_ml(options={}):
 
     # Argument-taking flags (single-use)
     parser.add_argument('--batch_size',       help='Size of data for each epoch', required=False, type=int)
-    parser.add_argument('--data_dir',         help='Directory where data is stored (if local)', required=False, type=str)
+    parser.add_argument('--data_dir',         help='Directory where data is stored', required=False, type=str)
     parser.add_argument('--dataset_file',     help='Load a specific dataset file', required=False, type=str)
     parser.add_argument('--epochs',           help='Number of epochs for training', required=False, type=int)
     parser.add_argument('--eval_file',        help='Evaluation files local or GCS', required=False, type=str)
+    parser.add_argument('--eval_dir',         help='Directory where eval data is stored', required=False, type=str)
     parser.add_argument('--label_column',     help='Output label for which to train', type=str, required=False)
     parser.add_argument('--learning_rate',    help='Learning rate for SGD', type=float, default=0.003)
     parser.add_argument('--model',            help='File to save the model to', required=False, type=str)
@@ -137,6 +138,7 @@ def argparser_ml(options={}):
     parser.add_argument('--model_file',       help='Load a specific model file', required=False, type=str)
     parser.add_argument('--thresh',           help='Threshold for some output label operations such as binarization', type=float, required=False)
     parser.add_argument('--train_file',       help='Training files local or GCS', required=False, type=str)
+    parser.add_argument('--train_dir',        help='Directory where training data is stored', required=False, type=str)
     parser.add_argument('--steps_per_epoch',  help='Steps per epoch', required=False, type=int)
     parser.add_argument('--weights',          help='A weights file to load', required=False, type=str)
 
