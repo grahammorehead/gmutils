@@ -126,9 +126,6 @@ class TensorflowModel(Model):
         """
         verbose = False
         with tf.Session() as sess:
-            self.initialize(sess)
-            targets = self.to_print + self.finals
-
             if verbose:
                 err(self.to_print)
                 err(self.finals)
@@ -137,6 +134,8 @@ class TensorflowModel(Model):
                     names.append(key.name)
                 err(names)
             
+            targets = self.to_print + self.finals
+            self.initialize(sess)
             output = sess.run(targets, feed_dict=self.feed_dict)
             # print(output)
             
