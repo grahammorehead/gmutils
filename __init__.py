@@ -25,4 +25,5 @@ from gmutils import Object, Options
 
 from gmutils import damerauLevenshtein
 
-from .tensorflow_model import TensorflowModel
+from gmutils import TensorflowGraph
+from gmutils import TensorflowModel

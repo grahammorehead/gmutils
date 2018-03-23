@@ -16,9 +16,7 @@ from gmutils.model import Model
 default = {
     'batch_size'         : 100,
     'epochs'             : 50,
-    'dtype'          : tf.float16,
     'learning_rate'      : 0.01,
-    'activation'         : tf.nn.relu,
 }
 
 ################################################################################
@@ -26,16 +24,11 @@ default = {
 
 class TensorflowModel(Model):
     """
-    An object to manage the training, storage, and utilizating of TensorFlow models
+    An object to assist in the training, storage, and utilizating of TensorFlow models.
 
     Attributes  (depends on subclass)
     ----------
     sess : a TensorFlow session
-
-    label : str
-        The supervised label
-
-    model : a TensorFlow Model
 
     model_dir : str
         Path to where the model is stored
@@ -43,24 +36,7 @@ class TensorflowModel(Model):
     model_file : str
         File path where the model is stored
 
-
     global_initializer : TF variable initializer
-
-    graph : initial default tf.Graph
-
-    finals : list of final output Tensors
-
-    feed_dict : dict
-        dict of vars to be fed into graph just before running.  Best case scenario run once
-
-    to_print : dict
-        array of tensors to print when the session is run
-
-    loss : array of tensor
-        Where loss tensors are stored
-
-    label : array of label - typically a float on (0,1)
-        One-to-one correspondence with self.loss
 
     """
     def __init__(self, options=None):
@@ -69,10 +45,6 @@ class TensorflowModel(Model):
         """
         self.set_options(options, default)
         super().__init__(options)
-        self.graph = tf.get_default_graph()
-        self.feed_dict = {}
-        self.finals = []
-        self.to_print = []
 
 
     def initialize(self, sess):
@@ -88,47 +60,13 @@ class TensorflowModel(Model):
             sess.run(tf.variables_initializer(not_initialized_vars))
 
 
-    def add_to_feed(self, placeholder, val):
+    def assert_graph(self):
         """
-        Add this placeholder and val to self.feed_dict
+        Asserts that the current default graph is what it should be
         """
-        self.feed_dict[placeholder] = [val]   # listified to add a dimension
-            
-
-    def add_node(self, val, name=None):
-        """
-        Add a new node to the graph and add it's val to the feed_dict
-        """
-        placeholder = self.node_placeholder(name)
-        self.add_to_feed(placeholder, val)
-        return placeholder
-
-
-    def add_final(self, T):
-        """
-        Add a tf Tensor T to the list of finals
-        """
-        self.finals.append(T)
-        
-        
-    def empty_float(self):
-        """
-        Get the empty float and use it again.  It's a constant and it's empty
-        """
-        if not self.done():
-            enode = tf.constant(0.0, dtype=self.get('dtype'), shape=(1, 1))
-            self.set('empty_float', enode)
-        return self.get('empty_float')
+        assert tf.get_default_graph() is self.graph
 
         
-    def empty_node(self):
-        """
-        Get the empty node and use it again.  It's a constant.  Assumes all node vectors same dim
-        """
-        if not self.done():
-            enode = tf.constant( [0.0]*self.get('dim'), dtype=self.get('dtype'), shape=(1, self.get('dim')) )
-            self.set('empty_node', enode)
-        return self.get('empty_node')
 
     """
     def run(self):
@@ -145,7 +83,7 @@ class TensorflowModel(Model):
         Run the session
         """
         verbose = False
-        with tf.Session() as sess:
+        with tf.Session(graph=self.graph) as sess:
             if verbose:
                 err(self.to_print)
                 err(self.finals)
@@ -159,116 +97,6 @@ class TensorflowModel(Model):
             output = sess.run(targets, feed_dict=self.feed_dict)
             # print(output)
             
-            
-    def print(self, tensor, text):
-        """
-        Make it easier to generate a print statement.  Prints a tensor with shape info and some specified text
-
-        Parameters
-        ----------
-        tensor : tf Tensor
-
-        text : str
-
-        """
-        try:
-            shape = str(tensor.get_shape())
-        except:
-            shape = str(len(tensor))
-        try:
-            tensor_type = str(type(tensor))
-            tensor_type += ' ' + tensor.dtype
-        except:
-            pass
-        
-        text = "\n\nTENSOR (%s) shape=%s : |%s|\n"% (tensor_type, shape, text)
-        nullT = tf.Print(tensor, [tensor], text, summarize=1000 )
-        self.to_print.append(nullT)
-        
-        
-    def local_string(self, name, value):
-        # return tf.get_variable(name, shape=(), dtype=tf.string, initializer=init, collections=[tf.GraphKeys.LOCAL_VARIABLES])
-        return tf.Variable(value, name=name, dtype=tf.string, collections=[tf.GraphKeys.LOCAL_VARIABLES])
-
-    
-    def local_vec(self, name, shape):
-        """
-        Generate a local variable for use by a TF graph
-        """
-        if isinstance(shape, int):
-            shape = (shape)
-        return tf.get_variable(name, shape=shape, dtype=tf.float16, collections=[tf.GraphKeys.LOCAL_VARIABLES])
-
-    
-    def float_placeholder(self, name=None):
-        """
-        Return a basic placeholder for a float
-        """
-        try:
-            self.placeholder_i += 1
-        except:
-            self.placeholder_i  = 1
-        if name is not None:
-            name += '_' + str(self.placeholder_i)
-            
-        return tf.placeholder(self.get('dtype'), shape=[None, 1], name=name)
-
-
-    def node_placeholder(self, name=None):
-        """
-        Return a basic placeholder for a Node
-        """
-        try:
-            self.placeholder_i += 1
-        except:
-            self.placeholder_i  = 1
-        if name is not None:
-            name += '_' + str(self.placeholder_i)
-            
-        return tf.placeholder(self.get('dtype'), shape=[None, self.get('dim')], name=name)
-
-
-    def node_layer(self):
-        """
-        Return a basic dense layer for processing a node tensor
-        """
-        return tf.layers.Dense(units=self.get('dim'), activation=self.get('activation'))
-
-
-    def average(self, tensors):
-        """
-        Output a tensor which is the average of the inputs
-
-        Parameters
-        ----------
-        array of TF Tensors all having identical shape
-        """
-        avg = tf.reduce_mean(tensors, 0)
-        # self.immediate_print(avg, 'avg')
-        return avg
-
-
-    def print_feed_dict(self):
-        """
-        Show some info about the feed dict
-        """
-        print("\nFEED DICT:")
-        for k,v in self.feed_dict.items():
-            print(k, ':', type(v))
-        print()
-
-    
-    def immediate_print(self, target, text):
-        """
-        Initialize and run a session merely to print the print tensors
-        """
-        self.print(target, text)
-        with tf.Session() as sess:
-            self.initialize(sess)
-            self.print_feed_dict()
-            sess.run(self.to_print, feed_dict=self.feed_dict)
-        
-
     
 ################################################################################
 # FUNCTIONS

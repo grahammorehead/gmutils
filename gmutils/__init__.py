@@ -47,6 +47,7 @@ from .lexical import damerauLevenshtein
 
 try:
     if verbose:  sys.stderr.write("\tLoading TensorFlow ...\n")
+    from .tensorflow_graph import TensorflowGraph
     from .tensorflow_model import TensorflowModel
 except Exception as e:
     err([], {'exception':e, 'level':1})
