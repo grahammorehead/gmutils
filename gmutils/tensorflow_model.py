@@ -28,7 +28,16 @@ class TensorflowModel(Model):
 
     Attributes  (depends on subclass)
     ----------
-    sess : a TensorFlow session
+    graph : the initial default tf.Graph
+
+    model : a TensorflowGraph object as defined in tensorflow_graph.py
+        Not to be confused with a tf.Graph.  This is a connected graph of Tensors
+
+    train_dir : str
+        Path to where training files are stored
+
+    eval_dir : str
+        Path to where eval files are stored
 
     model_dir : str
         Path to where the model is stored
@@ -38,6 +47,10 @@ class TensorflowModel(Model):
 
     global_initializer : TF variable initializer
 
+    iterator : iterable providing data
+
+    optimizer = tf.train optimizer
+
     """
     def __init__(self, options=None):
         """
@@ -45,7 +58,7 @@ class TensorflowModel(Model):
         """
         self.set_options(options, default)
         super().__init__(options)
-
+        
 
     def initialize(self, sess):
         """
@@ -66,8 +79,24 @@ class TensorflowModel(Model):
         """
         assert tf.get_default_graph() is self.graph
 
-        
 
+    def fit(self, iterator):
+        """
+        Iterate through data training the model
+        """
+        for _ in range(self.get('epochs')):
+            while True:
+                try:
+                
+                    sess.run(self.optimizer, feed_dict=self.model.feed_dict)
+                    
+                    # Get the next batch of data for training
+                    datum = next(iterator)
+                    
+                except StopIteration:
+                    break
+
+        
     """
     def run(self):
         #Run the session
@@ -76,12 +105,10 @@ class TensorflowModel(Model):
         tf.logging.set_verbosity(tf.logging.INFO)
         tf.app.run(main)
         # print(output)
-    """
             
     def run(self):
-        """
-        Run the session
-        """
+        # Run the session
+
         verbose = False
         with tf.Session(graph=self.graph) as sess:
             if verbose:
@@ -97,6 +124,7 @@ class TensorflowModel(Model):
             output = sess.run(targets, feed_dict=self.feed_dict)
             # print(output)
             
+    """
     
 ################################################################################
 # FUNCTIONS
