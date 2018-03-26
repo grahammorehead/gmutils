@@ -115,7 +115,10 @@ class TensorflowGraph(Object):
         try:
             shape = str(tensor.get_shape())
         except:
-            shape = str(len(tensor))
+            try:
+                shape = str(len(tensor))
+            except:
+                shape = '(unknown)'
         try:
             tensor_type = str(type(tensor))
             tensor_type += ' ' + tensor.dtype
@@ -123,7 +126,7 @@ class TensorflowGraph(Object):
             pass
         
         text = "\n\nTENSOR (%s) shape=%s : |%s|\n"% (tensor_type, shape, text)
-        nullT = tf.Print(tensor, [tensor], text, summarize=1000 )
+        nullT = tf.Print(tensor, [tensor], text, summarize=10000 )
         self.to_print.append(nullT)
         
             
