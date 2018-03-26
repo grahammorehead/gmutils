@@ -37,7 +37,7 @@ class TensorflowGraph(Object):
     feed_dict : dict
         dict of vars to be fed into graph just before running.  Best case scenario run once
 
-    to_print : dict
+    to_print : list of tf Tensor
         array of tensors to print when the session is run
 
     """
@@ -50,6 +50,13 @@ class TensorflowGraph(Object):
         self.finals = []
         self.to_print = []
 
+
+    def get_targets(self):
+        """
+        Return a list of final tensor targets in the graph
+        """
+        return self.to_print + self.finals
+        
 
     def add_to_feed(self, placeholder, val):
         """
