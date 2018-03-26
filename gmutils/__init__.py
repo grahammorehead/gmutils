@@ -50,5 +50,4 @@ try:
     from .tensorflow_graph import TensorflowGraph
     from .tensorflow_model import TensorflowModel
 except Exception as e:
-    err([], {'exception':e, 'level':1})
-    raise
+    err([], {'exception':e, 'level':0})
