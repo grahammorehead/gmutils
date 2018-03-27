@@ -40,6 +40,12 @@ class TensorflowGraph(Object):
     to_print : list of tf Tensor
         array of tensors to print when the session is run
 
+    graph : tf.Graph
+        the default graph is the one and only graph
+
+    saver : a tf.train.Saver
+        For the purpose of saving the current state
+
     """
     def __init__(self, options=None):
         """
@@ -49,8 +55,26 @@ class TensorflowGraph(Object):
         self.feed_dict = {}
         self.finals = []
         self.to_print = []
+        #ops.reset_default_graph()
+        self.graph = tf.get_default_graph()
 
 
+    def generate(self):
+        """
+        Configure or set up.  Often overridden in the subclass
+        """
+        self.to_save = None
+        self.saver = saver = tf.train.Saver()
+
+
+    def save(self, sess):
+        """
+        Use a tf Saver to save the state of the model.
+
+        """
+        self.saver.save(sess, self.get('model_dir') +"/model.ckpt")
+            
+        
     def get_targets(self):
         """
         Return a list of final tensor targets in the graph
