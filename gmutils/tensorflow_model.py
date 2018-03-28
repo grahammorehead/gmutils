@@ -58,19 +58,25 @@ class TensorflowModel(Model):
         """
         self.set_options(options, default)
         super().__init__(options)
+        self.graph = tf.get_default_graph()
         
 
-    def initialize(self, sess):
+    def initialize(self, sess, options={}):
         """
-        Initialize all global vars in the graph
+        Initialize all or needed variables for a given session
         """
-        global_vars          = tf.global_variables()
-        is_not_initialized   = sess.run([tf.is_variable_initialized(var) for var in global_vars])
-        not_initialized_vars = [v for (v, f) in zip(global_vars, is_not_initialized) if not f]
+        if options.get('only_uninitialized'):
+            global_vars          = tf.global_variables()
+            is_not_initialized   = sess.run([tf.is_variable_initialized(var) for var in global_vars])
+            not_initialized_vars = [v for (v, f) in zip(global_vars, is_not_initialized) if not f]
 
-        # print [str(i.name) for i in not_initialized_vars] # only for testing
-        if len(not_initialized_vars):
-            sess.run(tf.variables_initializer(not_initialized_vars))
+            # print [str(i.name) for i in not_initialized_vars] # only for testing
+            if len(not_initialized_vars):
+                sess.run(tf.variables_initializer(not_initialized_vars))
+
+        else:
+            init = tf.global_variables_initializer()
+            sess.run(init)
 
 
     def assert_graph(self):
@@ -96,40 +102,7 @@ class TensorflowModel(Model):
                 except StopIteration:
                     break
 
-        
-    """
-    def run(self):
-        #Run the session
-
-        verbose = False
-        tf.logging.set_verbosity(tf.logging.INFO)
-        tf.app.run(main)
-        # print(output)
-            
-    def run(self):
-        # Run the session
-
-        verbose = False
-        with tf.Session(graph=self.graph) as sess:
-            if verbose:
-                err(self.to_print)
-                err(self.finals)
-                names = []
-                for key in self.feed_dict.keys():
-                    names.append(key.name)
-                err(names)
-            
-            targets = self.to_print + self.finals
-            self.initialize(sess)
-            output = sess.run(targets, feed_dict=self.feed_dict)
-            # print(output)
-            
-    """
-    
-################################################################################
-# FUNCTIONS
-
-
+                
 ################################################################################
 ##   MAIN   ##
 

@@ -40,9 +40,6 @@ class TensorflowGraph(Object):
     to_print : list of tf Tensor
         array of tensors to print when the session is run
 
-    graph : tf.Graph
-        the default graph is the one and only graph
-
     saver : a tf.train.Saver
         For the purpose of saving the current state
 
@@ -55,15 +52,36 @@ class TensorflowGraph(Object):
         self.feed_dict = {}
         self.finals = []
         self.to_print = []
-        self.graph = tf.get_default_graph()
 
 
-    def generate(self):
+    def generate(self, sess):
         """
-        Configure or set up.  Often overridden in the subclass
+        Configure or set up.  Overridden in the subclass
+        
+        Parameters
+        ----------
+        sess : tf Session
+
+        """
+        self.configure_saver()
+
+
+    def configure_saver(self, layer_names=None):
+        """
+        Meant to save the "important" part of a training session: Just the weights/biases of the layers being trained.  This function is in response to
+        failed efforts to use the more default usage of tf.train.Saver.
         """
         self.to_save = None
-        self.saver = saver = tf.train.Saver()
+        
+        if layer_names is None:
+            self.saver = tf.train.Saver()
+
+        else:  ########### doesn't work yet
+            self.to_save = []
+            for layer_name in layer_names:
+                weights = tf.get_variable(layer_name +"/kernel")
+                self.to_save.extend(weights)
+            self.saver = tf.train.Saver(self.to_save)
 
 
     def save(self, sess):
@@ -154,7 +172,9 @@ class TensorflowGraph(Object):
         
             
     def local_string(self, name, value):
-        # return tf.get_variable(name, shape=(), dtype=tf.string, initializer=init, collections=[tf.GraphKeys.LOCAL_VARIABLES])
+        """
+        Generate a local variable that is a string
+        """
         return tf.Variable(value, name=name, dtype=tf.string, collections=[tf.GraphKeys.LOCAL_VARIABLES])
 
     
@@ -197,12 +217,13 @@ class TensorflowGraph(Object):
         return pl
     
 
-    def node_layer(self):
+    def node_layer(self, name):
         """
         Return a basic dense layer for processing a node tensor
         """
-        layer = tf.layers.Dense(units=self.get('dim'), activation=self.get('activation'))
-        return layer
+        with self.graph.as_default():
+            layer = tf.layers.Dense(units=self.get('dim'), activation=self.get('activation'), name=name)
+            return layer
     
 
     def average(self, tensors):

@@ -627,6 +627,24 @@ def close_enough(a, b):
     return False
 
 
+def file_exists(path):
+    """
+    Determine if a path is a file and it exists
+    """
+    if os.path.isfile(path):
+        return True
+    return False
+
+
+def dir_exists(path):
+    """
+    Determine if a path is a file and it exists
+    """
+    if os.path.isdir(path):
+        return True
+    return False
+
+
 def mkdir(path):
     try:
         os.makedirs(path)
