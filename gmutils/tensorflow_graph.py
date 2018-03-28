@@ -55,7 +55,6 @@ class TensorflowGraph(Object):
         self.feed_dict = {}
         self.finals = []
         self.to_print = []
-        #ops.reset_default_graph()
         self.graph = tf.get_default_graph()
 
 
