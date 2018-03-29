@@ -54,7 +54,7 @@ class TensorflowGraph(Object):
         self.to_print = []
 
 
-    def generate(self, sess):
+    def generate(self):
         """
         Configure or set up.  Overridden in the subclass
         
@@ -66,30 +66,22 @@ class TensorflowGraph(Object):
         self.configure_saver()
 
 
-    def configure_saver(self, layer_names=None):
+    def configure_saver(self):
         """
         Meant to save the "important" part of a training session: Just the weights/biases of the layers being trained.  This function is in response to
         failed efforts to use the more default usage of tf.train.Saver.
         """
-        self.to_save = None
-        
-        if layer_names is None:
-            self.saver = tf.train.Saver()
-
-        else:  ########### doesn't work yet
-            self.to_save = []
-            for layer_name in layer_names:
-                weights = tf.get_variable(layer_name +"/kernel")
-                self.to_save.extend(weights)
-            self.saver = tf.train.Saver(self.to_save)
+        # Look at variables:
+        for var in tf.global_variables():
+            print("VAR:", var)
+        self.saver = tf.train.Saver()
 
 
-    def save(self, sess):
+    def save(self, sess, path):
         """
         Use a tf Saver to save the state of the model.
-
         """
-        self.saver.save(sess, self.get('model_dir') +"/model.ckpt")
+        self.saver.save(sess, path)
             
         
     def get_targets(self):
