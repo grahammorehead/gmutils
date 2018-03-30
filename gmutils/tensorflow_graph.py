@@ -66,16 +66,21 @@ class TensorflowGraph(Object):
         self.configure_saver()
 
 
-    def configure_saver(self):
+    def configure_saver(self, var_list=None):
         """
         Meant to save the "important" part of a training session: Just the weights/biases of the layers being trained.  This function is in response to
         failed efforts to use the more default usage of tf.train.Saver.
         """
-        # Look at variables:
-        print("Configuring saver ...")
-        for var in tf.global_variables():
-            print("VAR:", var)
-        self.saver = tf.train.Saver()
+        verbose = True
+        if verbose:
+            print("Configuring saver ...")
+            if var_list is not None:
+                for var in var_list:
+                    print("VAR:", var)
+            else:
+                for var in tf.global_variables():
+                    print("VAR:", var)
+        self.saver = tf.train.Saver(var_list=var_list)
 
 
     def save(self, sess, path):
@@ -84,27 +89,6 @@ class TensorflowGraph(Object):
         """
         self.saver.save(sess, path)
             
-        
-    def restore(self, sess, path):
-        """
-        If the model has already been saved in the indicated model_dir, it will be restored into the already existing Variables, which means they should
-        all match
-
-        """
-        meta_file = self.get('model_dir') + '/' + self.get('model_name') + '.meta'
-        if file_exists(meta_file):
-            self.saver = tf.train.import_meta_graph(meta_file)
-            self.saver.restore(sess, tf.train.latest_checkpoint('./'))
-
-            path = tf.train.latest_checkpoint(checkpoint_dir)
-            if path is None:
-                sess.run(tf.initialize_all_variables())
-                return 0
-            else:
-                saver.restore(sess, path)
-                global_step = int(path[path.rfind("-") + 1:])
-                return global_step 
-
         
     def get_targets(self):
         """
