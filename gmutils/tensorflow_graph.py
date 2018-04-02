@@ -196,8 +196,9 @@ class TensorflowGraph(Object):
         if name is not None:
             name += '_' + str(self.placeholder_i)
             
-        pl = tf.placeholder(self.get('dtype'), shape=[None, 1], name=name)
-        return pl
+        with self.graph.as_default():
+            pl = tf.placeholder(self.get('dtype'), shape=[None, 1], name=name)
+            return pl
 
 
     def node_placeholder(self, name=None):
@@ -211,8 +212,9 @@ class TensorflowGraph(Object):
         if name is not None:
             name += '_' + str(self.placeholder_i)
             
-        pl = tf.placeholder(self.get('dtype'), shape=[None, self.get('dim')], name=name)
-        return pl
+        with self.graph.as_default():
+            pl = tf.placeholder(self.get('dtype'), shape=[None, self.get('dim')], name=name)
+            return pl
     
 
     def node_layer(self, name):

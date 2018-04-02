@@ -719,12 +719,12 @@ def monitor(_monitor, skip=None):
     total_i, i, lastDone = _monitor
     i += 1
     done = 100.*float(i)/float(total_i)
-    if done < 100.0  and  done - lastDone > 0.1:
-        sys.stderr.write("\b\b\b\b\b\b")
-        sys.stderr.write("%04.1f%% "% done)
+    if done < 100.0  and  done - lastDone > 0.005:
+        sys.stderr.write("\b\b\b\b\b\b\b")
+        sys.stderr.write("%04.2f%% "% done)
         sys.stderr.flush()
         lastDone = done
-
+        
     _monitor = total_i, i, lastDone
 
     if skip is None:
