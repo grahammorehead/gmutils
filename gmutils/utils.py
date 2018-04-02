@@ -711,30 +711,41 @@ def monitor_setup(file, total_i=None):
     return _monitor
 
         
-def monitor(_monitor, skip=None):
+def monitor(_monitor, skip=None, options={}):
     """
     To monitor progress on the command line.  See monitor_setup() above.
 
     """
     total_i, i, lastDone = _monitor
+    skip_state = False   # default: only used if 'skip' is set
+    progress = None
     i += 1
+
     done = 100.*float(i)/float(total_i)
     if done < 100.0  and  done - lastDone > 0.005:
-        sys.stderr.write("\b\b\b\b\b\b\b")
-        sys.stderr.write("%04.2f%% "% done)
-        sys.stderr.flush()
+        if options.get('progress_str'):
+            progress = "%04.2f%% "% done
+        if not options.get('silent'):
+            sys.stderr.write("\b\b\b\b\b\b\b")
+            sys.stderr.write("%04.2f%% "% done)
+            sys.stderr.flush()
         lastDone = done
         
     _monitor = total_i, i, lastDone
 
     if skip is None:
-        return _monitor
+        if progress is None:
+            return _monitor
+        else:
+            return _monitor, progress
 
     elif float(skip) > done:
-        return _monitor, True
-    
+        skip_state = True
+
+    if progress is None:
+        return _monitor, skip_state
     else:
-        return _monitor, False
+        return _monitor, skip_state, progress
 
 
 def split_data(X, Y, ratios):
