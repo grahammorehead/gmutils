@@ -86,6 +86,7 @@ def argparser(options={}):
 
     # Boolean flags
     parser.add_argument('--debug',            help='Debug Mode', required=False, action='store_true')
+    parser.add_argument('--silent',           help='Silent Mode : fewer or no output to STDOUT', required=False, action='store_true')
     parser.add_argument('--test',             help='Run a test', required=False, action='store_true')
     parser.add_argument('--verbose',          help='Verbose mode', required=False, action='store_true')
     parser.add_argument('--normalize',        help='Normalize input text', required=False, action='store_true')
