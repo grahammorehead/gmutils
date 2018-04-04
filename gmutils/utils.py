@@ -967,7 +967,10 @@ def json_dump_gz(filepath, data):
 
 def json_load_gz(filepath):
     with gzip.GzipFile(filepath, 'r') as fin:
-        json_bytes = fin.read()
+        try:
+            json_bytes = fin.read()
+        except:
+            return None
     json_str = json_bytes.decode('utf-8')
     data = json.loads(json_str)
     
