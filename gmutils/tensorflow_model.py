@@ -4,6 +4,7 @@
 
 """
 import os, sys, re
+import time
 import numpy as np
 import tensorflow as tf
 
@@ -85,6 +86,20 @@ class TensorflowModel(Model):
         assert tf.get_default_graph() is self.graph
 
 
+    def run(self, sess, fetches, feed_dict=None):
+        """
+        Attempt to run in the current session.  When fails, wait one second and try again.
+
+        Necessary because grabbing the GPU when another TF process is on it can be disasterous
+        """
+        while True:
+            try:
+                output = sess.run(fetches, feed_dict=feed_dict)
+                return output
+            except:
+                time.sleep(1.0)
+
+        
     def fit(self, iterator):
         """
         Iterate through data training the model
@@ -100,6 +115,22 @@ class TensorflowModel(Model):
                     
                 except StopIteration:
                     break
+
+
+    def learning_rate_by_epoch(self, epoch):
+        """
+        To compute a new learning rate for each epoch (lower each time, of course)
+
+        Parameters
+        ----------
+        epoch : int
+
+        Returns
+        -------
+        float
+
+        """
+        return self.get('learning_rate') * (0.8 ** (epoch-1))
 
                 
 ################################################################################
