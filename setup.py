@@ -8,6 +8,6 @@ setup(name='gmutils',
       license='GPL',
       packages=['gmutils'],
       install_requires=[
-          'spacy', 'pandas', 'numpy', 'scipy', 'pydot', 'matplotlib', 'elasticsearch', 'scikit-learn', 'tensorflow', 'keras'
+          'spacy', 'numpy', 'scipy'
       ],
       zip_safe=False)

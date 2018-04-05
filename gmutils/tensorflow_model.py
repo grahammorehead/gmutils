@@ -57,7 +57,6 @@ class TensorflowModel(Model):
         Instantiate the object and set options
         """
         self.set_options(options, default)
-        super().__init__(options)
         self.graph = tf.get_default_graph()
         
 

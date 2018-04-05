@@ -113,6 +113,15 @@ class TensorflowGraph(Object):
         return placeholder
 
 
+    def get_learning_rate(self):
+        """
+        Add a new node to the graph and add it's val to the feed_dict
+        """
+        # placeholder = self.float_placeholder('learning_rate')
+        placeholder = tf.placeholder(tf.float16, shape=[])
+        return placeholder
+
+
     def add_final(self, T):
         """
         Add a tf Tensor T to the list of finals

@@ -86,6 +86,7 @@ def argparser(options={}):
 
     # Boolean flags
     parser.add_argument('--debug',            help='Debug Mode', required=False, action='store_true')
+    parser.add_argument('--silent',           help='Silent Mode : fewer or no output to STDOUT', required=False, action='store_true')
     parser.add_argument('--test',             help='Run a test', required=False, action='store_true')
     parser.add_argument('--verbose',          help='Verbose mode', required=False, action='store_true')
     parser.add_argument('--normalize',        help='Normalize input text', required=False, action='store_true')
@@ -132,7 +133,7 @@ def argparser_ml(options={}):
     parser.add_argument('--eval_file',        help='Evaluation files local or GCS', required=False, type=str)
     parser.add_argument('--eval_dir',         help='Directory where eval data is stored', required=False, type=str)
     parser.add_argument('--label_column',     help='Output label for which to train', type=str, required=False)
-    parser.add_argument('--learning_rate',    help='Learning rate for SGD', type=float, default=0.003)
+    parser.add_argument('--learning_rate',    help='Learning rate for SGD', type=float, required=False)
     parser.add_argument('--model',            help='File to save the model to', required=False, type=str)
     parser.add_argument('--model_dir',        help='Directory to save the model in', required=False, type=str)
     parser.add_argument('--model_file',       help='Load a specific model file', required=False, type=str)
@@ -967,7 +968,10 @@ def json_dump_gz(filepath, data):
 
 def json_load_gz(filepath):
     with gzip.GzipFile(filepath, 'r') as fin:
-        json_bytes = fin.read()
+        try:
+            json_bytes = fin.read()
+        except:
+            return None
     json_str = json_bytes.decode('utf-8')
     data = json.loads(json_str)
     
