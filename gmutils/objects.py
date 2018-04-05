@@ -46,6 +46,9 @@ class Object(object):
             or  : argparse.Namespace
             In this case it iterates over non internal attributes accruing them to this object
         """
+        verbose = False
+        if verbose:  sys.stderr.write("default = %s\n"% str(default))
+            
         try:   # Confirm that self._value_ exists
             if not hasattr(self, '_value_'):
                 self._value_ = {}
@@ -59,9 +62,10 @@ class Object(object):
         if options is not None:
 
             if isinstance(options, dict):
-                for key in options.keys():
+                for key,val in options.items():
                     if not key == 'input':
-                        self.set(key, options[key])
+                        if verbose:  sys.stderr.write("key, val = { %s : %s }\n"% (str(key), str(val)))
+                        self.set(key, val)
 
             elif isinstance(options, Options):
                 for key,val in options._value_.items():
@@ -105,11 +109,15 @@ class Object(object):
         Some options may have been missing because they either weren't serializable or simply weren't specified.
 
         """
+        verbose = False
         if attributes is not None:
-            for param in attributes.keys():
+            for param, val in attributes.items():
                 if not self.get(param):
-                    self.set(param, attributes[param])
-
+                    if verbose:
+                        if param not in ['vocab']:
+                            sys.stderr.write(" param, val = { %s : %s }\n"% (str(param), str(val) ))
+                    self.set(param, val)
+                    
         
     def override_attributes(self, attributes=None):
         """

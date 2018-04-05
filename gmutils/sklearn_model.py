@@ -7,8 +7,13 @@ import warnings
 warnings.filterwarnings("ignore", category=DeprecationWarning)
 import os, sys, re
 import numpy as np
-import matplotlib.pyplot as plt
-from matplotlib import pyplot as plt
+from gmutils.utils import err
+
+try:
+    import matplotlib.pyplot as plt
+    from matplotlib import pyplot as plt
+except Exception as e: err([], {'exception':e, 'level':0})
+    
 import csv
 import math
 
@@ -19,7 +24,6 @@ from sklearn.neural_network import MLPClassifier, MLPRegressor
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.ensemble import VotingClassifier
 
-from gmutils.utils import err
 from gmutils.model import Model
 
 ################################################################################
