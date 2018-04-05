@@ -727,7 +727,7 @@ def monitor(_monitor, skip=None, options={}):
             progress = "%04.2f%% "% done
         if not options.get('silent'):
             sys.stderr.write("\b\b\b\b\b\b\b")
-            sys.stderr.write("%04.2f%% "% done)
+            sys.stderr.write("%04.5f%% "% done)
             sys.stderr.flush()
         lastDone = done
         
