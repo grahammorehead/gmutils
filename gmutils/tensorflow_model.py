@@ -97,6 +97,8 @@ class TensorflowModel(Model):
                 output = sess.run(fetches, feed_dict=feed_dict)
                 return output
             except:
+                raise
+                sys.stderr.write("Sleeping ...\n")
                 time.sleep(1.0)
 
         
