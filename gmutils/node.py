@@ -52,6 +52,9 @@ class Node(Object):
     embedding : array of float
         An embedding in some defined vector space
 
+    id : str
+        (Optional) Of the format: "root.T1.2.3.x etc." where each dot implies a level down, and the integer indicates sibling number
+
     """
     def __init__(self, doc, spacy_token, parent=None, options={}):
         """
@@ -1252,17 +1255,33 @@ class Node(Object):
           'children': { [
               { 'vec': [2,4,6,8,0] }, ...
 
+        Options
+        -------
+        id : str
+            Of the format: "root.T1.2.3.x etc." where each dot implies a level down, and the integer indicates sibling number
+
         Returns
         -------
         dict : nested like the format described above
 
         """
         te = { 'vec' : self.get_vector(options), 'text':self.get_text() }
+
+        # If present, asssign an ID to this node and its children
+        id = options.get('id')
+        if id is not None:
+            te['id'] = id
+            self.set('id', id)
+        
         if len(self.children):
             te['children'] = []
+            child_num = 0
             for child in self.children:
+                if id is not None:
+                    options['id'] = id +'.'+ str(child_num)
                 te['children'].append( child.get_tree_embedding(options) )
-
+                child_num += 1
+                    
         return te
     
         
