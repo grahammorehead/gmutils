@@ -207,7 +207,7 @@ def word_search(file, index='default'):
             break
 
     
-def get_docs(index='default'):
+def match_all(index='default'):
     """
     Parameters
     ----------
@@ -218,12 +218,15 @@ def get_docs(index='default'):
     http://localhost:9200/default/_search?pretty=true&q=*:*
 
     """
-    docs = []
-    res = es.search(index=index, body={"query": {'match_all':{} } })
+    res = es.search(index=index, body={"query": {'match_all':{} } }, size=10000)
     print("%d documents found" % res['hits']['total'])
+
+    final = []
     for doc in res['hits']['hits']:
-        docs.append(doc['_source']['name'])
-    return docs
+        out = { 'name':doc['_source']['name'],
+                'tags':doc['_source']['tags'] }
+        final.append(out)
+    return final
 
 
 def parse_doc_output(doc):
@@ -378,7 +381,7 @@ if __name__ == '__main__':
         exit()
 
     if args.get:
-        docs = get_docs(index)
+        docs = match_all(index)
         print('Index', index, 'contains', len(docs), 'documents')
         exit()
 

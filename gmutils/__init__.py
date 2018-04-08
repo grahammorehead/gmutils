@@ -9,7 +9,7 @@ from .normalize import normalize, ascii_fold, simplify_for_distance
 
 try:
     if verbose:  sys.stderr.write("\tLoading Elasticsearch ...\n")
-    from .elastic_utils import list_indices, index_dicts, index_dict, index_text_with_synonyms, match_search, prefix_search, wildcard_search, synonym_search
+    from .elastic_utils import list_indices, index_dicts, index_dict, index_text_with_synonyms, match_all, match_search, prefix_search, wildcard_search, synonym_search
 except Exception as e: err([], {'exception':e, 'level':0})
 
 try:

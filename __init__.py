@@ -3,7 +3,7 @@ from gmutils import err, argparser, argparser_ml, serialize, deserialize, set_mi
 
 from gmutils import normalize, ascii_fold, simplify_for_distance
 
-from gmutils import list_indices, index_dicts, index_dict, index_text_with_synonyms, match_search, prefix_search, wildcard_search, synonym_search
+from gmutils import list_indices, index_dicts, index_dict, index_text_with_synonyms, match_all, match_search, prefix_search, wildcard_search, synonym_search
 
 from gmutils import KinesisStream
 
