@@ -210,6 +210,22 @@ class TensorflowGraph(Object):
             return pl
 
 
+    def string_placeholder(self, name=None):
+        """
+        Return a basic placeholder for a float
+        """
+        try:
+            self.placeholder_i += 1
+        except:
+            self.placeholder_i  = 1
+        if name is not None:
+            name += '_' + str(self.placeholder_i)
+            
+        with self.graph.as_default():
+            pl = tf.placeholder(tf.string, name=name)
+            return pl
+
+
     def node_placeholder(self, name=None):
         """
         Return a basic placeholder for a Node

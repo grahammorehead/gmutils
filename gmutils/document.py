@@ -358,12 +358,24 @@ class Document(Object):
     def get_embedding(self, options={}):
         """
         After a given embedding (vocab) has already been used to vectorize each node, use this method to compile it together.
+
+        Options
+        -------
+        id : str
+            Of the format: "root.T1.2.3.x etc." where each dot implies a level down, and the integer indicates sibling number
+
         """
+        id = options.get('id')
         ems = []
+        tree_num = 0
         for tree in self.trees:
+            if id is not None:
+                options['id'] = id +'.T'+ str(tree_num)
             em = tree.get_tree_embedding(options)
             if em:
                 ems.append(em)
+            tree_num += 1
+            
         return ems
     
         
