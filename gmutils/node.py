@@ -52,8 +52,8 @@ class Node(Object):
     embedding : array of float
         An embedding in some defined vector space
 
-    id : str
-        (Optional) Of the format: "root.T1.2.3.x etc." where each dot implies a level down, and the integer indicates sibling number
+    ID : str
+        Of a format like: "root.T1.2.3.x etc." where each dot implies a level down, and the integer indicates sibling number
 
     """
     def __init__(self, doc, spacy_token, parent=None, options={}):
@@ -94,7 +94,8 @@ class Node(Object):
                 
         # Base original tree on spacy Token tree.  Add a Node-child for every token-child
         for token in self.tokens:
-            for child in token.children:
+            for i, child in enumerate(token.children):
+                options['ID'] = self.get('ID') + '.' + str(i)
                 node = Node(self.doc, child, parent=self, options=options)
                 if len(node.tokens) > 0:
                     self.children.append(node)
@@ -1257,7 +1258,7 @@ class Node(Object):
 
         Options
         -------
-        id : str
+        ID : str
             Of the format: "root.T1.2.3.x etc." where each dot implies a level down, and the integer indicates sibling number
 
         Returns
@@ -1265,27 +1266,67 @@ class Node(Object):
         dict : nested like the format described above
 
         """
-        te = { 'vec' : self.get_vector(options), 'text':self.get_text() }
+        te = { 'vec' : self.get_vector(options), 'text':self.get_text(), 'ID':self.get('ID') }
 
-        # If present, asssign an ID to this node and its children
-        id = options.get('id')
-        if id is not None:
-            te['id'] = id
-            self.set('id', id)
-        
         if len(self.children):
             te['children'] = []
             child_num = 0
             for child in self.children:
-                if id is not None:
-                    options['id'] = id +'.'+ str(child_num)
                 te['children'].append( child.get_tree_embedding(options) )
                 child_num += 1
                     
         return te
-    
-        
+
     # End Vectorization
+    ############################################################################
+    
+    def node_by_ID(self, ID):
+        """
+        Search for and return the Node having a given ID string.  Could be this node or any in the subtree below it.  There is a pattern
+        to the ID-naming of each node.  This pattern is followed for efficient retrieval.  The desired node will be in the subtree of this
+        node IFF this node's ID is a prefix of <ID>.
+
+        Parameters
+        ----------
+        ID : str
+
+        Returns
+        -------
+        Node
+
+        """
+        err([ID])
+        """
+        sys.stderr.write("self ID: %s\n"% str(self.get('ID')))
+        sys.stderr.write("Type self ID: %s\n"% str(type(self.get('ID'))))
+        sys.stderr.write("ID: %s\n"% str(ID))
+        sys.stderr.write("Type ID: %s\n"% str(type(ID)))
+        """
+        
+        # This is the desired Node
+        if self.get('ID') == ID:
+            err([self.get('ID')])
+            return self
+
+        # A child of this Node is desired
+        elif re.search(r'^%s'% self.get('ID'), ID):
+            err([self.get('ID')])
+            for child in self.children:
+                node = child.node_by_ID(ID)
+                err([node.get('ID')])
+                if node is not None:
+                    err([self.get('ID')])
+                    return node
+            err([], {'ex':"Should have found Node by now!"})
+            
+        # Desired Node not under this Node
+        else:
+            err([self.get('ID')])
+            return None
+
+        err([self.get('ID')])
+
+
     ############################################################################
     # Printing
 
