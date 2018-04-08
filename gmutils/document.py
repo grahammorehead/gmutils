@@ -172,8 +172,8 @@ class Document(Object):
         self.trees = []            # array of Node
         need_to_reparse = False
         spacy_sentences = list(self.spacy_doc.sents)
-        for i,sen in enumerate(spacy_sentences):
-            self.trees.append(Node(self, sen.root))
+        for i, sen in enumerate(spacy_sentences):
+            self.trees.append(Node(self, sen.root, options={'ID':'root.T'+str(i)}))
 
 
     def disown(self, node):
@@ -181,7 +181,6 @@ class Document(Object):
         Remove <node> from self.trees
         """
         self.trees.remove(node)
-        
         
 
     def adopt(self, node):
@@ -361,16 +360,13 @@ class Document(Object):
 
         Options
         -------
-        id : str
+        ID : str
             Of the format: "root.T1.2.3.x etc." where each dot implies a level down, and the integer indicates sibling number
 
         """
-        id = options.get('id')
         ems = []
         tree_num = 0
         for tree in self.trees:
-            if id is not None:
-                options['id'] = id +'.T'+ str(tree_num)
             em = tree.get_tree_embedding(options)
             if em:
                 ems.append(em)
@@ -378,6 +374,27 @@ class Document(Object):
             
         return ems
     
+        
+    def node_by_ID(self, ID):
+        """
+        Search for and return the Node having a given ID string.  Begin at the root of each tree in this Document.  There is a pattern to
+        the ID-naming of each node.  This pattern is followed for efficient retrieval.  The desired node will be in the subtree of a given
+        node IFF this node's ID is a prefix of <ID>.
+
+        Parameters
+        ----------
+        ID : str
+
+        Returns
+        -------
+        Node
+
+        """
+        for tree in self.trees:
+            node = tree.node_by_ID(ID)
+            if node is not None:
+                return node
+
         
     def preprocess(self, vocab):
         """
