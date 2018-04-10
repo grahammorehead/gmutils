@@ -86,21 +86,42 @@ class TensorflowModel(Model):
         assert tf.get_default_graph() is self.graph
 
 
-    def run(self, sess, fetches, feed_dict=None):
+    def run(self, sess, targets, _monitor=None):
         """
         Attempt to run in the current session.  When fails, wait one second and try again.
 
         Necessary because grabbing the GPU when another TF process is on it can be disasterous
-        """
-        while True:
-            try:
-                output = sess.run(fetches, feed_dict=feed_dict)
-                return output
-            except:
-                raise
-                sys.stderr.write("Sleeping ...\n")
-                time.sleep(1.0)
 
+        Parameters
+        ----------
+        sess : tf.Session
+
+        targets : Tensors
+
+        """
+        try:
+            output = sess.run(targets, feed_dict=self.model.feed_dict)
+            if _monitor  and  not self.get('silent'):
+                epoch    = _monitor.get('epoch')
+                step     = _monitor.get('step')
+                loss_val = output[-1]
+                last_update_line = _monitor.get('update_line')
+                update_line =  "%s (e %d, b %d, s %d) [loss %0.8f] {lr %08f}"% (_monitor['progress'], epoch, _monitor['i'], step, loss_val, _monitor.get('learning_rate'))
+                if last_update_line is not None:
+                    sys.stdout.write('\b' * len(last_update_line))
+                sys.stdout.write(update_line)
+                sys.stdout.flush()
+                _monitor['update_line'] = update_line
+                return output, _monitor
+            
+            else:    # Without monitoring
+                return output
+            
+        except:
+            raise
+            sys.stderr.write("Sleeping ...\n")
+            time.sleep(1.0)
+                
         
     def fit(self, iterator):
         """
@@ -109,12 +130,8 @@ class TensorflowModel(Model):
         for _ in range(self.get('epochs')):
             while True:
                 try:
-                
                     sess.run(self.optimizer, feed_dict=self.model.feed_dict)
-                    
-                    # Get the next batch of data for training
-                    datum = next(iterator)
-                    
+                    datum = next(iterator)   # Get the next batch of data for training
                 except StopIteration:
                     break
 

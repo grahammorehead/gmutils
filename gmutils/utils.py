@@ -102,7 +102,7 @@ def argparser(options={}):
     parser.add_argument('--output_dir',       help='Directory to save the output', required=False, type=str)
     parser.add_argument('--host',             help='Host/IP address', required=False, type=str)
     parser.add_argument('--port',             help='Port number', required=False, type=int)
-    parser.add_argument('--skip',             help='Skip (can be for skipping ahead through long files or processes)', required=False, type=str)
+    parser.add_argument('--skip',             help='Skip (can be for skipping ahead through long files or processes)', required=False, type=float)
     
     return parser
 
@@ -744,8 +744,7 @@ def monitor(_monitor, options={}):
     done = 100.*float(i)/float(total_i)
     if done < 100.0  and  done - last_done > 0.005:
         line = "%04.4f%% "% done
-        if options.get('progress_str'):
-            _monitor['progress'] = line
+        _monitor['progress'] = line
         if not options.get('silent'):
             if _monitor.get('last_line'):
                 sys.stderr.write("\b"* len(_monitor.get('last_line')))
@@ -756,9 +755,9 @@ def monitor(_monitor, options={}):
     _monitor['i'] = i
 
     # Alter skip state based on 'done'
-    skip = options.get('skip')
-    if skip  and  float(skip) > done:
-        _monitor['skip'] = True
+    skip = _monitor.get('skip')
+    if skip  and  skip < done:
+        _monitor['skip'] = False   # Clears the skip value when it crosses the threshold
 
     return _monitor
 
