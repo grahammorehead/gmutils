@@ -79,6 +79,7 @@ def index_dict(datum, index=None):
     if index is None:
         index = 'default'
     doc_type = 'dict'
+    # print("\nIndexing:", datum)
     es.index(index=index, doc_type=doc_type, body=datum)
 
 

@@ -708,7 +708,8 @@ def monitor_setup(file, total_i=None):
     sys.stderr.write("\tLines to read: %d\n"% total_i)
     sys.stderr.write("      ")
     i = 0
-    _monitor = total_i, i, lastDone
+    last_statement = None
+    _monitor = total_i, i, lastDone, last_statement
     return _monitor
 
         
@@ -717,7 +718,7 @@ def monitor(_monitor, skip=None, options={}):
     To monitor progress on the command line.  See monitor_setup() above.
 
     """
-    total_i, i, lastDone = _monitor
+    total_i, i, lastDone, last_statement = _monitor
     skip_state = False   # default: only used if 'skip' is set
     progress = None
     i += 1
@@ -727,12 +728,15 @@ def monitor(_monitor, skip=None, options={}):
         if options.get('progress_str'):
             progress = "%04.2f%% "% done
         if not options.get('silent'):
-            sys.stderr.write("\b\b\b\b\b\b\b")
-            sys.stderr.write("%04.5f%% "% done)
+            if last_statement is not None:
+                sys.stderr.write("\b" * len(last_statement))
+            statement = "%04.5f%% "% done
+            sys.stderr.write(statement)
             sys.stderr.flush()
+            last_statement = statement
         lastDone = done
         
-    _monitor = total_i, i, lastDone
+    _monitor = total_i, i, lastDone, last_statement
 
     if skip is None:
         if progress is None:
