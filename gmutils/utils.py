@@ -375,7 +375,7 @@ def read_dir(path, options={}):
     if isTrue(options, 'suffix'):
         filtered = []
         for file in files:
-            if re.search(options.suffix +'$', file):
+            if re.search(options.get('suffix') +'$', file):
                 filtered.append(file)
         files = filtered
 
