@@ -697,6 +697,16 @@ def monitor_setup(file, total_i=None):
     for line in read_file(filename):
         _monitor = monitor(_monitor)
 
+    Parameters
+    ----------
+    file : str
+
+    total_i : int
+
+    Returns
+    -------
+    dict
+
     """
     if total_i is None:
         if re.search(r'_n\d', file):
@@ -704,49 +714,53 @@ def monitor_setup(file, total_i=None):
         else:
             total_i = num_lines_in_file(file)  # Assumes the input must be a file
         
-    lastDone = 0.0
+    last_done = 0.0
     sys.stderr.write("\tLines to read: %d\n"% total_i)
     sys.stderr.write("      ")
     i = 0
-    _monitor = total_i, i, lastDone
+    _monitor = { 'total_i':total_i,
+                 'i':i,
+                 'last_done':last_done }
     return _monitor
 
         
-def monitor(_monitor, skip=None, options={}):
+def monitor(_monitor, options={}):
     """
     To monitor progress on the command line.  See monitor_setup() above.
 
+    Parameters
+    ----------
+    _monitor : dict
+
+    Returns
+    -------
+    _monitor
+
     """
-    total_i, i, lastDone = _monitor
-    skip_state = False   # default: only used if 'skip' is set
-    progress = None
-    i += 1
+    total_i = _monitor.get('total_i')
+    i = _monitor.get('i') + 1
+    last_done = _monitor.get('last_done')
 
     done = 100.*float(i)/float(total_i)
-    if done < 100.0  and  done - lastDone > 0.005:
+    if done < 100.0  and  done - last_done > 0.005:
+        line = "%04.4f%% "% done
         if options.get('progress_str'):
-            progress = "%04.2f%% "% done
+            _monitor['progress'] = line
         if not options.get('silent'):
-            sys.stderr.write("\b\b\b\b\b\b\b")
-            sys.stderr.write("%04.5f%% "% done)
+            if _monitor.get('last_line'):
+                sys.stderr.write("\b"* len(_monitor.get('last_line')))
+            sys.stderr.write(line)
             sys.stderr.flush()
-        lastDone = done
-        
-    _monitor = total_i, i, lastDone
+            _monitor['last_line'] = line
+        _monitor['last_done'] = done
+    _monitor['i'] = i
 
-    if skip is None:
-        if progress is None:
-            return _monitor
-        else:
-            return _monitor, progress
+    # Alter skip state based on 'done'
+    skip = options.get('skip')
+    if skip  and  float(skip) > done:
+        _monitor['skip'] = True
 
-    elif float(skip) > done:
-        skip_state = True
-
-    if progress is None:
-        return _monitor, skip_state
-    else:
-        return _monitor, skip_state, progress
+    return _monitor
 
 
 def split_data(X, Y, ratios):
