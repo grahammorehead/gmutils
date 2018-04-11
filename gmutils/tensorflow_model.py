@@ -101,7 +101,7 @@ class TensorflowModel(Model):
         """
         try:
             output = sess.run(targets, feed_dict=self.model.feed_dict)
-            if _monitor  and  not self.get('silent'):
+            if _monitor:
                 epoch    = _monitor.get('epoch')
                 step     = _monitor.get('step')
                 loss_val = output[-1]
@@ -109,8 +109,9 @@ class TensorflowModel(Model):
                 update_line =  "%s (e %d, b %d, s %d) [loss %0.8f] {lr %08f}"% (_monitor['progress'], epoch, _monitor['i'], step, loss_val, _monitor.get('learning_rate'))
                 if last_update_line is not None:
                     sys.stdout.write('\b' * len(last_update_line))
-                sys.stdout.write(update_line)
-                sys.stdout.flush()
+                if not self.get('silent'):
+                    sys.stdout.write(update_line)
+                    sys.stdout.flush()
                 _monitor['update_line'] = update_line
                 return output, _monitor
             
@@ -119,8 +120,6 @@ class TensorflowModel(Model):
             
         except:
             raise
-            sys.stderr.write("Sleeping ...\n")
-            time.sleep(1.0)
                 
         
     def fit(self, iterator):
