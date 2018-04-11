@@ -29,7 +29,7 @@ class TensorflowModel(Model):
 
     Attributes  (depends on subclass)
     ----------
-    graph : the initial default tf.Graph
+    graph : the tf.Graph where all Variables are contained/connected
 
     model : a TensorflowGraph object as defined in tensorflow_graph.py
         Not to be confused with a tf.Graph.  This is a connected graph of Tensors

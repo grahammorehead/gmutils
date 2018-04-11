@@ -66,23 +66,6 @@ class TensorflowGraph(Object):
         self.configure_saver()
 
 
-    def configure_saver(self, var_list=None):
-        """
-        Meant to save the "important" part of a training session: Just the weights/biases of the layers being trained.  This function is in response to
-        failed efforts to use the more default usage of tf.train.Saver.
-        """
-        verbose = True
-        if verbose:
-            print("Configuring saver ...")
-            if var_list is not None:
-                for var in var_list:
-                    print("VAR:", var)
-            else:
-                for var in tf.global_variables():
-                    print("VAR:", var)
-        self.saver = tf.train.Saver(var_list=var_list)
-
-
     def save(self, sess, path):
         """
         Use a tf Saver to save the state of the model.
@@ -178,22 +161,6 @@ class TensorflowGraph(Object):
         self.to_print.append(nullT)
         
             
-    def local_string(self, name, value):
-        """
-        Generate a local variable that is a string
-        """
-        return tf.Variable(value, name=name, dtype=tf.string, collections=[tf.GraphKeys.LOCAL_VARIABLES])
-
-    
-    def local_vec(self, name, shape):
-        """
-        Generate a local variable for use by a TF graph
-        """
-        if isinstance(shape, int):
-            shape = (shape)
-        return tf.get_variable(name, shape=shape, dtype=tf.float16, collections=[tf.GraphKeys.LOCAL_VARIABLES])
-
-    
     def float_placeholder(self, name=None):
         """
         Return a basic placeholder for a float

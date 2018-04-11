@@ -1,6 +1,6 @@
 """ utils.py
 
-Helper functions
+    Helper functions
 
 """
 import os, sys, re
@@ -1005,40 +1005,37 @@ def deepcopy_list(X):
 # MAIN
 
 if __name__ == '__main__':
-    try:
-        parser = argparser({'desc': "utils.py"})
-        parser.add_argument('--pklfile', help='Target pickle file.', required=False, type=str)
-        parser.add_argument('--binary_dist', help='Binary distance between two str (comma delim)', required=False, type=str)
-        args = parser.parse_args()   # Get inputs and options
 
-        if args.file:   # Can be used for various one-off needs
+    parser = argparser({'desc': "utils.py"})
+    parser.add_argument('--pklfile', help='Target pickle file.', required=False, type=str)
+    parser.add_argument('--binary_dist', help='Binary distance between two str (comma delim)', required=False, type=str)
+    args = parser.parse_args()   # Get inputs and options
 
-            if args.pklfile:   # Read and save a vector file
-                serialize_and_save_conceptnet_vectorfile(args.file[0], args.pklfile)
+    if args.file:   # Can be used for various one-off needs
 
-            else:
-                for file in args.file:
-                    for line in read_file(file):
-                        print('Do something with Line:', line)
+        if args.pklfile:   # Read and save a vector file
+            serialize_and_save_conceptnet_vectorfile(args.file[0], args.pklfile)
 
-        elif args.binary_dist:
-            a, b = args.binary_dist.split(',')
-            a = int(a)
-            b = int(b)
-            print(binary_distance(a, b))
-                        
-        elif args.test:
-            a = [1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 3.0, 1.0]
-            #b = [2.0, 2.0, 2.0, 2.0, 2.0, 2.0, 2.0, 2.0, 2.0, 2.0]
-            b = [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
-            print(cosine_distance(a,b))
-                    
         else:
-            print(__doc__)
+            for file in args.file:
+                for line in read_file(file):
+                    print('Do something with Line:', line)
 
-    except Exception as e:
+    elif args.binary_dist:
+        a, b = args.binary_dist.split(',')
+        a = int(a)
+        b = int(b)
+        print(binary_distance(a, b))
+
+    elif args.test:
+        a = [1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 3.0, 1.0]
+        #b = [2.0, 2.0, 2.0, 2.0, 2.0, 2.0, 2.0, 2.0, 2.0, 2.0]
+        b = [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
+        print(cosine_distance(a,b))
+
+    else:
         print(__doc__)
 
-        
+
 ################################################################################
 ################################################################################
