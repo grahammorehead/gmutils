@@ -75,9 +75,8 @@ class TensorflowLayer(Object):
 
         """
         if desc['type'] == 'dense':
-            with self.graph.as_default():
-                output = tf.layers.Dense(units=desc.get('units'), activation=desc.get('activation'), name=desc.get('name'))
-                return output
+            output = tf.layers.Dense(units=desc.get('units'), activation=desc.get('activation'), name=desc.get('name'))
+            return output
             """
             output = self.dense(units=desc.get('units'), activation=desc.get('activation'), name=desc.get('name'))
             return output
@@ -116,8 +115,7 @@ class TensorflowLayer(Object):
         Generate a dense layer to be incorporated
         """
         def basic_dense(inputs, units, activation, name):
-            with self.graph.as_default(), tf.variable_scope("squadx", reuse=True):
-                return tf.layers.dense(inputs, units, activation=activation, name=name)
+            return tf.layers.dense(inputs, units, activation=activation, name=name)
             
         return lambda x: basic_dense(x, units, activation, name)
 
@@ -137,22 +135,21 @@ class TensorflowLayer(Object):
         # activation ignored for now
 
         def dynamic_brnn(name, inputs):
-            with self.graph.as_default():
-                num_layers = 2   # EXPERIMENT with this
-                lstm_fw_cells = [self.LSTMCell(units) for _ in range(num_layers)]
-                lstm_bw_cells = [self.LSTMCell(units) for _ in range(num_layers)]
+            num_layers = 2   # EXPERIMENT with this
+            lstm_fw_cells = [self.LSTMCell(units) for _ in range(num_layers)]
+            lstm_bw_cells = [self.LSTMCell(units) for _ in range(num_layers)]
 
-                # bookend = tf.expand_dims(tf.zeros_like(inputs[0]), 0)
-                bookend = tf.zeros_like(inputs[0])
-                final = [bookend]
-                for x in inputs:
-                    # final.append( tf.expand_dims(x, 0) )
-                    final.append( x )
-                final.append(bookend)
-                final = tf.stack(final)
-                outputs, _, _ = tf.contrib.rnn.stack_bidirectional_dynamic_rnn(lstm_fw_cells, lstm_bw_cells, final, dtype=self.get('dtype'), scope=name)
-                outputs = tf.reshape(outputs, [-1, units])
-                return outputs
+            # bookend = tf.expand_dims(tf.zeros_like(inputs[0]), 0)
+            bookend = tf.zeros_like(inputs[0])
+            final = [bookend]
+            for x in inputs:
+                # final.append( tf.expand_dims(x, 0) )
+                final.append( x )
+            final.append(bookend)
+            final = tf.stack(final)
+            outputs, _, _ = tf.contrib.rnn.stack_bidirectional_dynamic_rnn(lstm_fw_cells, lstm_bw_cells, final, dtype=self.get('dtype'), scope=name)
+            outputs = tf.reshape(outputs, [-1, units])
+            return outputs
         
         return lambda x: dynamic_brnn(name, x)
 

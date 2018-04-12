@@ -174,9 +174,8 @@ class TensorflowGraph(Object):
         if name is not None:
             name += '_' + str(self.placeholder_i)
             
-        with self.graph.as_default():
-            pl = tf.placeholder(self.get('dtype'), shape=[None, 1], name=name)
-            return pl
+        pl = tf.placeholder(self.get('dtype'), shape=[None, 1], name=name)
+        return pl
 
 
     def string_placeholder(self, name=None):
@@ -190,9 +189,8 @@ class TensorflowGraph(Object):
         if name is not None:
             name += '_' + str(self.placeholder_i)
             
-        with self.graph.as_default():
-            pl = tf.placeholder(tf.string, name=name)
-            return pl
+        pl = tf.placeholder(tf.string, name=name)
+        return pl
 
 
     def node_placeholder(self, name=None):
@@ -206,18 +204,16 @@ class TensorflowGraph(Object):
         if name is not None:
             name += '_' + str(self.placeholder_i)
             
-        with self.graph.as_default():
-            pl = tf.placeholder(self.get('dtype'), shape=[None, self.get('dim')], name=name)
-            return pl
+        pl = tf.placeholder(self.get('dtype'), shape=[None, self.get('dim')], name=name)
+        return pl
     
 
     def node_layer(self, name):
         """
         Return a basic dense layer for processing a node tensor
         """
-        with self.graph.as_default():
-            layer = tf.layers.Dense(units=self.get('dim'), activation=self.get('activation'), name=name)
-            return layer
+        layer = tf.layers.Dense(units=self.get('dim'), activation=self.get('activation'), name=name)
+        return layer
     
 
     def average(self, tensors):
@@ -268,10 +264,7 @@ class TensorflowGraph(Object):
         while j > 0:
             j -= 1
             stacked = tf.concat([arr[j], output], axis=1)
-            err([arr[j], output, stacked])
-            with tf.variable_scope("gm", reuse=True):
-                output = layer.generate(stacked)
-                err([output])
+            output = layer.generate(stacked)
             
         return output
 
