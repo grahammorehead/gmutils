@@ -1352,11 +1352,12 @@ class Node(Object):
 
         """
         indent = depth * '    '
-        print(indent + self.get_text() + ' {%s}'% self.get_dep_str() + ' (%s)'% self.get_pos_str())
-
-        # Options
+        ST     = ''
         if options.get('supporting_text'):  # Print the text supporting subtree
-            print(indent + '[ST]: ' + self.get_supporting_text())
+            ST = ' [%s] '% self.get_supporting_text()
+        
+        line = indent + self.get_text() + ' {%s}'% self.get_dep_str() + ' (%s)'% self.get_pos_str() + ST
+        print(line)
         
         # Recursion
         for child in self.children:

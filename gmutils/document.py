@@ -411,13 +411,13 @@ class Document(Object):
         self.embed(vocab)
 
         
-    def pretty_print(self, verbose=False):
+    def pretty_print(self, options={}):
         """
         Print parsed elements in an easy-to-read format
 
         """
         for tree in self.trees:
-            tree.pretty_print(options={'supporting_text':False})
+            tree.pretty_print(options=options)
 
 
     def print_semantic_roles(self):
@@ -607,7 +607,7 @@ if __name__ == '__main__':
             doc = Document(text)
             doc.preprocess(vocab)
             print("\nTEXT:", doc.get_text())
-            doc.pretty_print()
+            doc.pretty_print(options={'supporting_text':True})
             print("LEMMAS:", doc.get_lemmas())
             #doc.print_semantic_roles()
                 

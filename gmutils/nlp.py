@@ -264,7 +264,13 @@ def parse(text):
     Generate a detailed dependency parse of some text.
 
     """
-    spacy_doc = spacy_parsing(text)
+    spacy_doc, ner = generate_spacy_data(text)   # Parse with spacy, get NER
+    spacy_sentences = list(spacy_doc.sents)
+    trees = []
+    for i, sen in enumerate(spacy_sentences):
+        err([sen.root])
+
+    return spacy_doc
 
 
 def generate_onehot_vocab(words):
