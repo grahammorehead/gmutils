@@ -43,6 +43,8 @@ class TensorflowGraph(Object):
     saver : a tf.train.Saver
         For the purpose of saving the current state
 
+    graph : tf.Graph
+
     """
     def __init__(self, options=None):
         """
@@ -239,10 +241,39 @@ class TensorflowGraph(Object):
             print(k, ':', type(v))
         print()
 
-    
-    
-################################################################################
-# FUNCTIONS
+
+    def reduce(self, layer, arr):
+        """
+        Use 'layer' to connect elements in the array 'arr' of Tensors, generating a binary tree (consumes two at a time).
+
+        if there are 3 input tensors in 'arr', layer gets created having input shape of twice that of each element in arr.  In the graph, there is now an
+        output_1 connected through 'layer' to arr[1], arr[2].  After the next iteration, there is now and output_2 connected through 'layer' to arr[0], output_1
+
+        arr[0]   arr[1]    arr[2]
+          |        |         |
+          |        ---layer---
+          |             |
+          -----layer-----
+                 |
+
+        In that way, it proceeds from end to start
+        """
+        if len(arr) == 1:   # if only one tensor, just send it back unchanged
+            err(['Unchanged Tensor:', arr])
+            return arr
+        
+        output = arr[-1]    # Contains last tensor in arr, for example: arr[2]
+        i = len(arr)
+        j = i - 1           # Contains the penultimate index, for example: 1
+        while j > 0:
+            j -= 1
+            stacked = tf.concat([arr[j], output], axis=1)
+            err([arr[j], output, stacked])
+            with tf.variable_scope("gm", reuse=True):
+                output = layer.generate(stacked)
+                err([output])
+            
+        return output
 
 
 ################################################################################
