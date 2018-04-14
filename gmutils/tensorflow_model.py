@@ -18,6 +18,8 @@ default = {
     'batch_size'         : 100,
     'epochs'             : 1,
     'learning_rate'      : 0.01,
+    # 'dtype'              : tf.float16,
+    'dtype'              : tf.float32,
 }
 
 ################################################################################
@@ -149,6 +151,21 @@ class TensorflowModel(Model):
         """
         return self.get('learning_rate') * (0.8 ** (epoch-1))
 
+
+    def avg_sqdiff(self, X, Y):
+        """
+        Use tensors to find the average squared difference between values coming from two arrays of tensors
+        """
+        D = []
+        for i, x in enumerate(X):
+            y = Y[i]
+            D.append( tf.squared_difference(x, y) )
+
+        sumT = tf.add_n(D)
+        nT   = tf.constant(len(D), dtype=self.get('dtype'))
+        
+        return tf.divide(sumT, nT)
+        
                 
 ################################################################################
 ##   MAIN   ##

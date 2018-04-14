@@ -132,6 +132,7 @@ def argparser_ml(options={}):
     parser.add_argument('--epochs',           help='Number of epochs for training', required=False, type=int)
     parser.add_argument('--eval_file',        help='Evaluation files local or GCS', required=False, type=str)
     parser.add_argument('--eval_dir',         help='Directory where eval data is stored', required=False, type=str)
+    parser.add_argument('--job_dir',          help='Directory where batches for parallel jobs are stored', required=False, type=str)
     parser.add_argument('--label_column',     help='Output label for which to train', type=str, required=False)
     parser.add_argument('--learning_rate',    help='Learning rate for SGD', type=float, required=False)
     parser.add_argument('--model',            help='File to save the model to', required=False, type=str)
@@ -652,7 +653,8 @@ def mkdir(path):
     except FileExistsError:
         pass
     except Exception as e:
-        err([traceback.format_exception(*sys.exc_info())])
+        # sys.stderr.write(traceback.format_exception(*sys.exc_info()))
+        raise
 
 
 def mkdirs(paths):
