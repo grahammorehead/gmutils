@@ -685,7 +685,7 @@ def num_from_filename(file):
     return n
     
 
-def monitor_setup(file, total_i=None):
+def monitor_setup(file, total_i=None, options={}):
     """
     To setup monitoring for the progess of a loop.  Use in conjunction with monitor()
 
@@ -722,7 +722,15 @@ def monitor_setup(file, total_i=None):
     i = 0
     _monitor = { 'total_i':total_i,
                  'i':i,
-                 'last_done':last_done }
+                 'last_done':last_done,
+                 'skip':options.get('skip'),
+                }
+
+    # Handle the situation where a previous _monitor already skipped ahead
+    if options.get('skipped'):
+        skipped = options.get('skipped')
+        _monitor['i'] = int( (float(total_i) * float(skipped)) / 100. )
+       
     return _monitor
 
         
