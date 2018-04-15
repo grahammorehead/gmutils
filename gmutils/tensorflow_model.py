@@ -107,14 +107,17 @@ class TensorflowModel(Model):
                 epoch    = _monitor.get('epoch')
                 step     = _monitor.get('step')
                 loss_val = output[-1]
-                last_update_line = _monitor.get('update_line')
-                update_line =  "%s (e %d, b %d, s %d) [loss %0.16f] {lr %08f}"% (_monitor['progress'], epoch, _monitor['i'], step, loss_val, _monitor.get('learning_rate'))
-                if last_update_line is not None:
-                    sys.stdout.write('\b' * len(last_update_line))
+
+                # Output training state to the command line
                 if not self.get('silent'):
-                    sys.stdout.write(update_line)
-                    sys.stdout.flush()
-                _monitor['update_line'] = update_line
+                    last_update_line = _monitor.get('update_line')
+                    update_line =  "%s (e %d, b %d, s %d) [loss %0.16f] {lr %08f}"% (_monitor['progress'], epoch, _monitor['i'], step, loss_val, _monitor.get('learning_rate'))
+                    if last_update_line is not None:
+                        sys.stdout.write('\b' * len(last_update_line))
+                        sys.stdout.write(update_line)
+                        sys.stdout.flush()
+                    _monitor['update_line'] = update_line
+                    
                 return output, _monitor
             
             else:    # Without monitoring
@@ -160,14 +163,34 @@ class TensorflowModel(Model):
         D = []
         for i, x in enumerate(X):
             y = Y[i]
-            D.append( tf.squared_difference(x, y) )
+
+            sqdiff = tf.squared_difference(x, y)
+            D.append(sqdiff)
 
         sumT = tf.add_n(D)
         nT   = tf.constant(len(D), dtype=self.get('dtype'))
+        divT = tf.divide(sumT, nT)
         
-        return tf.divide(sumT, nT)
-        
+        return divT
+
+
+    def maxdiff(self, X, Y):
+        """
+        Use tensors to find the average squared difference between values coming from two arrays of tensors
+        """
+        D = []
+        for i, x in enumerate(X):
+            y = Y[i]
+
+            delta = tf.abs( tf.subtract(x, y) )
+            D.append(delta)
+
+        max_i = tf.argmax(D, axis=0)
+        maxT  = D[i]
+            
+        return maxT
                 
+    
 ################################################################################
 ##   MAIN   ##
 
