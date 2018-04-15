@@ -102,12 +102,13 @@ class TensorflowModel(Model):
         """
         try:
             output = sess.run(targets, feed_dict=self.model.feed_dict)
+                
             if _monitor:
                 epoch    = _monitor.get('epoch')
                 step     = _monitor.get('step')
                 loss_val = output[-1]
                 last_update_line = _monitor.get('update_line')
-                update_line =  "%s (e %d, b %d, s %d) [loss %0.8f] {lr %08f}"% (_monitor['progress'], epoch, _monitor['i'], step, loss_val, _monitor.get('learning_rate'))
+                update_line =  "%s (e %d, b %d, s %d) [loss %0.16f] {lr %08f}"% (_monitor['progress'], epoch, _monitor['i'], step, loss_val, _monitor.get('learning_rate'))
                 if last_update_line is not None:
                     sys.stdout.write('\b' * len(last_update_line))
                 if not self.get('silent'):
