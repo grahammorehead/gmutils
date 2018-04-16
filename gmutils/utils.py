@@ -4,6 +4,7 @@
 
 """
 import os, sys, re
+import time
 import traceback
 import json
 import gzip
@@ -174,7 +175,7 @@ def err(vars=[], options={}):
     
     # Information about the urgency of this call
     call_level = options.get('level')
-    if call_level is None:  call_level = 2    # default is 2
+    if call_level is None:  call_level = 2    # default is 2 (more urgent than level 1)
 
     os_level = 0
     try:
@@ -637,6 +638,17 @@ def file_exists(path):
         return True
     return False
 
+
+def file_timestamp(filepath, options={}):
+    """
+    Get the time when this file was last modified
+    """
+    if options.get('since_epoch'):
+        t = os.path.getmtime(filepath)                                                   # float
+    else:
+        t = time.strftime('%Y-%m-%d %H:%M:%S', time.gmtime(os.path.getmtime(filepath)))  # str
+    return str(t)
+    
 
 def dir_exists(path):
     """
