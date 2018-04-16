@@ -174,15 +174,15 @@ class TensorflowModel(Model):
         return divT
 
 
-    def maxdiff(self, X, Y):
+    def max_sqdiff(self, X, Y):
         """
-        Use tensors to find the average squared difference between values coming from two arrays of tensors
+        Use tensors to find the max squared difference between values coming from two arrays of tensors
         """
         D = []
         for i, x in enumerate(X):
             y = Y[i]
 
-            delta = tf.abs( tf.subtract(x, y) )
+            delta = tf.abs( tf.squared_difference(x, y) )
             D.append(delta)
 
         max_i = tf.argmax(D, axis=0)
