@@ -113,7 +113,7 @@ class TensorflowModel(Model):
                     last_update_line = _monitor.get('update_line')
                     update_line =  "%s (e %d, b %d, s %d) [loss %0.16f] {lr %08f}"% (_monitor['progress'], epoch, _monitor['i'], step, loss_val, _monitor.get('learning_rate'))
                     if last_update_line is not None:
-                        sys.stderr.write('\b' * (len(last_update_line) + 1))
+                        sys.stderr.write('\b' * (len(last_update_line) + 1))   # 0 for no newline
                     sys.stderr.write('\n')
                     sys.stderr.write(update_line)
                     sys.stderr.flush()
