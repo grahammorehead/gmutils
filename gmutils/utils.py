@@ -331,6 +331,18 @@ def iter_file(file, options=None):
     return iter(FH)
 
 
+def generate_file_iterator(dirpath, options={}):
+    """
+    Yields one file at a time - NOT to be confused with iter_file()
+    """
+    verbose = False
+    for filepath in sorted(read_dir(dirpath, options=options)):
+        filepath = dirpath +'/'+ filepath
+        if verbose:
+            err([filepath])
+        yield filepath
+
+
 def write_file(file, content, options={}):
     """
     Write 'content' to 'file'
