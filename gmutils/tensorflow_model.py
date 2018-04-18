@@ -8,7 +8,7 @@ import time
 import numpy as np
 import tensorflow as tf
 
-from gmutils.utils import err, argparser
+from gmutils.utils import err, argparser, read_dir
 from gmutils.model import Model
 
 ################################################################################
