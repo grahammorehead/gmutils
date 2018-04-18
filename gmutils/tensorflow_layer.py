@@ -14,8 +14,8 @@ from gmutils.objects import Object
 # CONFIG
 
 default = {
-    # 'dtype'              : tf.float16,
-    'dtype'              : tf.float32,
+    'dtype'              : tf.float16,
+    # 'dtype'              : tf.float32,
     'activation'         : tf.nn.relu,
 }
 

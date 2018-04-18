@@ -15,6 +15,7 @@ from gmutils.objects import Object
 
 default = {
     'dtype'              : tf.float16,
+    # 'dtype'              : tf.float32,
     'activation'         : tf.nn.relu,
 }
 
@@ -89,6 +90,24 @@ class TensorflowGraph(Object):
         self.feed_dict[placeholder] = [val]   # listified to add a dimension
             
 
+    def add_string(self, val, name=None):
+        """
+        Add a new tf.string to the graph and add it's val to the feed_dict
+        """
+        placeholder = self.string_placeholder(name)
+        self.add_to_feed(placeholder, [val])
+        return placeholder
+
+
+    def add_float(self, val, name=None):
+        """
+        Add a new float to the graph and add it's val to the feed_dict
+        """
+        placeholder = self.float_placeholder(name)
+        self.add_to_feed(placeholder, [val])
+        return placeholder
+
+
     def add_node(self, val, name=None):
         """
         Add a new node to the graph and add it's val to the feed_dict
@@ -103,7 +122,7 @@ class TensorflowGraph(Object):
         Add a new node to the graph and add it's val to the feed_dict
         """
         # placeholder = self.float_placeholder('learning_rate')
-        placeholder = tf.placeholder(tf.float16, shape=[])
+        placeholder = tf.placeholder(self.get('dtype'), shape=[])
         return placeholder
 
 
@@ -113,6 +132,13 @@ class TensorflowGraph(Object):
         """
         self.finals.append(T)
         
+        
+    def constant_float(self, val):
+        """
+        Get the empty float and use it again.  It's a constant and it's empty
+        """
+        return tf.constant(val, dtype=self.get('dtype'), shape=(1, 1))
+
         
     def empty_float(self):
         """
