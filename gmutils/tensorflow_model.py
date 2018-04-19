@@ -88,6 +88,28 @@ class TensorflowModel(Model):
         assert tf.get_default_graph() is self.graph
 
 
+    def estimate_epoch_time(self):
+        """
+        Estimate the length of time it takes to finish one epoch
+        """
+        global squadx_train_t0
+        try:
+            squadx_train_t0
+        except:
+            squadx_train_t0 = time.time()
+            
+        t0 = squadx_train_t0
+        t1 = time.time()
+        t  = t1 - t0
+
+        # Since:  t  =  Total_time * portion_complete
+        sec = t / self._monitor['progress_ratio']
+        #print("\tEstimating with:", t, self._monitor['progress_ratio'])
+        hrs = sec / 3600.0
+        
+        return hrs
+        
+        
     def run(self, sess, targets):
         """
         Attempt to run in the current session.  When fails, wait one second and try again.
@@ -112,13 +134,19 @@ class TensorflowModel(Model):
                 # Output training state to the command line
                 if not self.get('silent'):
                     last_update_line = self._monitor.get('update_line')
-                    update_line =  "%s (e %d, b %d, s %d) [loss %0.16f] {lr %08f}"% (
-                        self._monitor['progress'],
+                    lrate            = self._monitor.get('learning_rate')
+                    progress         = self._monitor['progress']
+                    epoch_time       = self.estimate_epoch_time()
+                    
+                    # err([self._monitor['progress'], epoch, self._monitor['i'], step, loss_val, lr])
+                    update_line =  "%s (e %d, b %d, s %d) [loss %0.16f] {lr %08f} (epoch per: %0.2f hrs)"% (
+                        progress,
                         epoch,
                         self._monitor['i'],
                         step,
                         loss_val,
-                        self._monitor.get('learning_rate') )
+                        lrate,
+                        epoch_time )
                     
                     if last_update_line is not None:
                         sys.stderr.write('\b' * (len(last_update_line) + 1))   # 0 for no newline

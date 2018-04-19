@@ -108,11 +108,31 @@ class TensorflowGraph(Object):
         return placeholder
 
 
-    def add_node(self, val, name=None):
+    def add_vector(self, dim, val, name=None):
+        """
+        Add a new vector of floats to the graph and add it's val to the feed_dict
+
+        Parameters
+        ----------
+        dim : int
+
+        val : array of float
+
+        name : str
+        """
+        placeholder = self.vector_placeholder(dim, name)
+        self.add_to_feed(placeholder, val)
+        return placeholder
+
+
+    def add_node(self, val, name=None, dim=None):
         """
         Add a new node to the graph and add it's val to the feed_dict
         """
-        placeholder = self.node_placeholder(name)
+        if dim is None:
+            dim = self.get('dim')
+            
+        placeholder = self.node_placeholder(name, dim=dim)
         self.add_to_feed(placeholder, val)
         return placeholder
 
@@ -150,12 +170,15 @@ class TensorflowGraph(Object):
         return self.get('empty_float')
 
         
-    def empty_node(self):
+    def empty_node(self, dim=None):
         """
         Get the empty node and use it again.  It's a constant.  Assumes all node vectors same dim
         """
+        if dim is None:
+            dim = self.get('dim')   # WARNING: if you need empty nodes of different dimensions, use another func
+        
         if not self.done():
-            enode = tf.constant( [0.0]*self.get('dim'), dtype=self.get('dtype'), shape=(1, self.get('dim')) )
+            enode = tf.constant( [0.0]*dim, dtype=self.get('dtype'), shape=(1, dim) )
             self.set('empty_node', enode)
         return self.get('empty_node')
             
@@ -219,7 +242,7 @@ class TensorflowGraph(Object):
         return pl
 
 
-    def node_placeholder(self, name=None):
+    def vector_placeholder(self, dim, name=None):
         """
         Return a basic placeholder for a Node
         """
@@ -230,15 +253,36 @@ class TensorflowGraph(Object):
         if name is not None:
             name += '_' + str(self.placeholder_i)
             
-        pl = tf.placeholder(self.get('dtype'), shape=[None, self.get('dim')], name=name)
+        pl = tf.placeholder(self.get('dtype'), shape=[None, dim], name=name)
         return pl
     
 
-    def node_layer(self, name):
+    def node_placeholder(self, name=None, dim=None):
+        """
+        Return a basic placeholder for a Node
+        """
+        if dim is None:
+            dim = self.get('dim')   # WARNING: if you need empty nodes of different dimensions, use another func
+        
+        try:
+            self.placeholder_i += 1
+        except:
+            self.placeholder_i  = 1
+        if name is not None:
+            name += '_' + str(self.placeholder_i)
+            
+        pl = tf.placeholder(self.get('dtype'), shape=[None, dim], name=name)
+        return pl
+    
+
+    def node_layer(self, name, dim=None):
         """
         Return a basic dense layer for processing a node tensor
         """
-        layer = tf.layers.Dense(units=self.get('dim'), activation=self.get('activation'), name=name)
+        if dim is None:
+            dim = self.get('dim')   # WARNING: if you need empty nodes of different dimensions, use another func
+        
+        layer = tf.layers.Dense(units=dim, activation=self.get('activation'), name=name)
         return layer
     
 
