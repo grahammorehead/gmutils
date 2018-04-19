@@ -21,20 +21,26 @@ def test(host='localhost', port=27017, db_name='default', collection_name='defau
     print("Loaded collection", collection_name,"  type:", type(coll))
 
 
-def get_mongo_client(db_name='default', collection_name='default', host='localhost', port=27017, user=None, password=None):
+def get_mongo_client(db_name='default', collection_name='default', host='localhost', port=27017, user=None, password=None, authSource=None):
     """
     Simplify getting the client
     """
     if user and password:
         host = "mongodb://%s:%s@%s:%d" % ( quote_plus(user), quote_plus(password), host, port )
-        client = MongoClient(host)
+        if authSource:
+            client = MongoClient(host, authSource=authSource)
+        else:
+            client = MongoClient(host)
     else:
-        client = MongoClient(host, port)
+        if authSource:
+            client = MongoClient(host, port, authSource=authSource)
+        else:
+            client = MongoClient(host, port)
 
     return client
 
     
-def mongo_iterator(db_name='default', collection_name='default', host='localhost', port=27017, user=None, password=None):
+def mongo_iterator(db_name='default', collection_name='default', host='localhost', port=27017, user=None, password=None, authSource=None):
     """
     Iterate over all docs in a Mongo DB
 
@@ -54,7 +60,7 @@ def mongo_iterator(db_name='default', collection_name='default', host='localhost
 
     """
     verbose = False
-    client = get_mongo_client(db_name=db_name, collection_name=collection_name, host=host, port=port, user=user, password=password)
+    client = get_mongo_client(db_name=db_name, collection_name=collection_name, host=host, port=port, user=user, password=password, authSource=authSource)
     
     if verbose:
         print("Mongo host:", host, "    port:", port,  "   type:", type(port))
@@ -67,7 +73,7 @@ def mongo_iterator(db_name='default', collection_name='default', host='localhost
     return f
     
 
-def mongo_find_one(db_name='default', collection_name='default', host='localhost', port=27017, user=None, password=None):
+def mongo_find_one(db_name='default', collection_name='default', host='localhost', port=27017, user=None, password=None, authSource=None):
     """
     Iterate over all docs in a Mongo DB
 
@@ -87,7 +93,7 @@ def mongo_find_one(db_name='default', collection_name='default', host='localhost
 
     """
     verbose = True
-    client = get_mongo_client(db_name=db_name, collection_name=collection_name, host=host, port=port, user=user, password=password)
+    client = get_mongo_client(db_name=db_name, collection_name=collection_name, host=host, port=port, user=user, password=password, authSource=authSource)
 
     if verbose:
         print("Mongo host:", host, "    port:", port,  "   type:", type(port))
@@ -98,11 +104,11 @@ def mongo_find_one(db_name='default', collection_name='default', host='localhost
     return coll.find_one()
 
 
-def mongo_count(db_name='default', collection_name='default', host='localhost', port=27017, user=None, password=None):
+def mongo_count(db_name='default', collection_name='default', host='localhost', port=27017, user=None, password=None, authSource=None):
     """
     Return the number of documents in a collection
     """
-    client = get_mongo_client(db_name=db_name, collection_name=collection_name, host=host, port=port, user=user, password=password)
+    client = get_mongo_client(db_name=db_name, collection_name=collection_name, host=host, port=port, user=user, password=password, authSource=authSource)
     
     db = client[db_name]
     coll = db[collection_name]
