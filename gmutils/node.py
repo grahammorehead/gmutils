@@ -949,10 +949,13 @@ class Node(Object):
         boolean
 
         """
+        verbose = False
         sidx = self.get_idx()
-        bot  = max( idx[0], sidx[0] )
-        top  = min( idx[1], sidx[1] )
+        bot  = max( idx[0], sidx[0] )  # Bottom of the overlap
+        top  = min( idx[1], sidx[1] )  # Top of the overlap
         spr  = top - bot
+        if verbose:
+            err([idx, sidx, spr, self.get_text()])
         if spr > 0:
             return True
         return False

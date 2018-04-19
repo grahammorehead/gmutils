@@ -1027,11 +1027,21 @@ def json_load_gz(filepath):
 
 def deepcopy_list(X):
     """
-    Deepcopy the list X (Python deepcopy fails for many object types)
+    Deep-ish copy the list X (Python deepcopy fails for many object types)
     """
     out = []
     for x in X:
         out.append(x)
+    return out
+    
+
+def deepcopy_dict(X):
+    """
+    Deep-ish copy the dict X (Python deepcopy fails for many object types)
+    """
+    out = {}
+    for k,v in X.items():
+        out[k] = v
     return out
     
 
