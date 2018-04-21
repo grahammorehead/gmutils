@@ -47,6 +47,7 @@ class Document(Object):
         options : dict or namespace
 
         """
+        verbose = False
         self.set_options(options)
         
         # If reading the document from a file, <text> should be None
@@ -63,6 +64,9 @@ class Document(Object):
         except:
             raise
 
+        if verbose:
+            self.print_sentences()
+        
             
     def __repr__(self):
         """
@@ -127,42 +131,6 @@ class Document(Object):
         return None
         
     
-    def combine_with_previous(self, previous, current):
-        """
-        Correct for some errors made by the spaCy sentence splitter
-
-        Parameters
-        ----------
-        previous: spaCy Span
-
-        current: spaCy Span
-
-        Returns
-        -------
-        bool
-        """
-        verbose = False
-        if verbose: err([previous.text, current.text])
-        
-        # Current sentence too short
-        if current.end - current.start < 3:
-            if verbose:
-                err([[current.text]])
-            return True
-
-        # Previous sentence had no ending punctuation
-        if not ( re.search("[\.?!]$", previous.text) \
-                     or re.search("[\.?!]\S$", previous.text) \
-                     or re.search("[\.?!]\S\S$", previous.text) \
-                     or re.search("[\.?!]\s$", previous.text) \
-                     or re.search("[\.?!]\s\s$", previous.text) ):
-            if verbose:
-                err([[previous.text]])
-            return True
-
-        return False
-        
-    
     def generate_trees(self):
         """
         Parse doc into sentences, then generate a Node tree for each
@@ -173,8 +141,17 @@ class Document(Object):
         need_to_reparse = False
         spacy_sentences = list(self.spacy_doc.sents)
         for i, sen in enumerate(spacy_sentences):
-            self.trees.append(Node(self, sen.root, options={'ID':'root.T'+str(i)}))
+            if sen[0].is_sent_start:   # Needed to get the benefit of sentence segmentation corrections
+                self.trees.append(Node(self, sen.root, options={'ID':'root.T'+str(i)}))
 
+
+    def analyze_trees(self):
+        """
+        For the purpose of debugging, analyze trees
+        """
+        for tree in self.trees:
+            tree.analyze()
+        
 
     def disown(self, node):
         """
@@ -189,15 +166,6 @@ class Document(Object):
         """
         self.trees.append(node)
         
-
-    def print_sentences(self):
-        """
-        Print the supporting text for each tree
-        """
-        for tree in self.trees:
-            print('\nNEXT SENTENCE:')
-            print (tree.get_supporting_text())
-
 
     def get_head_verb_nodes(self):
         """
@@ -282,13 +250,13 @@ class Document(Object):
         return dep
             
 
-    def get_verb_nodes(self):
+    def get_verbs(self):
         """
         From each of the constituent trees, return a list of all nodes that are verbs
         """
         verbs = []
         for tree in self.trees:
-            verbs.extend( tree.get_verb_nodes() )
+            verbs.extend( tree.get_verbs() )
         return verbs
 
 
@@ -325,7 +293,7 @@ class Document(Object):
         while altered:
             altered = False
             for tree in self.trees:
-                for node in tree.get_verb_nodes():
+                for node in tree.get_verbs():
                     a = node.agglomerate_verbs_preps(vocab=vocab)
                     if a:  altered = a  # only switch if going to True
         
@@ -341,8 +309,74 @@ class Document(Object):
         while altered:
             altered = False
             for tree in self.trees:
-                for node in tree.get_compound_prefix_nodes():
+                for node in tree.get_compound_prefixes():
                     a = node.agglomerate_compound_adj()   #  vocab=vocab)  No vocab for now!
+                    if a:  altered = a  # only switch if going to True
+
+
+    def agglomerate_modifiers(self):
+        """
+        For the purpose of tree simplification (lower branching factor), absorb childless modifiers into their parents
+        """
+        altered = True
+        while altered:
+            altered = False
+            for tree in self.trees:
+                for node in tree.get_modifiers():
+                    a = node.agglomerate_modifier()
+                    if a:  altered = a  # only switch if going to True
+
+
+    def agglomerate_twins(self):
+        """
+        For the purpose of tree simplification (lower branching factor), absorb childless modifiers into their parents
+        """
+        altered = True
+        while altered:
+            altered = False
+            for tree in self.trees:
+                for node in tree.get_parents_of_twins():
+                    a = node.agglomerate_twins()
+                    if a:  altered = a  # only switch if going to True
+
+
+    def agglomerate_verbauxes(self):
+        """
+        For the purpose of tree simplification (lower branching factor), absorb verb auxilaries
+        """
+        altered = True
+        while altered:
+            altered = False
+            for tree in self.trees:
+                for node in tree.get_verbs():
+                    a = node.agglomerate_verbaux()
+                    if a:  altered = a  # only switch if going to True
+
+
+    def delegate_to_conjunctions(self):
+        """
+        For the purpose of tree simplification (lower branching factor), and logical faithfulness, take conjunction arguments and bring them in under
+        the conjunction node.
+        """
+        altered = True
+        while altered:
+            altered = False
+            for tree in self.trees:
+                for node in tree.get_conjunctions():
+                    a = node.delegate_to_conjunction()
+                    if a:  altered = a  # only switch if going to True
+
+
+    def delegate_to_negations(self):
+        """
+        For the purpose of logical faithfulness, delegate the subject of a negation under it.
+        """
+        altered = True
+        while altered:
+            altered = False
+            for tree in self.trees:
+                for node in tree.get_conjunctions():
+                    a = node.delegate_to_conjunction()
                     if a:  altered = a  # only switch if going to True
 
 
@@ -408,24 +442,36 @@ class Document(Object):
         self.agglomerate_verbs_preps(vocab)
         self.agglomerate_compound_adj(vocab)
         self.agglomerate_entities()
+        self.agglomerate_modifiers()
+        self.agglomerate_twins()
+        self.agglomerate_verbauxes()
+        self.delegate_to_conjunctions()
+        # self.delegate_to_negations()
+        self.analyze_trees()                    # For debugging
         self.embed(vocab)
 
         
     def pretty_print(self, options={}):
         """
         Print parsed elements in an easy-to-read format
-
         """
         for tree in self.trees:
             tree.pretty_print(options=options)
 
 
+    def print_sentences(self, options={}):
+        """
+        Print the supporting text for each tree
+        """
+        for i, tree in enumerate(self.trees):
+            print(i, ":", tree.get_supporting_text())
+            
+
     def print_semantic_roles(self):
         """
         Get the verb Nodes and print something like a theta-role breakdown for each
-
         """
-        for node in self.get_verb_nodes():
+        for node in self.get_verbs():
             node.print_semantic_roles()
 
 

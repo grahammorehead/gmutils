@@ -6,6 +6,7 @@ Tools to manage nodes in a parse tree
 import os, sys, re, json
 from copy import deepcopy
 from time import sleep
+from functools import reduce
 import numpy as np
 
 from gmutils.objects import Object
@@ -20,7 +21,9 @@ pos_indices = ['ADJ', 'ADP', 'ADV', 'CCONJ', 'DET', 'INTJ', 'NOUN', 'NUM', 'PART
 ner_indices = ['CARDINAL', 'DATE', 'EVENT', 'FAC', 'GPE', 'LANGUAGE', 'LAW', 'LOC', 'MONEY', 'NORP', 'ORDINAL', 'ORG', 'PERCENT', 'PERSON', 'PRODUCT', 'QUANTITY', 'TIME', 'WORK_OF_ART']
 
 dep_indices = ['ROOT', 'acl', 'acomp', 'advcl', 'advmod', 'agent', 'amod', 'appos', 'attr', 'aux', 'auxpass', 'case', 'cc', 'ccomp', 'compound', 'conj', 'csubj', 'csubjpass', 'dative', 'dep', 'det', 'dobj', 'expl', 'intj', 'mark', 'meta', 'neg', 'nmod', 'npadvmod', 'nsubj', 'nsubjpass', 'nummod', 'oprd', 'parataxis', 'pcomp', 'pobj', 'poss', 'preconj', 'predet', 'prep', 'prt', 'punct', 'quantmod', 'relcl', 'xcomp']
-    
+
+modifiers   = set(['det', 'advmod'])
+
 default = {
     'empty_embedding' : np.array( [0.0] * 300 ),
     'pos_embedding' : generate_onehot_vocab(pos_indices),
@@ -85,6 +88,7 @@ class Node(Object):
             
         self.parent = parent
         self.children = []
+        # NOTE: do not attempt to create sibling relationships.  It is safer to determine them given the current state of the tree
 
         if verbose:
             if len(self.tokens) < 1:
@@ -94,7 +98,13 @@ class Node(Object):
                 
         # Base original tree on spacy Token tree.  Add a Node-child for every token-child
         for token in self.tokens:
-            for i, child in enumerate(token.children):
+            children = list(token.children)
+            for i, child in enumerate(children):
+
+                if token_is_prunable(child):
+                    # print("Skipping (%s): %s"% (child.pos_, child))
+                    continue
+                
                 options['ID'] = self.get('ID') + '.' + str(i)
                 node = Node(self.doc, child, parent=self, options=options)
                 if len(node.tokens) > 0:
@@ -114,7 +124,27 @@ class Node(Object):
                 
     def __repr__(self):
         return self.get_text()
+
+
+    def analyze(self):
+        """
+        A place for linguistic debugging.  Alter at will
+        """
+        n  = len(self.children)
+        n -= num_prepositionals(self.children)
+        if n > 4:
+            print("\n%d Numerous Children!  [%s]"% (n, self.get_text()))
+            for child in self.children:
+                print("\t", child)
+            print()
+            self.doc.pretty_print()   # options={'supporting_text':True})
+            print("\nDOC:", self.doc.get_text())
+            exit()
         
+        for child in self.children:
+            child.analyze()
+
+    
     ############################################################################
     # ALTERATIONS
 
@@ -139,7 +169,7 @@ class Node(Object):
 
     def disown(self, node):
         """
-        Break both sides of parent-child relationship
+        Break both sides of parent-child relationship.  'self' is parent
         """
         self.children.remove(node)
         node.parent = None
@@ -164,6 +194,41 @@ class Node(Object):
         else:
             self.absorb_cousin(node)   # anywhere else on same tree
 
+        if verbose:
+            print("\n[%s] done absorbing."% str(self))
+            if len(self.children):
+                print('\t(children -after):', self.children)
+            else:
+                print("\t(self has no children)")
+        
+        # Final sanity check
+        for child in self.children:
+            if child == self:
+                err([self], {'ex':'child = self'})
+
+                
+    def absorb_twin(self, node):
+        """
+        Merge two semi-identical Nodes for the purpose of tree simplification.  Very dangerous.  Be careful.
+
+        Must be siblings.  Afterwards, nothing should link to 'node', only to 'self'
+        """
+        verbose = False
+
+        # Run checks for saftey's sake
+        if self == node:
+            return
+        if self.is_descendant(node):
+            return   
+        if self.is_ancestor(node):
+            return
+        if node.parent != self.parent:
+            return
+        
+        self.parent.disown(node)               # Cut old parental ties
+        self.adopt(node.children)              # Adopt their children (if any)
+        node.kill()
+        
         if verbose:
             print("\n[%s] done absorbing."% str(self))
             if len(self.children):
@@ -275,7 +340,7 @@ class Node(Object):
 
         # Select which children, if any, to absorb
         to_absorb = []
-        if self.is_verb:
+        if self.is_verb():
             for child in self.children:
                 if 'prep' in child.get_dep():  # Only looking to agglomerate nodes with a 'prep' dependency
                     if vocab is not None:       # Only allow agglomerations corresponding to a vocab entry
@@ -330,6 +395,106 @@ class Node(Object):
                     
         return altered
 
+
+    def agglomerate_modifier(self, options={}):
+        """
+        Take a childless modifier and absorb it into the parent
+        """
+        altered = False
+        if self.is_dead:
+            return altered
+
+        if len(self.children) == 0:
+            if self.has_dep(modifiers):
+                if len(self.get_dep()) == 1:
+                    self.parent.absorb(self)
+                    altered = True
+
+        return altered
+        
+    
+    def agglomerate_twins(self, options={}):
+        """
+        Take a parent of twins and merge those twins together (Might even be triplets!)
+        """
+        altered = False
+        if self.is_dead:
+            return altered
+
+        for twinset in self.get_twinsets():
+            reduce( (lambda x, y: x.absorb_twin(y)), twinset)
+            altered = True
+
+        return altered
+        
+    
+    def agglomerate_verbaux(self, options={}):
+        """
+        Combine a verb-auxiliary with its parent
+        """
+        altered = False
+        if self.is_dead:
+            return altered
+
+        for child in self.children:
+            if child.has_dep(['auxpass'])  and  child.is_verb():
+                if not child.has_child():   # Must NOT have its own children
+                    self.absorb(child)
+                    altered = True
+
+        return altered
+
+    
+    def delegate_to_conjunction(self, options={}):
+        """
+        Assuming:
+          - this node is a conjunction from the set (and, or)
+          - has no children
+          - has a sibling
+          - is not root
+          - parent is not root
+        Bring those arguments down under this node as children.
+        """
+        altered = False
+        if self.is_dead:      # A few reasons not to ...
+            return altered
+        if self.has_child():
+            return altered
+        if self.is_root():
+            return altered
+
+        previous_node = self.get_previous_sibling()
+        next_node     = self.get_next_sibling()
+
+        # Case 1: Both arguments are siblings
+        # err([previous_node, self, next_node])
+        if previous_node is not None  and next_node is not None:
+            self.parent.disown(previous_node)
+            self.parent.disown(next_node)
+            self.adopt(previous_node)
+            self.adopt(next_node)
+            altered = True
+
+        # Case 2: One argument is a parent.  More complicated.
+        elif next_node is not None:
+            if self.parent.is_root():
+                return altered
+
+            grandparent = self.parent.parent   # Remember these
+            parent0 = self.parent              #  - their relationship-based links will disappear
+
+            parent0.disown(self)               # Disownings
+            parent0.disown(next_node)
+            grandparent.disown(parent0)
+
+            grandparent.adopt(self)            # Adoptions
+            self.adopt(parent0)
+            self.adopt(next_node)
+            altered = True
+
+        return altered
+        
+    
     # end ALTERATIONS
     ############################################################################
     
@@ -354,6 +519,15 @@ class Node(Object):
         else:
             return False
 
+
+    def has_child(self):
+        """
+        Does node have at least one child?
+        """
+        if len(self.children) > 0:
+            return True
+        return False
+        
 
     def is_ancestor(self, node):
         """
@@ -383,7 +557,37 @@ class Node(Object):
     
     ############################################################################
     # Access
-    
+
+    def get_previous_sibling(self):
+        """
+        Through the parent node, get the previous sibling node
+        """
+        if self.is_root():
+            return None
+
+        last_node = None
+        for node in self.parent.children:
+            if node == self:
+                return last_node
+            last_node = node
+        err([], {'ex':"Couldn't find self amongst parent's children!"})
+        
+                    
+    def get_next_sibling(self):
+        """
+        Through the parent node, get the previous sibling node
+        """
+        if self.is_root():
+            return None
+
+        last_node = None
+        for node in reversed(self.parent.children):
+            if node == self:
+                return last_node
+            last_node = node
+        err([], {'ex':"Couldn't find self amongst parent's children!"})
+            
+                    
     def get_descendants_at_relative_depth(self, d):
         """
         Get all descendants at a depth of precisely d, relative to self.
@@ -836,7 +1040,7 @@ class Node(Object):
             return None
 
         
-    def get_verb_nodes(self):
+    def get_verbs(self):
         """
         From each of the constituent trees, return a list of all nodes that are verbs
 
@@ -846,11 +1050,24 @@ class Node(Object):
             verbs = [self]
         
         for child in self.children:
-            verbs.extend( child.get_verb_nodes() )
+            verbs.extend( child.get_verbs() )
         return verbs
 
 
-    def get_compound_prefix_nodes(self):
+    def get_conjunctions(self):
+        """
+        From each of the constituent trees, return a list of all nodes that are conjunctions from the set (and, or)
+        """
+        nodes = []
+        if self.has_pos( set(['CCONJ']) )  and  self.has_lemma( set(["and", "or"]) ):
+            nodes = [self]
+        
+        for child in self.children:
+            nodes.extend( child.get_conjunctions() )
+        return nodes
+
+
+    def get_compound_prefixes(self):
         """
         From each of the constituent trees, return a list of all nodes that are compound prefixes
         """
@@ -859,7 +1076,65 @@ class Node(Object):
             nodes = [self]
         
         for child in self.children:
-            nodes.extend( child.get_compound_prefix_nodes() )
+            nodes.extend( child.get_compound_prefixes() )
+        return nodes
+
+
+    def get_modifiers(self):
+        """
+        From each of the constituent trees, return a list of all nodes that are modifiers
+        """
+        nodes = []
+        if self.has_dep(modifiers):
+            nodes = [self]
+        
+        for child in self.children:
+            nodes.extend( child.get_modifiers() )
+        return nodes
+
+
+    def get_twinsets(self):
+        """
+        For just this node (not recursive) get sets of twins
+        """
+        seen = {}
+        for child in self.children:
+            signature = (child.get_text(), child.get_dep_str())
+            if seen.get(signature):
+                seen[signature].append(child)
+            else:
+                seen[signature] = [child]
+
+        twinsets = []
+        for k,v in seen.items():
+            if len(v) > 1:
+                twinsets.append(v)
+
+        return twinsets
+                
+
+    def has_twins(self):
+        """
+        Node has at least two similar children
+        """
+        seen = set([])
+        for child in self.children:
+            signature = (child.get_text(), child.get_dep_str())
+            if signature in seen:
+                return True
+            seen.add(signature)
+        return False
+    
+
+    def get_parents_of_twins(self):
+        """
+        From each of the constituent trees, return a list of all nodes that have twins (similar children)
+        """
+        nodes = []
+        if self.has_twins():
+            nodes = [self]
+        for child in self.children:
+            nodes.extend( child.get_parents_of_twins() )
         return nodes
 
 
@@ -1508,8 +1783,56 @@ def average_of_word_embeddings(words, vocab):
             vec = vecs[0]
 
         return vec, found_embedding
-            
 
+
+def token_is_prunable(token, options={}):
+    """
+    Determine if a token can be ignored for the construction of a meaningful parse tree
+
+    Parameters
+    ----------
+    token : spacy.Token
+
+    Returns
+    -------
+    boolean    
+    """
+    children = list(token.children)
+    try:
+        # First condition of prunability: no children
+        if len(children) > 0:
+            return False
+
+        else:  # No children
+            if token.pos_ in ['PUNCT']:
+                return True
+
+            if options.get('severe'):
+                if token.dep_ in ['cc']  and  token.pos_ in ['CCONJ']:
+                    print (">> SKIPPING:", token)
+                    return True
+                if token.dep_ in ['auxpass', 'aux']  and  token.pos_ in ['VERB']:
+                    print (">> SKIPPING:", token)
+                    return True
+                if token.dep_ in ['mark']  and  token.pos_ in ['ADP']:
+                    print (">> SKIPPING:", token)
+                    return True
+    except:
+        raise
+    return False
+
+
+def num_prepositionals(nodes):
+    """
+    Number of nodes which are prepositional
+    """
+    preps = 0
+    for node in nodes:
+        if node.has_dep(set(['prep', 'npadvmod'])):   # npadvmod can be like a temporal preposition
+            preps += 1
+    return preps
+    
+    
 ################################################################################
 # MAIN
 

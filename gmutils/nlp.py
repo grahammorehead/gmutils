@@ -26,6 +26,36 @@ try:
         spacy_parsing = spacy.load('en_core_web_lg')
 except Exception as e: pass
 
+    
+def set_sentence_starts(doc):
+    """
+    Adjust the elements in a spaCy Doc to record the sentence starts as output by sentence_segmenter()
+
+    This function is designed to be a spaCy pipeline element
+
+    """
+    for offsets in sentence_segmenter(doc):
+        start, end = offsets
+        sent = doc[start:end]
+        sent[0].is_sent_start = True
+        for token in sent[1:]:
+            token.is_sent_start = False
+    return doc
+
+
+# POST-DEFINITIONAL LOADING
+# from spacy.tokenizer import Tokenizer
+
+# Add elements to the parsing pipeline to correct for the sentence tokenizer problems
+try:
+    spacy_parsing.add_pipe(set_sentence_starts, name='sentence_segmenter', before='tagger')
+    spacy_parsing.add_pipe(spacy_parsing.create_pipe('sentencizer'), before='sentence_segmenter')
+    tokenizer = spacy.tokenizer.Tokenizer(spacy_ner.vocab)
+except Exception as e:
+    err([], {'exception':e})
+
+################################################################################
+
 def generate_spacy_data(text):
     """
     Used in the creation of Document objects
@@ -121,41 +151,14 @@ def sentence_segmenter(doc):
 
         # Correct for mistakes
         if previous is not None  and  combine_with_previous(previous, current):
+            if verbose:  err()
             sen_offsets[-1] = [p_start, end]
         else:
+            if verbose:  err()
             sen_offsets.append( [start, end] )
             
     return sen_offsets
     
-
-def set_sent_starts(doc):
-    """
-    Adjust the elements in a spaCy Doc to record the sentence starts as output by sentence_segmenter()
-
-    This function is designed to be a spaCy pipeline element
-
-    """
-    for offsets in sentence_segmenter(doc):
-        start, end = offsets
-        sent = doc[start:end]
-        sent[0].sent_start = True
-        for token in sent[1:]:
-            token.sent_start = False
-    return doc
-
-
-################################################################################
-# POST-DEFINITIONAL LOADING
-# from spacy.tokenizer import Tokenizer
-
-# Add elements to the parsing pipeline to correct for the sentence tokenizer problems
-try:
-    spacy_parsing.add_pipe(set_sent_starts, name='sentence_segmenter', before='tagger')
-    spacy_parsing.add_pipe(spacy_parsing.create_pipe('sentencizer'), before='sentence_segmenter')
-    tokenizer = spacy.tokenizer.Tokenizer(spacy_ner.vocab)
-except Exception as e:
-    err([], {'exception':e})
-
 
 ################################################################################
 # FUNCTIONS
