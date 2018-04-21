@@ -375,8 +375,8 @@ class Document(Object):
         while altered:
             altered = False
             for tree in self.trees:
-                for node in tree.get_conjunctions():
-                    a = node.delegate_to_conjunction()
+                for node in tree.get_negations():
+                    a = node.delegate_to_negation()
                     if a:  altered = a  # only switch if going to True
 
 
@@ -442,11 +442,11 @@ class Document(Object):
         self.agglomerate_verbs_preps(vocab)
         self.agglomerate_compound_adj(vocab)
         self.agglomerate_entities()
+        self.delegate_to_negations()
         self.agglomerate_modifiers()
         self.agglomerate_twins()
         self.agglomerate_verbauxes()
         self.delegate_to_conjunctions()
-        # self.delegate_to_negations()
         self.analyze_trees()                    # For debugging
         self.embed(vocab)
 

@@ -10,7 +10,7 @@ from functools import reduce
 import numpy as np
 
 from gmutils.objects import Object
-from gmutils.utils import err, argparser, vector_average, cosine_similarity
+from gmutils.utils import err, argparser, vector_average, cosine_similarity, deepcopy_list
 from gmutils.nlp import generate_onehot_vocab
 
 ################################################################################
@@ -22,7 +22,7 @@ ner_indices = ['CARDINAL', 'DATE', 'EVENT', 'FAC', 'GPE', 'LANGUAGE', 'LAW', 'LO
 
 dep_indices = ['ROOT', 'acl', 'acomp', 'advcl', 'advmod', 'agent', 'amod', 'appos', 'attr', 'aux', 'auxpass', 'case', 'cc', 'ccomp', 'compound', 'conj', 'csubj', 'csubjpass', 'dative', 'dep', 'det', 'dobj', 'expl', 'intj', 'mark', 'meta', 'neg', 'nmod', 'npadvmod', 'nsubj', 'nsubjpass', 'nummod', 'oprd', 'parataxis', 'pcomp', 'pobj', 'poss', 'preconj', 'predet', 'prep', 'prt', 'punct', 'quantmod', 'relcl', 'xcomp']
 
-modifiers   = set(['det', 'advmod'])
+MODIFIERS   = set(['det', 'advmod'])
 
 default = {
     'empty_embedding' : np.array( [0.0] * 300 ),
@@ -153,7 +153,6 @@ class Node(Object):
         Create both sides of parent-child relationships
         """
         verbose = False
-        
         if isinstance(node, list):
             for n in node:
                 self.adopt(n)
@@ -405,10 +404,13 @@ class Node(Object):
             return altered
 
         if len(self.children) == 0:
-            if self.has_dep(modifiers):
+            if self.has_dep(MODIFIERS):
                 if len(self.get_dep()) == 1:
-                    self.parent.absorb(self)
-                    altered = True
+                    if self.has_lemma( set(['no']) ):   # Skip these. Handle via negation instead
+                        pass
+                    else:
+                        self.parent.absorb(self)
+                        altered = True
 
         return altered
         
@@ -437,7 +439,7 @@ class Node(Object):
             return altered
 
         for child in self.children:
-            if child.has_dep(['auxpass'])  and  child.is_verb():
+            if child.has_dep(['auxpass', 'aux'])  and  child.is_verb():
                 if not child.has_child():   # Must NOT have its own children
                     self.absorb(child)
                     altered = True
@@ -452,7 +454,6 @@ class Node(Object):
           - has no children
           - has a sibling
           - is not root
-          - parent is not root
         Bring those arguments down under this node as children.
         """
         altered = False
@@ -477,7 +478,104 @@ class Node(Object):
 
         # Case 2: One argument is a parent.  More complicated.
         elif next_node is not None:
+            if self.parent.is_root():          # Dangerous to do with roots
+                return altered
+
+            grandparent = self.parent.parent   # Remember these
+            parent0 = self.parent              #  - their relationship-based links will disappear
+
+            parent0.disown(self)               # Disownings
+            parent0.disown(next_node)
+            grandparent.disown(parent0)
+
+            grandparent.adopt(self)            # Adoptions
+            self.adopt(parent0)
+            self.adopt(next_node)
+            altered = True
+
+        return altered
+
+
+    def rootswitch_with_child(self, node):
+        """
+        For the very specific case where this node is a root and must switch places with a child.
+
+        'self' is the root.  Keep this actual node object where it is to maintain the pointer from the encompassing Document.
+        Just switch most of the guts.
+
+        'node' must adopt all siblings, then take parent's guts.
+
+        Note: ignores 'embedding' because this step must come before embedding
+        """
+        # Adopt siblings
+        children = deepcopy_list(self.children)
+        for child in children:
+            if child != node:
+                self.disown(child)
+                node.adopt(child)
+
+        # Pour parent info into temp vars
+        orig_tokens = self.tokens
+        try:
+            orig_ID = self.ID
+        except:
+            pass
+
+        # Pour child (node) into self
+        try:
+            self.ID = node.ID
+        except:
+            pass
+        self.tokens = node.tokens
+
+        # Pour temp vars into child (node)
+        try:
+            node.ID = orig_ID
+        except:
+            pass
+        node.tokens = orig_tokens
+
+    
+    def delegate_to_negation(self, options={}):
+        """
+        Assuming:
+          - this node is a negation from the set (no, not, neither, nor)
+          - has no children
+          - has a sibling
+          - is not root
+        Bring those arguments down under this node as children.
+        """
+        altered = False
+        if self.is_dead:      # A few reasons not to ...
+            return altered
+        if self.has_child():
+            return altered
+        if self.is_root():
+            return altered
+
+        # Case 1: Only one argument (the parent)
+        if self.has_lemma( set(['not', 'no', 'neither']) ):
+
+            # Subcase A: parent is root (Very complicated, be careful)
             if self.parent.is_root():
+                self.parent.rootswitch_with_child(self)
+                
+            # Subcase B: parent is not root
+            else:
+                grandparent = self.parent.parent   # Remember these
+                parent0 = self.parent              #  - their relationship-based links will disappear
+
+                parent0.disown(self)               # Disownings
+                grandparent.disown(parent0)
+
+                grandparent.adopt(self)            # Adoptions
+                self.adopt(parent0)
+                altered = True
+
+        # Case 2: Two arguments: the parent and next node
+        elif self.has_lemma( set(['nor']) ):
+            next_node = self.get_next_sibling()
+            if next_node is None:
                 return altered
 
             grandparent = self.parent.parent   # Remember these
@@ -1067,6 +1165,21 @@ class Node(Object):
         return nodes
 
 
+    def get_negations(self):
+        """
+        From each of the constituent trees, return a list of all nodes that are conjunctions from the set (and, or)
+        """
+        nodes = []
+        if self.has_lemma( set(["not", "no", "neither", "nor"]) ) \
+          and  self.has_dep( set(['preconj', 'cc', 'neg', 'det']) ) \
+          and  self.has_pos( set(['CCONJ', 'ADV', 'DET']) ):
+            nodes = [self]
+        
+        for child in self.children:
+            nodes.extend( child.get_negations() )
+        return nodes
+
+
     def get_compound_prefixes(self):
         """
         From each of the constituent trees, return a list of all nodes that are compound prefixes
@@ -1085,7 +1198,7 @@ class Node(Object):
         From each of the constituent trees, return a list of all nodes that are modifiers
         """
         nodes = []
-        if self.has_dep(modifiers):
+        if self.has_dep(MODIFIERS):
             nodes = [self]
         
         for child in self.children:
