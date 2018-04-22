@@ -137,14 +137,13 @@ class Node(Object):
         """
         n  = len(self.children)
         n -= num_prepositionals(self.children)
-        if n > 3:
-            print("\n%d Numerous Children!  [%s]"% (n, self.get_text()))
+        if n > 6:
+            print("\n%d >> [%s]"% (n, self.get_text()))
             for child in self.children:
                 print("\t", child)
             print()
-            self.doc.pretty_print()   # options={'supporting_text':True})
-            print("\nDOC:", self.doc.get_text())
-            exit()
+            # self.doc.pretty_print()   # options={'supporting_text':True})
+            # print("\nDOC:", self.doc.get_text())
         
         for child in self.children:
             child.analyze()
@@ -334,6 +333,7 @@ class Node(Object):
 
         e.g. If "jump" is used to describe A jumping over B, the real sense of the verb is "jump over"
 
+        NOTE: Currently dubious as to the value of this!
         """
         altered = False
         if self.is_dead:
@@ -496,6 +496,8 @@ class Node(Object):
           - is not root
         Bring those arguments down under this node as children.
         """
+        verbose = False
+        if verbose:  err([self])
         altered = False
         if self.is_dead:      # A few reasons not to ...
             return altered
@@ -510,6 +512,7 @@ class Node(Object):
         # Case 1: Both arguments are siblings
         # err([previous_node, self, next_node])
         if previous_node is not None  and next_node is not None:
+            if verbose:  err()
             self.parent.disown(previous_node)
             self.parent.disown(next_node)
             self.adopt(previous_node)
@@ -520,6 +523,7 @@ class Node(Object):
         elif next_node is not None:
             if self.parent.is_root():          # Dangerous to do with roots
                 return altered
+            if verbose:  err()
 
             grandparent = self.parent.parent   # Remember these
             parent0 = self.parent              #  - their relationship-based links will disappear
@@ -532,6 +536,9 @@ class Node(Object):
             self.adopt(parent0)
             self.adopt(next_node)
             altered = True
+
+        else:
+            if verbose:  err()
 
         return altered
 
@@ -1193,16 +1200,14 @@ class Node(Object):
         
     def get_verbs(self):
         """
-        From each of the constituent trees, return a list of all nodes that are verbs
-
+        From each of the constituent trees, return a list of all nodes that represents verbs
         """
-        verbs = []
+        nodes = []
         if self.is_verb():
-            verbs = [self]
-        
+            nodes = [self]
         for child in self.children:
-            verbs.extend( child.get_verbs() )
-        return verbs
+            nodes.extend( child.get_verbs() )
+        return deepcopy_list(nodes)   # deepcopy_list()  Applied merely because it seems to fix a bug for conjunctions
 
 
     def get_conjunctions(self):
@@ -1215,7 +1220,9 @@ class Node(Object):
         
         for child in self.children:
             nodes.extend( child.get_conjunctions() )
-        return nodes
+            
+        return deepcopy_list(nodes)   # For some UNKNOWN reason, this added deepcopy_list fixes a pernicious recursion bug
+        #                             # And for that reason it has been applied to several other 'get()' functions
 
 
     def get_negations(self):
@@ -1230,7 +1237,7 @@ class Node(Object):
         
         for child in self.children:
             nodes.extend( child.get_negations() )
-        return nodes
+        return deepcopy_list(nodes)   # deepcopy_list()  Applied merely because it seems to fix a bug for conjunctions
 
 
     def get_compound_prefixes(self):
@@ -1243,7 +1250,7 @@ class Node(Object):
         
         for child in self.children:
             nodes.extend( child.get_compound_prefixes() )
-        return nodes
+        return deepcopy_list(nodes)   # deepcopy_list()  Applied merely because it seems to fix a bug for conjunctions
 
 
     def get_modifiers(self):
@@ -1256,7 +1263,7 @@ class Node(Object):
         
         for child in self.children:
             nodes.extend( child.get_modifiers() )
-        return nodes
+        return deepcopy_list(nodes)   # deepcopy_list()  Applied merely because it seems to fix a bug for conjunctions
 
 
     def get_twinsets(self):
@@ -1275,8 +1282,7 @@ class Node(Object):
         for k,v in seen.items():
             if len(v) > 1:
                 twinsets.append(v)
-
-        return twinsets
+        return deepcopy_list(twinsets)   # deepcopy_list()  Applied merely because it seems to fix a bug for conjunctions
                 
 
     def has_twins(self):
@@ -1301,7 +1307,7 @@ class Node(Object):
             nodes = [self]
         for child in self.children:
             nodes.extend( child.get_parents_of_twins() )
-        return nodes
+        return deepcopy_list(nodes)   # deepcopy_list()  Applied merely because it seems to fix a bug for conjunctions
 
 
     def is_idiom_parent(self):
@@ -1324,7 +1330,7 @@ class Node(Object):
             nodes = [self]
         for child in self.children:
             nodes.extend( child.get_idiom_parents() )
-        return nodes
+        return deepcopy_list(nodes)   # deepcopy_list()  Applied merely because it seems to fix a bug for conjunctions
 
 
     def get_index(self):

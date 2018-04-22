@@ -470,17 +470,29 @@ class Document(Object):
         vocab : dict { lemma string -> vector }
 
         """
+        verbose = False
         # self.agglomerate_verbs_preps(vocab)
+        if verbose:  err()
         self.agglomerate_compound_adj(vocab)
+        if verbose:  err()
         self.agglomerate_entities()
+        if verbose:  err()
         self.delegate_to_negations()
+        if verbose:  err()
         self.agglomerate_modifiers()
+        if verbose:  err()
         self.agglomerate_twins()
+        if verbose:  err()
         self.agglomerate_verbauxes()
+        if verbose:  err()
         self.delegate_to_conjunctions()
+        if verbose:  err()
         self.agglomerate_idioms()
+        if verbose:  err()
         self.analyze_trees()                    # For debugging
+        if verbose:  err()
         self.embed(vocab)
+        if verbose:  err()
 
         
     def pretty_print(self, options={}):
