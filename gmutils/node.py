@@ -1067,6 +1067,8 @@ class Node(Object):
         """
         Boolean.  Determine if 'node' shares at least one POS with self
         """
+        if node is None:
+            return False
         s      = set(self.get_pos())
         other  = set(node.get_pos())
         insec  = s.intersection(other)
