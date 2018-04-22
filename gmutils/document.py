@@ -159,11 +159,9 @@ class Document(Object):
         verbose = False
         self.trees = []            # array of Node
         need_to_reparse = False
-        # spacy_sentences = list(self.spacy_doc.sents)
         spacy_sentences = self.get_sentences_by_breaks()
         for i, sen in enumerate(spacy_sentences):
             self.trees.append(Node(self, sen.root, options={'ID':'root.T'+str(i)}))
-            #if sen[0].is_sent_start:   # Needed to get the benefit of sentence segmentation corrections
             
 
     def analyze_trees(self):
@@ -290,7 +288,6 @@ class Document(Object):
     def agglomerate_entities(self):
         """
         For the purpose of dealing sensibly with extracted entities, agglomerate tokens from a single entity into a node
-
         """
         altered = True
         while altered:
@@ -298,6 +295,19 @@ class Document(Object):
             for tree in self.trees:
                 for node in tree.get_entity_beginners():
                     a = node.agglomerate_entities()
+                    if a:  altered = a  # only switch if going to True
+        
+
+    def agglomerate_idioms(self):
+        """
+        For the purpose of dealing sensibly with extracted meaning, agglomerate tokens from a single idiom into a node
+        """
+        altered = True
+        while altered:
+            altered = False
+            for tree in self.trees:
+                for node in tree.get_idiom_parents():
+                    a = node.agglomerate_idiom()
                     if a:  altered = a  # only switch if going to True
         
 
@@ -468,6 +478,7 @@ class Document(Object):
         self.agglomerate_twins()
         self.agglomerate_verbauxes()
         self.delegate_to_conjunctions()
+        self.agglomerate_idioms()
         self.analyze_trees()                    # For debugging
         self.embed(vocab)
 

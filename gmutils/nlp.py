@@ -100,10 +100,23 @@ def combine_with_previous(previous, current):
     bool
     """
     verbose = False
-    if verbose: err([previous.text, current.text])
+    if verbose:
+        err([previous.text, previous.end - previous.start, current.text, current.end - current.start])
 
-    # Previous sentence too short
-    if previous.end - previous.start < 3:
+    # This sentence too short and not capitalized or previous is a paren
+    if current.end - current.start < 3  and  ( current.text[0].islower()  or  re.search(r"\)", previous.text) ):
+        if verbose:
+            err([[current.text]])
+        return True
+
+    # This sentence moderately short and has a close paren
+    if current.end - current.start < 7  and  re.search(r"\)", current.text):
+        if verbose:
+            err([[current.text]])
+        return True
+
+    # Previous sentence too short and is capitalized
+    if previous.end - previous.start < 3  and  previous.text[0].isupper():
         if verbose:
             err([[previous.text]])
         return True
@@ -137,6 +150,7 @@ def sentence_segmenter(doc):
     verbose = False
     sen_offsets = []  # Sentence offset pairs
     spacy_sentences = list(doc.sents)
+
     for i,sen in enumerate(spacy_sentences):
 
         # Current Sentence
@@ -146,10 +160,12 @@ def sentence_segmenter(doc):
 
         # Previous Sentence
         previous = p_start = p_end = None
-        if i > 0:
-            prev = spacy_sentences[i-1]
-            p_start = prev.start
-            p_end = prev.end
+
+        if len(sen_offsets) > 0:
+            p_start, p_end = sen_offsets[-1]
+            
+            #p_start = prev.start
+            #p_end = prev.end
             previous = doc[p_start:p_end]
             if verbose:
                 err([[previous.text, current.text]])
@@ -158,7 +174,6 @@ def sentence_segmenter(doc):
         if previous is not None  and  combine_with_previous(previous, current):
             if verbose:  err()
             sen_offsets[-1] = [p_start, end]
-            if verbose:  err([doc[p_start:end]])
         else:
             if verbose:  err()
             sen_offsets.append( [start, end] )

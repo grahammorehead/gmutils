@@ -24,6 +24,9 @@ dep_indices = ['ROOT', 'acl', 'acomp', 'advcl', 'advmod', 'agent', 'amod', 'appo
 
 MODIFIERS   = set(['det', 'advmod'])
 
+# Words that are sometimes mis-tagged by the spacy POS-tagger when root
+ROOT_VERBS  = set(['record'])
+
 default = {
     'empty_embedding' : np.array( [0.0] * 300 ),
     'pos_embedding' : generate_onehot_vocab(pos_indices),
@@ -132,7 +135,7 @@ class Node(Object):
         """
         n  = len(self.children)
         n -= num_prepositionals(self.children)
-        if n > 4:
+        if n > 5:
             print("\n%d Numerous Children!  [%s]"% (n, self.get_text()))
             for child in self.children:
                 print("\t", child)
@@ -299,7 +302,7 @@ class Node(Object):
         self.adopt(node.children)              # Adopt their children (if any)
         node.kill()
 
-        
+
     def agglomerate_entities(self, options={}):
         """
         For the purpose of dealing sensibly with extracted entities, agglomerate tokens from a single entity into a node.
@@ -441,6 +444,41 @@ class Node(Object):
         for child in self.children:
             if child.has_dep(['auxpass', 'aux'])  and  child.is_verb():
                 if not child.has_child():   # Must NOT have its own children
+                    self.absorb(child)
+                    altered = True
+
+        return altered
+
+
+    def children_matching(self, lemmas):
+        """
+        Return a set of children matching any of the lemmas exactly
+        """
+        children = set([])
+        for lemma in lemmas:
+            not_found = True
+            for child in self.children:
+                if child.get_lemmas() == [lemma]:
+                    children.add(child)
+                    not_found = False
+            if not_found:
+                return None
+        return children
+
+    
+    def agglomerate_idiom(self, options={}):
+        """
+        Combine idiom elements
+        """
+        altered = False
+        if self.is_dead:
+            return altered
+
+        # Take part in
+        if self.has_lemma( set(['take']) ):
+            children = self.children_matching(['part', 'in'])   # Returns a set
+            if children is not None:
+                for child in children:
                     self.absorb(child)
                     altered = True
 
@@ -853,6 +891,16 @@ class Node(Object):
         return False
 
     
+    def has_child_lemmas(self, lemmas):
+        child_lemmas = set([])
+        for child in self.children:
+            child_lemmas.update(child.get_lemmas())
+        for lemma in lemmas:
+            if lemma not in child_lemmas:
+                return False
+        return True
+        
+    
     def is_compound_prefix(self):
         if len(self.tokens) > 1:
             return False
@@ -973,6 +1021,9 @@ class Node(Object):
     def is_verb(self):
         if 'VERB' in self.get_pos():
             return True
+        if self.is_root():
+            if self.has_lemma(ROOT_VERBS):
+                return True
         return False
 
 
@@ -1248,6 +1299,29 @@ class Node(Object):
             nodes = [self]
         for child in self.children:
             nodes.extend( child.get_parents_of_twins() )
+        return nodes
+
+
+    def is_idiom_parent(self):
+        """
+        This node is the top Node in an idiom
+        """
+        # take part in
+        if self.has_lemma( set(['take']) )  and  self.has_child_lemmas(['part', 'in']):
+            return True
+        
+        return False
+        
+
+    def get_idiom_parents(self):
+        """
+        From each of the constituent trees, return a list of all nodes are the top node in an idiom
+        """
+        nodes = []
+        if self.is_idiom_parent():
+            nodes = [self]
+        for child in self.children:
+            nodes.extend( child.get_idiom_parents() )
         return nodes
 
 
