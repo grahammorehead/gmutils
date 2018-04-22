@@ -389,13 +389,17 @@ class Document(Object):
         For the purpose of tree simplification (lower branching factor), and logical faithfulness, take conjunction arguments and bring them in under
         the conjunction node.
         """
+        verbose = False
         altered = True
         while altered:
             altered = False
+            if verbose:  err([altered])
             for tree in self.trees:
                 for node in tree.get_conjunctions():
+                    if verbose:  err([tree, "calling:", node])
                     a = node.delegate_to_conjunction()
                     if a:  altered = a  # only switch if going to True
+                if verbose:  err([tree, altered])
 
 
     def delegate_to_negations(self):

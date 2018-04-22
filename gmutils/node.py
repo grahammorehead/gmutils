@@ -4,7 +4,6 @@ Tools to manage nodes in a parse tree
 
 """
 import os, sys, re, json
-from copy import deepcopy
 from time import sleep
 from functools import reduce
 import numpy as np
@@ -165,7 +164,8 @@ class Node(Object):
                 return
             if node == self:
                 return
-            if verbose:  print(self, 'adopting', node)
+            if verbose:
+                err([self, "adopts:", node])
             node.parent = self
             self.children.append(node)
     
@@ -174,9 +174,12 @@ class Node(Object):
         """
         Break both sides of parent-child relationship.  'self' is parent
         """
+        verbose = False
         self.children.remove(node)
         node.parent = None
-
+        if verbose:
+            err([self, "disowns:", node])
+        
         
     def absorb(self, node):
         """
@@ -418,7 +421,23 @@ class Node(Object):
                         altered = True
 
         return altered
+
+
+    def twin_reduce_func(self, x, y):
+        """
+        Used in place of a lambda in the following function
+        """
+        # err([x, y])
+        if x is None  and  y is not None:
+            return y
+        if y is None  and  x is not None:
+            return x
+        if y is None  and  x is None:
+            return None
         
+        y.absorb_twin(x)   # Keep y because we are reducing "Last-first"
+        return y
+    
     
     def agglomerate_twins(self, options={}):
         """
@@ -428,9 +447,12 @@ class Node(Object):
         if self.is_dead:
             return altered
 
+        # self.pretty_print()
         for twinset in self.get_twinsets():
-            reduce( (lambda x, y: x.absorb_twin(y)), twinset)
+            # err(twinset)
+            reduce( self.twin_reduce_func, reversed(twinset))   # Reducing, Last-first
             altered = True
+            # self.pretty_print()
 
         return altered
         
@@ -497,7 +519,10 @@ class Node(Object):
         Bring those arguments down under this node as children.
         """
         verbose = False
-        if verbose:  err([self])
+        if verbose:
+            err([self])
+            self.pretty_print()
+            
         altered = False
         if self.is_dead:      # A few reasons not to ...
             return altered
@@ -522,6 +547,8 @@ class Node(Object):
         # Case 2: One argument is a parent.  More complicated.
         elif next_node is not None:
             if self.parent.is_root():          # Dangerous to do with roots
+                return altered
+            if self.parent.is_conjunction():   # Don't try this if already under a conjunction
                 return altered
             if verbose:  err()
 
@@ -1207,22 +1234,29 @@ class Node(Object):
             nodes = [self]
         for child in self.children:
             nodes.extend( child.get_verbs() )
-        return deepcopy_list(nodes)   # deepcopy_list()  Applied merely because it seems to fix a bug for conjunctions
+        return nodes
 
 
+    def is_conjunction(self):
+        """
+        Determine if a Node can be a focus for altering a tree for the purpose of logical representation, as can often be done with conjunctions.
+        """
+        if self.has_pos( set(['CCONJ']) )  and  self.has_lemma( set(["and", "or"]) ):
+            return True
+
+    
     def get_conjunctions(self):
         """
         From each of the constituent trees, return a list of all nodes that are conjunctions from the set (and, or)
         """
         nodes = []
-        if self.has_pos( set(['CCONJ']) )  and  self.has_lemma( set(["and", "or"]) ):
+        if self.is_conjunction():
             nodes = [self]
         
         for child in self.children:
             nodes.extend( child.get_conjunctions() )
             
-        return deepcopy_list(nodes)   # For some UNKNOWN reason, this added deepcopy_list fixes a pernicious recursion bug
-        #                             # And for that reason it has been applied to several other 'get()' functions
+        return nodes
 
 
     def get_negations(self):
@@ -1237,7 +1271,7 @@ class Node(Object):
         
         for child in self.children:
             nodes.extend( child.get_negations() )
-        return deepcopy_list(nodes)   # deepcopy_list()  Applied merely because it seems to fix a bug for conjunctions
+        return nodes
 
 
     def get_compound_prefixes(self):
@@ -1250,7 +1284,7 @@ class Node(Object):
         
         for child in self.children:
             nodes.extend( child.get_compound_prefixes() )
-        return deepcopy_list(nodes)   # deepcopy_list()  Applied merely because it seems to fix a bug for conjunctions
+        return nodes
 
 
     def get_modifiers(self):
@@ -1263,7 +1297,7 @@ class Node(Object):
         
         for child in self.children:
             nodes.extend( child.get_modifiers() )
-        return deepcopy_list(nodes)   # deepcopy_list()  Applied merely because it seems to fix a bug for conjunctions
+        return nodes
 
 
     def get_twinsets(self):
@@ -1282,7 +1316,7 @@ class Node(Object):
         for k,v in seen.items():
             if len(v) > 1:
                 twinsets.append(v)
-        return deepcopy_list(twinsets)   # deepcopy_list()  Applied merely because it seems to fix a bug for conjunctions
+        return twinsets
                 
 
     def has_twins(self):
@@ -1307,7 +1341,7 @@ class Node(Object):
             nodes = [self]
         for child in self.children:
             nodes.extend( child.get_parents_of_twins() )
-        return deepcopy_list(nodes)   # deepcopy_list()  Applied merely because it seems to fix a bug for conjunctions
+        return nodes
 
 
     def is_idiom_parent(self):
@@ -1330,7 +1364,7 @@ class Node(Object):
             nodes = [self]
         for child in self.children:
             nodes.extend( child.get_idiom_parents() )
-        return deepcopy_list(nodes)   # deepcopy_list()  Applied merely because it seems to fix a bug for conjunctions
+        return nodes
 
 
     def get_index(self):
