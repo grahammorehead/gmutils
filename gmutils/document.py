@@ -9,7 +9,7 @@ from collections import deque
 import numpy as np
 import pandas as pd
 
-from gmutils.utils import err, argparser, deserialize, read_file, read_conceptnet_vectorfile, start_with_same_word, cosine_similarity
+from gmutils.utils import err, argparser, deserialize, read_file, read_conceptnet_vectorfile, start_with_same_word, cosine_similarity, deepcopy_list
 from gmutils.normalize import normalize, clean_spaces, ascii_fold, ends_with_punctuation, close_enough
 from gmutils.nlp import generate_spacy_data, tokenize
 from gmutils.objects import Object
@@ -130,6 +130,26 @@ class Document(Object):
             return self.spacy_doc[token.i - 1]
         return None
         
+
+    def get_sentences_by_breaks(self):
+        """
+        Instead of iterating over spacy.doc.sents attribute (unreliable), look at the .is_sent_start attributed (which we set)
+        """
+        sents = []
+        ind   = []   # Indices observed in a sentence
+        for i, token in enumerate(self.spacy_doc):
+            if token.is_sent_start:
+                if len(ind) > 0:
+                    sents.append( self.spacy_doc[ind[0]:ind[-1]] )
+                ind = [i]
+            else:
+                ind.append(i)
+                
+        if len(ind) > 0:
+            sents.append( self.spacy_doc[ind[0]:ind[-1]] )
+        
+        return sents
+    
     
     def generate_trees(self):
         """
@@ -139,11 +159,12 @@ class Document(Object):
         verbose = False
         self.trees = []            # array of Node
         need_to_reparse = False
-        spacy_sentences = list(self.spacy_doc.sents)
+        # spacy_sentences = list(self.spacy_doc.sents)
+        spacy_sentences = self.get_sentences_by_breaks()
         for i, sen in enumerate(spacy_sentences):
-            if sen[0].is_sent_start:   # Needed to get the benefit of sentence segmentation corrections
-                self.trees.append(Node(self, sen.root, options={'ID':'root.T'+str(i)}))
-
+            self.trees.append(Node(self, sen.root, options={'ID':'root.T'+str(i)}))
+            #if sen[0].is_sent_start:   # Needed to get the benefit of sentence segmentation corrections
+            
 
     def analyze_trees(self):
         """
@@ -456,6 +477,7 @@ class Document(Object):
         Print parsed elements in an easy-to-read format
         """
         for tree in self.trees:
+            print("\nSENTENCE:", tree.get_supporting_text(), "\n")
             tree.pretty_print(options=options)
 
 

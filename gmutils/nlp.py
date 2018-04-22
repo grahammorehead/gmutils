@@ -34,12 +34,17 @@ def set_sentence_starts(doc):
     This function is designed to be a spaCy pipeline element
 
     """
+    new_sents = []
     for offsets in sentence_segmenter(doc):
         start, end = offsets
         sent = doc[start:end]
+        new_sents.append(sent)
         sent[0].is_sent_start = True
+        sent[0].sent_start = True
         for token in sent[1:]:
             token.is_sent_start = False
+            token.sent_start = False
+            
     return doc
 
 
@@ -97,10 +102,10 @@ def combine_with_previous(previous, current):
     verbose = False
     if verbose: err([previous.text, current.text])
 
-    # Current sentence too short
-    if current.end - current.start < 3:
+    # Previous sentence too short
+    if previous.end - previous.start < 3:
         if verbose:
-            err([[current.text]])
+            err([[previous.text]])
         return True
 
     # Previous sentence had no ending punctuation
@@ -153,10 +158,11 @@ def sentence_segmenter(doc):
         if previous is not None  and  combine_with_previous(previous, current):
             if verbose:  err()
             sen_offsets[-1] = [p_start, end]
+            if verbose:  err([doc[p_start:end]])
         else:
             if verbose:  err()
             sen_offsets.append( [start, end] )
-            
+
     return sen_offsets
     
 
