@@ -470,7 +470,7 @@ class Document(Object):
         vocab : dict { lemma string -> vector }
 
         """
-        self.agglomerate_verbs_preps(vocab)
+        # self.agglomerate_verbs_preps(vocab)
         self.agglomerate_compound_adj(vocab)
         self.agglomerate_entities()
         self.delegate_to_negations()

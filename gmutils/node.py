@@ -22,7 +22,9 @@ ner_indices = ['CARDINAL', 'DATE', 'EVENT', 'FAC', 'GPE', 'LANGUAGE', 'LAW', 'LO
 
 dep_indices = ['ROOT', 'acl', 'acomp', 'advcl', 'advmod', 'agent', 'amod', 'appos', 'attr', 'aux', 'auxpass', 'case', 'cc', 'ccomp', 'compound', 'conj', 'csubj', 'csubjpass', 'dative', 'dep', 'det', 'dobj', 'expl', 'intj', 'mark', 'meta', 'neg', 'nmod', 'npadvmod', 'nsubj', 'nsubjpass', 'nummod', 'oprd', 'parataxis', 'pcomp', 'pobj', 'poss', 'preconj', 'predet', 'prep', 'prt', 'punct', 'quantmod', 'relcl', 'xcomp']
 
-MODIFIERS   = set(['det', 'advmod'])
+MODIFIER_DEPS   = set(['det', 'advmod'])
+MODIFIER_LEMMAS = set(['the', 'a', 'an', 'those', 'these', 'that', 'this'])
+PREPOSITION_LEMMAS = set(['with', 'at', 'from', 'into', 'during', 'including', 'until', 'against', 'among', 'throughout', 'despite', 'towards', 'upon', 'concerning', 'of', 'to', 'in', 'for', 'on', 'by', 'about', 'like', 'through', 'over', 'before', 'between', 'after', 'since', 'without', 'under', 'within', 'along', 'following', 'across', 'behind', 'beyond', 'plus', 'except', 'but', 'up', 'out', 'around', 'down', 'off', 'above', 'near'])
 
 # Words that are sometimes mis-tagged by the spacy POS-tagger when root
 ROOT_VERBS  = set(['record'])
@@ -135,7 +137,7 @@ class Node(Object):
         """
         n  = len(self.children)
         n -= num_prepositionals(self.children)
-        if n > 5:
+        if n > 3:
             print("\n%d Numerous Children!  [%s]"% (n, self.get_text()))
             for child in self.children:
                 print("\t", child)
@@ -407,11 +409,11 @@ class Node(Object):
             return altered
 
         if len(self.children) == 0:
-            if self.has_dep(MODIFIERS):
+            if self.has_dep(MODIFIER_DEPS):
                 if len(self.get_dep()) == 1:
                     if self.has_lemma( set(['no']) ):   # Skip these. Handle via negation instead
                         pass
-                    else:
+                    elif self.has_lemma(MODIFIER_LEMMAS):
                         self.parent.absorb(self)
                         altered = True
 
@@ -1249,7 +1251,7 @@ class Node(Object):
         From each of the constituent trees, return a list of all nodes that are modifiers
         """
         nodes = []
-        if self.has_dep(MODIFIERS):
+        if self.has_dep(MODIFIER_DEPS):
             nodes = [self]
         
         for child in self.children:
