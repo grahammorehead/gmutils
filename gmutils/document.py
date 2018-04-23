@@ -497,8 +497,8 @@ class Document(Object):
         if verbose:  err()
         self.agglomerate_idioms()
         if verbose:  err()
-        self.analyze_trees()                    # For debugging
-        if verbose:  err()
+            
+        # self.analyze_trees()                    # For debugging
         self.embed(vocab)
         if verbose:  err()
 
@@ -672,8 +672,8 @@ class Document(Object):
         """
         nodes = []
         for tree in self.trees:
-            self.pretty_print(options={'supporting_text':True})
-            self.print_tokens()
+            # self.pretty_print(options={'supporting_text':True})
+            # self.print_tokens()
             nodes.extend(tree.get_nodes_with_tokens(tokenset))
 
         return nodes
@@ -708,14 +708,11 @@ class Document(Object):
 
         Tried to use Matcher and PhraseMatcher ~ they were ill-suited to the task
         """
-        print("DOC:", self.get_text())
-        err([text])
         words = text.split()
         for i,_ in enumerate(self.spacy_doc):
             tokens = self.get_matching_tokens_from_index(words, i)
             if tokens is not None:
                 tokenset = set(tokens)
-                err(tokenset)
                 nodes = self.get_nodes_with_tokens(tokenset)
 
         return []
