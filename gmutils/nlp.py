@@ -82,7 +82,7 @@ def generate_spacy_data(text):
     for i, token in enumerate(spacy_doc):
         ner[token.i]  = (spacy_nerdoc[i].ent_type_, spacy_nerdoc[i].ent_iob_)
 
-    return spacy_doc, ner
+    return spacy_doc, ner, spacy_ner.vocab
 
 
 def combine_with_previous(previous, current):
@@ -288,7 +288,7 @@ def parse(text):
     Generate a detailed dependency parse of some text.
 
     """
-    spacy_doc, ner = generate_spacy_data(text)   # Parse with spacy, get NER
+    spacy_doc, ner, vocab = generate_spacy_data(text)   # Parse with spacy, get NER
     spacy_sentences = list(spacy_doc.sents)
     trees = []
     for i, sen in enumerate(spacy_sentences):

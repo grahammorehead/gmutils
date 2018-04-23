@@ -18,8 +18,8 @@ default = {
     'batch_size'         : 100,
     'epochs'             : 1,
     'learning_rate'      : 0.01,
-    'dtype'              : tf.float16,
-    # 'dtype'              : tf.float32,
+    # 'dtype'              : tf.float16,
+    'dtype'              : tf.float32,
 }
 
 ################################################################################

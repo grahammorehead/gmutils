@@ -8,6 +8,8 @@ from copy import deepcopy
 from collections import deque
 import numpy as np
 import pandas as pd
+from spacy.matcher import Matcher
+from spacy.matcher import PhraseMatcher
 
 from gmutils.utils import err, argparser, deserialize, read_file, read_conceptnet_vectorfile, start_with_same_word, cosine_similarity, deepcopy_list
 from gmutils.normalize import normalize, clean_spaces, ascii_fold, ends_with_punctuation, close_enough
@@ -32,6 +34,8 @@ class Document(Object):
 
     trees : array of Node
         Each of these Node objects represents the root of a parse tree
+
+    vocab : spacy Vocabulary
 
     """
     def __init__(self, text=None, file=None, options={}):
@@ -59,7 +63,7 @@ class Document(Object):
             text = normalize(text, options=options)
 
         try:
-            self.spacy_doc, self.ner = generate_spacy_data(text)   # Parse with spacy, get NER
+            self.spacy_doc, self.ner, self.vocab = generate_spacy_data(text)   # Parse with spacy, get NER
             self.generate_trees()                                  # Generate Node trees representing sentences
         except:
             raise
@@ -508,6 +512,14 @@ class Document(Object):
             tree.pretty_print(options=options)
 
 
+    def print_tokens(self, options={}):
+        """
+        Print document token info
+        """
+        for token in self.spacy_doc:
+            sys.stdout.write("(%d) %s "% (token.i, token.text))
+
+
     def print_sentences(self, options={}):
         """
         Print the supporting text for each tree
@@ -647,8 +659,59 @@ class Document(Object):
 
         return rels
 
+
+    def get_nodes_with_tokens(self, tokenset):
+        """
+        Search all trees recursively down to the leaves for all Nodes containing any token from <tokenset>
+
+        Note: each token should belong to only one Node
+
+        Parameters
+        ----------
+        tokenset : set of spacy.Token
+        """
+        nodes = []
+        for tree in self.trees:
+            # self.pretty_print(options={'supporting_text':True})
+            # self.print_tokens()
+            nodes.extend(tree.get_nodes_with_tokens(tokenset))
+
+        return nodes
+
         
-        
+    def get_matching_tokens_from_index(self, words, i):
+        """
+        Get matching tokens starting at index i.  Returns None unless all words are matched
+        """
+        j = i
+        tokens = []
+        for word in words:
+            token = self.spacy_doc[j]
+            # err([word, token.text])
+            if re.search(r'\b%s\b'% word, token.text, flags=re.I):
+                tokens.append(token)
+                j += 1
+            else:
+                return None
+        return tokens
+    
+    
+    def get_nodes_matching_text(self, text):
+        """
+        Get a set of nodes (usually 1 or 0 members) such that each node is the lowest node completely containing 'text'
+
+        Tried to use Matcher and PhraseMatcher ~ they were ill-suited to the task
+        """
+        words = text.split()
+        for i,_ in enumerate(self.spacy_doc):
+            tokens = self.get_matching_tokens_from_index(words, i)
+            if tokens is not None:
+                tokenset = set(tokens)
+                nodes = self.get_nodes_with_tokens(tokenset)
+
+        return []
+            
+    
 ################################################################################
 ##  FUNCTIONS
 

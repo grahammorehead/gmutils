@@ -232,6 +232,7 @@ class Node(Object):
             return
         
         self.parent.disown(node)               # Cut old parental ties
+        self.tokens.extend(node.tokens)        # Make sure to pull in the other tokens since they match actual spans
         self.adopt(node.children)              # Adopt their children (if any)
         node.kill()
         
@@ -646,23 +647,40 @@ class Node(Object):
                 self.adopt(parent0)
                 altered = True
 
-        # Case 2: Two arguments: the parent and next node
+        # Case 2: Two arguments
         elif self.has_lemma( set(['nor']) ):
             next_node = self.get_next_sibling()
             if next_node is None:
                 return altered
+            previous_node = self.get_previous_sibling()
 
-            grandparent = self.parent.parent   # Remember these
-            parent0 = self.parent              #  - their relationship-based links will disappear
+            # Subcase A: One argument is parent
+            if previous_node is None:
+                if self.parent.is_root():          # For simplicity's sake for now, ignore these
+                    return altered
+                
+                grandparent = self.parent.parent   # Remember these
+                parent0 = self.parent              #  - their relationship-based links will disappear
+                #self.doc.pretty_print()
+                #err([self, next_node, parent0])
 
-            parent0.disown(self)               # Disownings
-            parent0.disown(next_node)
-            grandparent.disown(parent0)
+                parent0.disown(self)               # Disownings
+                parent0.disown(next_node)
+                grandparent.disown(parent0)
 
-            grandparent.adopt(self)            # Adoptions
-            self.adopt(parent0)
-            self.adopt(next_node)
-            altered = True
+                grandparent.adopt(self)            # Adoptions
+                self.adopt(parent0)
+                self.adopt(next_node)
+                altered = True
+
+            # Subcase B: Both arguments are siblings (simpler)
+            else:
+                parent0 = self.parent              #  - their relationship-based links will disappear
+                parent0.disown(previous_node)
+                parent0.disown(next_node)
+                self.adopt(previous_node)
+                self.adopt(next_node)
+                altered = True
 
         return altered
         
@@ -815,6 +833,38 @@ class Node(Object):
             return self
         return self.parent.get_root()
 
+
+    def get_nodes_with_tokens(self, tokenset):
+        """
+        Search locally and recursively down to the leaves for all Nodes containing any of <tokenset>
+
+        Note: each token should belong to only one Node
+
+        Parameters
+        ----------
+        tokenset : set of spacy.Token
+        """
+        verbose = False
+        if self.is_dead:
+            return None
+        nodes = []
+        
+        if verbose:
+            for t in self.tokens:
+                if t.text == "canadiennes":
+                    for k in tokenset:
+                        err(('A', k.i, k))
+                    err(('B', t.i, t))
+                        
+        if tokenset.intersection(set(self.tokens)):                  # Base case
+            nodes.append(self)
+            if verbose:  err(nodes)
+
+        for child in self.children:
+            nodes.extend( child.get_nodes_with_tokens(tokenset) )    # Recursion
+
+        return nodes
+    
 
     def node_with_token(self, token):
         """
@@ -1063,6 +1113,12 @@ class Node(Object):
         return False
 
 
+    def is_noun(self):
+        if 'NOUN' in self.get_pos():
+            return True
+        return False
+
+
     def shares_pos(self, node):
         """
         Boolean.  Determine if 'node' shares at least one POS with self
@@ -1308,7 +1364,9 @@ class Node(Object):
         """
         seen = {}
         for child in self.children:
-            signature = (child.get_text(), child.get_dep_str())
+            if child.is_noun():
+                continue   # not safe
+            signature = (child.get_text(), child.get_dep_str(), child.get_pos_str())
             if seen.get(signature):
                 seen[signature].append(child)
             else:
@@ -1864,8 +1922,14 @@ class Node(Object):
         ST     = ''
         if options.get('supporting_text'):  # Print the text supporting subtree
             ST = ' [%s] '% self.get_supporting_text()
-        
-        line = indent + self.get_text() + ' {%s}'% self.get_dep_str() + ' (%s)'% self.get_pos_str() + ST
+
+        token_indices = ''
+        indices = []
+        for t in self.tokens:
+            indices.append( str(t.i) )
+        token_indices = ' ' + ', '.join(indices)        
+            
+        line = indent + self.get_text() + ' {%s}'% self.get_dep_str() + ' (%s)'% self.get_pos_str() + ST + token_indices
         print(line)
         
         # Recursion
