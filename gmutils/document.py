@@ -672,8 +672,8 @@ class Document(Object):
         """
         nodes = []
         for tree in self.trees:
-            # self.pretty_print(options={'supporting_text':True})
-            # self.print_tokens()
+            self.pretty_print(options={'supporting_text':True})
+            self.print_tokens()
             nodes.extend(tree.get_nodes_with_tokens(tokenset))
 
         return nodes
@@ -683,16 +683,22 @@ class Document(Object):
         """
         Get matching tokens starting at index i.  Returns None unless all words are matched
         """
+        verbose = False
         j = i
         tokens = []
         for word in words:
-            token = self.spacy_doc[j]
-            # err([word, token.text])
-            if re.search(r'\b%s\b'% word, token.text, flags=re.I):
-                tokens.append(token)
-                j += 1
-            else:
+            if j >= len(self.spacy_doc):
+                if verbose:  err()
                 return None
+            token = self.spacy_doc[j]
+            t_text = re.sub(r'\.$', '', token.text)
+            if verbose:  err([word, t_text])
+            if word == t_text  or  re.search(r'\b%s\b'% word, t_text, flags=re.I):
+                tokens.append(token)
+                if verbose:  err(tokens)
+                j += 1
+
+        if verbose:  err(tokens)
         return tokens
     
     
@@ -702,11 +708,14 @@ class Document(Object):
 
         Tried to use Matcher and PhraseMatcher ~ they were ill-suited to the task
         """
+        print("DOC:", self.get_text())
+        err([text])
         words = text.split()
         for i,_ in enumerate(self.spacy_doc):
             tokens = self.get_matching_tokens_from_index(words, i)
             if tokens is not None:
                 tokenset = set(tokens)
+                err(tokenset)
                 nodes = self.get_nodes_with_tokens(tokenset)
 
         return []

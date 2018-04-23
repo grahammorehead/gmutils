@@ -389,8 +389,9 @@ class Node(Object):
                     hyphen = node
 
             if self.has_dep( set(['amod', 'compound']) ):
-                if self.parent.has_pos( set(['NOUN']) ):
-                    suffix = self.parent
+                if not self.is_root():
+                    if self.parent.has_pos( set(['NOUN']) ):
+                        suffix = self.parent
             
             if  hyphen  and  suffix:
                 to_absorb.append(hyphen)     # Add to the list of children to absorb
@@ -2093,27 +2094,24 @@ def token_is_prunable(token, options={}):
     boolean    
     """
     children = list(token.children)
-    try:
-        # First condition of prunability: no children
-        if len(children) > 0:
-            return False
+    if len(children) > 0:
+        return False
+    if re.search(r'[a-z0-9]', token.text):
+        return False
 
-        else:  # No children
-            if token.pos_ in ['PUNCT']:
-                return True
-
-            if options.get('severe'):
-                if token.dep_ in ['cc']  and  token.pos_ in ['CCONJ']:
-                    print (">> SKIPPING:", token)
-                    return True
-                if token.dep_ in ['auxpass', 'aux']  and  token.pos_ in ['VERB']:
-                    print (">> SKIPPING:", token)
-                    return True
-                if token.dep_ in ['mark']  and  token.pos_ in ['ADP']:
-                    print (">> SKIPPING:", token)
-                    return True
-    except:
-        raise
+    if options.get('severe'):
+        if token.dep_ in ['cc']  and  token.pos_ in ['CCONJ']:
+            print (">> SKIPPING:", token)
+            return True
+        if token.dep_ in ['auxpass', 'aux']  and  token.pos_ in ['VERB']:
+            print (">> SKIPPING:", token)
+            return True
+        if token.dep_ in ['mark']  and  token.pos_ in ['ADP']:
+            print (">> SKIPPING:", token)
+            return True
+    if token.pos_ in ['PUNCT']:
+        return True
+    
     return False
 
 
