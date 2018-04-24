@@ -749,6 +749,16 @@ class Node(Object):
     ############################################################################
     # Access
 
+    def get_first_child(self):
+        """
+        Get the first child
+        """
+        if self.has_child():
+            return self.children[0]
+        else:
+            return None
+
+    
     def get_previous_sibling(self):
         """
         Through the parent node, get the previous sibling node
