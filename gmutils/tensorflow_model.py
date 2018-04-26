@@ -108,8 +108,15 @@ class TensorflowModel(Model):
         hrs = sec / 3600.0
         
         return hrs
-        
-        
+
+    
+    def print(self, tensor, text):
+        """
+        Insert a print into the graph
+        """
+        self.model.print(tensor, text)
+
+
     def run(self, sess, targets):
         """
         Attempt to run in the current session.  When fails, wait one second and try again.

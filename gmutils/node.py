@@ -1817,8 +1817,9 @@ class Node(Object):
 
         """
         vec = np.concatenate( [self.get_role_vector(), self.embedding] )
-
-        if options.get('tolist'):
+        assert( isinstance(vec, np.ndarray)  and  len(vec) > 0)
+        
+        if options.get('tolist'):   # Needed unless you want an iterable
             return vec.tolist()
         
         return vec
@@ -1854,6 +1855,95 @@ class Node(Object):
                 child_num += 1
                     
         return te
+
+    
+    def get_vec_and_connections(self):
+        """
+        For any given node, return it's own embedding vector, as well as it's next sibling and first child (assuming they exist)
+        """
+        first_child   = node.get_first_child()
+        next_sibling  = node.get_next_sibling()
+
+        output  = {'vec':node.get('vec')}
+        h_label = {'h_label':node.get('h_label')}
+
+        if first_child is not None:
+            output['child'] = first_child
+        if next_sibling is not None:
+            output['sibling'] = next_sibling
+
+        return output
+
+    
+    def traverse_reverse_inorder(self):
+        """
+        Traverse the tree or subtree beginning at 'node'.
+
+        Will yield self or children in reverse pre-order, each paired or tripled up as required.
+
+        If present, each node will have a connection to the next sibling, and to the first-born child
+        """
+        if self.has_child():
+            for child in reversed(node.children):
+                yield traverse_reverse_inorder(child)
+        yield self.get_vec_and_connections(self)
+
+        
+    def get_trinary_embedding(self, sibling=None, options={}):
+        """
+        Generates a nested vectorization of the substree starting at this node with a format like:
+
+        { 'vec': [1,2,3,4,5],
+          'text': "blahblah",
+          'child': { [
+              { 'vec': [2,4,6,8,0] }, ...
+          'sibling': { ...
+
+        The underlying tree is an N-ary tree while this view into it is a trinary one having only one child (the firstborn) and one sibling
+        (the next) per node.
+
+        Parameters
+        ----------
+        sibling : nested dict like the format above
+
+        Returns
+        -------
+        dict : nested like the format described above
+        """
+
+        # Base Case,  Embedding of the local node
+        te = {  
+                'vec': self.get_vector(options={'tolist':True}),
+                'text':self.get_text(),
+                'text_ws':self.get_supporting_text(),
+             }
+
+        # Recursion on next sibling
+        if sibling is not None:
+            te['sibling'] = sibling   # a pre-generated nested embedding dict coming via the recursion below
+
+        """  Recursion Case (Executing reverse inorder traversal)
+
+        This local children might comprise:
+          - child node 3  (has no next sibling)
+          - child node 2  (next sibling is child node 3)
+          - child node 1
+
+        We will nest their embeddings under (actually next to) each other via something like:
+            n3e = child_node_3.get_trinary_embedding()
+            n2e = child_node_2.get_trinary_embedding(sibling=n3e)
+        """
+        child_embedding = None   # Will be updated with the first-est child, starting at last (if they exist)
+        last_embedding = None
+        for child in reversed(self.children):
+            child_embedding = child.get_trinary_embedding(sibling=last_embedding, options=options)
+            last_embedding = child_embedding
+            
+        if child_embedding is not None:
+            te['child'] = child_embedding
+            
+        return te
+
 
     # End Vectorization
     ############################################################################
@@ -1929,6 +2019,11 @@ class Node(Object):
         Print out the tree recursively from this point
 
         """
+        if options.get('trinary'):
+            for line in self.pretty_print_trinary(options=options):
+                print(line)
+            return
+        
         indent = depth * '    '
         ST     = ''
         if options.get('supporting_text'):  # Print the text supporting subtree
@@ -1948,6 +2043,29 @@ class Node(Object):
             child.pretty_print(depth + 1, options=options)
 
             
+    def pretty_print_trinary(self, sib_num=0, options={}):
+        """
+        Prints a trinary nested parsing of the subtree
+
+        Parameters
+        ----------
+        sibling : nested dict like the format above
+        """
+        # Base Case
+        lines = []
+        text = self.get_text()
+        line = '  '*sib_num + text
+        lines.append(line)
+        
+        this_sib_num = sib_num + len(self.children)
+        for child in reversed(self.children):
+            this_sib_num -= 1
+            child_lines = child.pretty_print_trinary(sib_num=this_sib_num, options=options)
+            lines.extend(child_lines)
+            
+        return lines
+            
+
 
 ################################################################################
 # FUNCTIONS

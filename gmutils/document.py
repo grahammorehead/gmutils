@@ -448,6 +448,25 @@ class Document(Object):
         return ems
     
         
+    def get_trinary_embedding(self, options={}):
+        """
+        After a given embedding (vocab) has already been used to vectorize each node, use this method to compile it together with reverse in-order
+        traversal, connecting each node to firstborn child and next sibling only.
+
+        Returns
+        -------
+        array of nested dicts
+
+        """
+        ems = []   # array of embeddings.  Each one a nested dict
+        for tree in self.trees:
+            em = tree.get_trinary_embedding(options=options)
+            if em:
+                ems.append(em)
+            
+        return ems
+    
+        
     def node_by_ID(self, ID):
         """
         Search for and return the Node having a given ID string.  Begin at the root of each tree in this Document.  There is a pattern to
@@ -758,6 +777,7 @@ def load_vocab(file):
 if __name__ == '__main__':
     parser = argparser({'desc': "Document object: document.py"})
     parser.add_argument('--vocab', help='File with word embeddings', required=False, type=str)
+    parser.add_argument('--trinary', help='Build trinary tree', required=False, action='store_true')
     args = parser.parse_args()   # Get inputs and options
     vocab = load_vocab(args.vocab)
     
@@ -771,7 +791,8 @@ if __name__ == '__main__':
             doc = Document(text)
             doc.preprocess(vocab)
             print("\nTEXT:", doc.get_text())
-            doc.pretty_print(options={'supporting_text':True})
+            options = { 'supporting_text':True, 'trinary':args.trinary }
+            doc.pretty_print(options=options)
             print("LEMMAS:", doc.get_lemmas())
             #doc.print_semantic_roles()
                 

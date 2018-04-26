@@ -57,6 +57,7 @@ try:
     spacy_parsing.add_pipe(spacy_parsing.create_pipe('sentencizer'), before='sentence_segmenter')
     tokenizer = spacy.tokenizer.Tokenizer(spacy_ner.vocab)
 except Exception as e:
+    raise
     err([], {'exception':e})
 
 ################################################################################

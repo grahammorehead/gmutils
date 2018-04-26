@@ -2,7 +2,7 @@ import sys, os
 verbose = False
 
 if verbose:  sys.stderr.write("\tLoading utils ...\n")
-from .utils import err, argparser, argparser_ml, serialize, deserialize, set_missing_attributes, isTrue, read_file, read_dir, generate_file_iterator, monitor_setup, monitor, read_conceptnet_vectorfile, cosine_similarity, binary_distance, mkdirs, json_dump_gz, json_load_gz, deepcopy_list, deepcopy_dict, file_exists, dir_exists, file_timestamp
+from .utils import err, argparser, argparser_ml, serialize, deserialize, set_missing_attributes, isTrue, read_file, iter_file, read_dir, generate_file_iterator, monitor_setup, monitor, read_conceptnet_vectorfile, cosine_similarity, binary_distance, mkdirs, json_dump_gz, json_load_gz, deepcopy_list, deepcopy_dict, file_exists, dir_exists, file_timestamp
 
 if verbose:  sys.stderr.write("\tLoading normalize ...\n")
 from .normalize import normalize, ascii_fold, simplify_for_distance
@@ -10,7 +10,8 @@ from .normalize import normalize, ascii_fold, simplify_for_distance
 try:
     if verbose:  sys.stderr.write("\tLoading Elasticsearch ...\n")
     from .elastic_utils import list_indices, index_dicts, index_dict, index_text_with_synonyms, match_all, match_search, prefix_search, wildcard_search, synonym_search
-except Exception as e: err([], {'exception':e, 'level':0})
+except Exception as e:
+    err([], {'exception':e, 'level':0})
 
 try:
     from .kinesis_utils import KinesisStream

@@ -60,6 +60,13 @@ def isTrue(options, key):
     
     return False
 
+
+def isFalse(options, key):
+    """
+    Meant to enable shorter, simpler code
+    """
+    return not isTrue(options, key)
+    
         
 def isVerbose(options):
     """
@@ -171,82 +178,59 @@ def err(vars=[], options={}):
 
     """
     verbose = False
-    if verbose:  sys.stderr.write("err 162\n")
     
     # Information about the urgency of this call
     call_level = options.get('level')
     if call_level is None:  call_level = 2    # default is 2 (more urgent than level 1)
-
     os_level = 0
     try:
         os_level = int(os.environ['GM_LEVEL'])
     except:  pass
         
-    if call_level < os_level:
-        options['silent'] = True
-
-    if verbose:  sys.stderr.write("err 176\n")
-        
-    # Gather frame
     callerframerecord = inspect.stack()[1]    # 0 represents this line
                                               # 1 represents line at caller
-    if verbose:  sys.stderr.write("err 181\n")
-        
     frame = callerframerecord[0]
-    info = inspect.getframeinfo(frame)
-    file = os.path.basename(info.filename)
-    
-    if verbose:  sys.stderr.write("err 187\n")
-        
-    line = info.lineno
-    if not isTrue(options, 'silent'):
-        sys.stderr.write("\nDEBUG (Line %d) from file %s:\n"% (line, info.filename))
+    info  = inspect.getframeinfo(frame)
+    file  = os.path.basename(info.filename)
+    line  = info.lineno
 
-    if verbose:  sys.stderr.write("err 193\n")
-        
     # Parse exception
     exception = options.get('exception')
     if exception is None:
         if options.get('ex'):
             exception = ValueError(options.get('ex'))
             
-    if isTrue(options, 'exception'):
-        exception = options['exception']
-        if not isTrue(options, 'silent'):
+    if isFalse(options, 'silent')  and  call_level+1 >= os_level:
+        sys.stderr.write("\nDEBUG (Line %d) from file %s:\n"% (line, info.filename))
+            
+        # Print vars to STDERR if present
+        if len(vars) > 0:
+            if isinstance(vars, str):
+                sys.stderr.write('\tVAR  |%s|\n' % vars)
+            else:
+                if verbose:  sys.stderr.write("err 217: " + str(vars) + "\n")
+                for v in vars:
+                    if verbose:  sys.stderr.write("err 219: " + str(v) + "\n")
+                    sys.stderr.write('\tVAR  |%s|  %s\n'% (str(v), str(type(v))) )
+                sys.stderr.write('\n')
+
+    # Conditional printing of the exception
+    if isTrue(options, 'warning')  or  call_level+1 >= os_level:
+        if isFalse(options, 'silent'):
+            sys.stderr.write("\nDEBUG (Line %d) from file %s:\n"% (line, info.filename))
             for arg in exception.args:
                 sys.stderr.write("ERROR: {}\n".format(arg))
             sys.stderr.write("\n\t"+ str(sys.exc_info()[0]) +"\n")
-
-    if verbose:  sys.stderr.write("err 208\n")
-            
-    # Print vars to STDERR if present
-    if len(vars) > 0:
-        if verbose:  sys.stderr.write("err 212\n")
-        if isinstance(vars, str):
-            if verbose:  sys.stderr.write("err 214\n")
-            sys.stderr.write('\tVAR  |%s|\n' % vars)
-        else:
-            if verbose:  sys.stderr.write("err 217: " + str(vars) + "\n")
-            for v in vars:
-                if verbose:  sys.stderr.write("err 219: " + str(v) + "\n")
-                sys.stderr.write('\tVAR  |%s|  %s\n'% (str(v), str(type(v))) )
-            sys.stderr.write('\n')
-
-    if verbose:  sys.stderr.write("err 223\n")
             
     # Conditional return
     if isTrue(options, 'exit'):
         exit(1)
-    if isTrue(options, 'warning')  or  isTrue(options, 'silent')  or  call_level < 2:
-        if not isTrue(options, 'silent'):
-            for arg in exception.args:
-                sys.stderr.write("ERROR: {}\n".format(arg))
-            sys.stderr.write("\n\t"+ str(sys.exc_info()[0]) +"\n")
+    if isTrue(options, 'warning')  or  isTrue(options, 'silent')  or  call_level < os_level:
         return
     if exception:
         raise exception
 
-
+    
 def read_zipfile(file, options={}):
     """
     Read text from 'file', where the file has been zipped up and has a name which is 'file' minus the extension
