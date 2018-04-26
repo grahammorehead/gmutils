@@ -383,6 +383,7 @@ if __name__ == '__main__':
 
     if args.get:
         docs = match_all(index)
+        print(docs)
         print('Index', index, 'contains', len(docs), 'documents')
         exit()
 
