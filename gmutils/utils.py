@@ -218,9 +218,10 @@ def err(vars=[], options={}):
     if isTrue(options, 'warning')  or  call_level+1 >= os_level:
         if isFalse(options, 'silent'):
             sys.stderr.write("\nDEBUG (Line %d) from file %s:\n"% (line, info.filename))
-            for arg in exception.args:
-                sys.stderr.write("ERROR: {}\n".format(arg))
-            sys.stderr.write("\n\t"+ str(sys.exc_info()[0]) +"\n")
+            if exception:
+                for arg in exception.args:
+                    sys.stderr.write("ERROR: {}\n".format(arg))
+                sys.stderr.write("\n\t"+ str(sys.exc_info()[0]) +"\n")
             
     # Conditional return
     if isTrue(options, 'exit'):
@@ -312,7 +313,9 @@ def iter_file(file, options=None):
         sys.stderr.write("Creating iterator for file '%s' ...\n"% file)
 
     FH = open(file, 'r')
-    return iter(FH)
+    iterator = iter(FH)
+    for line in iterator:
+        yield line.rstrip()
 
 
 def generate_file_iterator(dirpath, options={}):
