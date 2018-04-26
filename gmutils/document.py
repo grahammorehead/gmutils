@@ -87,6 +87,13 @@ class Document(Object):
         return self.spacy_doc[:].lemma_
     
 
+    def get_lemmas_str(self):
+        lemmas = []
+        for token in self.spacy_doc:
+            lemmas.append(token.lemma_)
+        return ' '.join(lemmas)
+    
+
     def get_num_tokens(self):
         return len(self.spacy_doc)
     

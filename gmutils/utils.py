@@ -217,7 +217,6 @@ def err(vars=[], options={}):
     # Conditional printing of the exception
     if isTrue(options, 'warning')  or  call_level+1 >= os_level:
         if isFalse(options, 'silent'):
-            sys.stderr.write("\nDEBUG (Line %d) from file %s:\n"% (line, info.filename))
             if exception:
                 for arg in exception.args:
                     sys.stderr.write("ERROR: {}\n".format(arg))

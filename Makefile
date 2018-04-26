@@ -77,7 +77,7 @@ install_ubuntu1:
 
 # Latest Elastic Search as of this writing:
 ES_DIR = https://artifacts.elastic.co/downloads/elasticsearch
-ES_FILE = elasticsearch-6.2.2.deb
+ES_FILE = elasticsearch-6.2.4.deb
 ENV     = default
 install_ubuntu2:
 	sudo apt-get install -y default-jdk
