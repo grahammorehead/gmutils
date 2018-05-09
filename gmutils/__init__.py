@@ -55,6 +55,6 @@ except Exception as e:
     err([], {'exception':e, 'level':0})
 
 try:
-    from .pytorch_utils import torchvar
+    import pytorch_utils
 except Exception as e:
     err([], {'exception':e, 'level':0})

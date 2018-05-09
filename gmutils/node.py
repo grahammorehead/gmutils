@@ -412,7 +412,9 @@ class Node(Object):
         altered = False
         if self.is_dead:
             return altered
-
+        if self.parent is None:
+            return altered
+        
         if len(self.children) == 0:
             if self.has_dep(MODIFIER_DEPS):
                 if len(self.get_dep()) == 1:
