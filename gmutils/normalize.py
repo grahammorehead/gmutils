@@ -357,7 +357,9 @@ def close_enough(A, B):
     else:
         return False
     
-    if a == b:
+    if a == b \
+      or  re.search(r'\b%s\b'% a, b, flags=re.I) \
+      or  re.search(r'\b%s\b'% b, a, flags=re.I):
         return True
     
     return False
