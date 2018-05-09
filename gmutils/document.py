@@ -147,17 +147,18 @@ class Document(Object):
         Instead of iterating over spacy.doc.sents attribute (unreliable), look at the .is_sent_start attributed (which we set)
         """
         sents = []
-        ind   = []   # Indices observed in a sentence
+        this_sent   = set([])   # Indices observed in a sentence
+
         for i, token in enumerate(self.spacy_doc):
             if token.is_sent_start:
-                if len(ind) > 0:
-                    sents.append( self.spacy_doc[ind[0]:ind[-1]] )
-                ind = [i]
+                if len(this_sent) > 0:
+                    sents.append( self.spacy_doc[min(this_sent):max(this_sent)] )
+                this_sent = set([i])
             else:
-                ind.append(i)
+                this_sent.add(i)
                 
-        if len(ind) > 0:
-            sents.append( self.spacy_doc[ind[0]:ind[-1]] )
+        if len(this_sent) > 0:
+            sents.append( self.spacy_doc[min(this_sent):max(this_sent)] )
         
         return sents
     
@@ -705,23 +706,38 @@ class Document(Object):
         return nodes
 
     
-    def get_matching_tokens_for_words(self, tokens, words, matched=[]):
+    def get_matching_tokens_for_words(self, tokens, words):
         """
         For a list of tokens, match words consecutively.  Apply recursively to decreasing lists.
         List of tokens always decreasing.  Once a word is found (in order) it is removed from words.
 
         Algorithm not perfect, but suitable for most cases.  It is rarely used --only with the SQuAD data contains incorrect answer offsets.
         """
+        verbose = False
+        matched = []
+        if verbose:  err([tokens, words])
+        
         if not ( len(tokens)>0  and len(words)>0 ):
+            if verbose:  err([tokens, words])
             pass    # Nothing to do
         
         elif close_enough(tokens[0].text, words[0]):
-            matched.append(tokens[0])                                                              # Base Case
-            matched.extend( self.get_matching_tokens_for_words(tokens[1:], words[1:], matched) )   # Recursion
+            if verbose:  err([tokens, words])
+            matched = [ tokens[0] ]                                                       # Base Case
+            matched.extend( self.get_matching_tokens_for_words(tokens[1:], words[1:]) )   # Recursion
+            if verbose:  err([matched])
 
         elif (len(tokens) > 1):
-            matched.extend( self.get_matching_tokens_for_words(tokens[1:], words, matched) )       # Recursion
+            if verbose:  err([tokens, words])
+            matched = self.get_matching_tokens_for_words(tokens[1:], words)
+            if verbose:  err([matched])
+
+        else:
+            if verbose:  err([tokens, words])
             
+        if verbose:  err([matched])
+        if len(matched) > 10:
+            exit()
         return matched   # Return all matched tokens
     
     
@@ -733,15 +749,23 @@ class Document(Object):
         """
         nodes = None
         words = text.split()
-        # err([words, self.spacy_doc])
+        err([words, self.spacy_doc])
         tokens = self.get_matching_tokens_for_words(self.spacy_doc, words)
+        err([tokens])
         if len(tokens) > len(words):
             i = len(tokens) - len(words)
             tokens = tokens[i:]
+            err([tokens])
         if tokens is not None:
             tokenset = set(tokens)
+            err([tokenset])
             nodes = self.get_nodes_with_tokens(tokenset)
-
+            err([nodes])
+            if len(nodes) == 0:
+                err([nodes])
+                exit()
+            
+        err([nodes])
         return nodes
             
     

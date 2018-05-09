@@ -53,3 +53,8 @@ try:
     from .tensorflow_model import TensorflowModel
 except Exception as e:
     err([], {'exception':e, 'level':0})
+
+try:
+    from .pytorch_utils import torchvar
+except Exception as e:
+    err([], {'exception':e, 'level':0})

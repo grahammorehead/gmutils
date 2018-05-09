@@ -845,7 +845,7 @@ class Node(Object):
         return self.parent.get_root()
 
 
-    def get_nodes_with_tokens(self, tokenset):
+    def get_nodes_with_tokens(self, tokenset, depth=0):
         """
         Search locally and recursively down to the leaves for all Nodes containing any of <tokenset>
 
@@ -855,24 +855,18 @@ class Node(Object):
         ----------
         tokenset : set of spacy.Token
         """
-        verbose = False
+        verbose = True
         if self.is_dead:
             return None
         nodes = []
-        
-        if verbose:
-            for t in self.tokens:
-                if t.text == "canadiennes":
-                    for k in tokenset:
-                        err(('A', k.i, k))
-                    err(('B', t.i, t))
-                        
+
+        if verbose:  err([self.tokens, tokenset, depth])
         if tokenset.intersection(set(self.tokens)):                  # Base case
             nodes.append(self)
             if verbose:  err(nodes)
 
         for child in self.children:
-            nodes.extend( child.get_nodes_with_tokens(tokenset) )    # Recursion
+            nodes.extend( child.get_nodes_with_tokens(tokenset, depth=depth+1) )    # Recursion
 
         return nodes
     

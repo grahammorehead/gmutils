@@ -28,3 +28,5 @@ from gmutils import damerauLevenshtein
 from gmutils import TensorflowLayer
 from gmutils import TensorflowGraph
 from gmutils import TensorflowModel
+
+from gmutils import torchvar

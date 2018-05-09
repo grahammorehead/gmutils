@@ -32,18 +32,17 @@ def set_sentence_starts(doc):
     Adjust the elements in a spaCy Doc to record the sentence starts as output by sentence_segmenter()
 
     This function is designed to be a spaCy pipeline element
-
     """
-    new_sents = []
+    starts = set([])
     for offsets in sentence_segmenter(doc):
         start, end = offsets
-        sent = doc[start:end]
-        new_sents.append(sent)
-        sent[0].is_sent_start = True
-        sent[0].sent_start = True
-        for token in sent[1:]:
-            token.is_sent_start = False
-            token.sent_start = False
+        starts.add(start)
+
+    for token in doc[:-1]:
+        if token.i in starts:
+            token.is_sent_start = True
+        else:
+            token.is_sent_start = None
             
     return doc
 
@@ -149,36 +148,50 @@ def sentence_segmenter(doc):
 
     """
     verbose = False
-    sen_offsets = []  # Sentence offset pairs
+    sen_offsets = []                                   # Sentence offset pairs -- starts empty
     spacy_sentences = list(doc.sents)
-
+    previous = None
+    
     for i,sen in enumerate(spacy_sentences):
 
         # Current Sentence
         start = sen.start
         end = sen.end
-        current = doc[start:end]
+        current = doc[start:end]                       # Span for current sentence
 
         # Previous Sentence
-        previous = p_start = p_end = None
-
         if len(sen_offsets) > 0:
-            p_start, p_end = sen_offsets[-1]
-            
-            #p_start = prev.start
-            #p_end = prev.end
-            previous = doc[p_start:p_end]
+            p_start, p_end = sen_offsets[-1]           # Offsets for previous sentence
+            previous       = doc[p_start:p_end]        # Span for previous sentence
             if verbose:
-                err([[previous.text, current.text]])
+                err([previous.text, (p_start, p_end), current.text, (start, end)])
 
         # Correct for mistakes
-        if previous is not None  and  combine_with_previous(previous, current):
+        if previous is not None  and  combine_with_previous(previous, current)  and  False:      ### NEVER
             if verbose:  err()
-            sen_offsets[-1] = [p_start, end]
+            sen_offsets[-1] = [p_start, end]           # Fold this sentence's tokens into previous sentence
         else:
             if verbose:  err()
-            sen_offsets.append( [start, end] )
+            sen_offsets.append( [start, end] )         # Add current offsets to list
 
+    # Shift sentence starting token to previous sentence when necessary
+    final_offsets = []
+    for offsets in sen_offsets:
+        start, end = offsets
+        if start > 0:            # Not the first sentence start
+            if not re.search(r'\S', doc[start].text, flags=re.I):   # Current sentence starts with whitespace
+                prev_start, prev_end = final_offsets[-1]
+                final_offsets[-1] = [prev_start, prev_end+1]   # Make previous sentence longer
+                final_offsets.append( [start+1, end] )         # Start current sentence one char later
+            else:
+                final_offsets.append(offsets)
+        else:
+            final_offsets.append(offsets)
+                
+    sen_offsets = final_offsets
+    
+    if verbose:
+        err(sen_offsets)
     return sen_offsets
     
 
