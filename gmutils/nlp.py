@@ -29,37 +29,93 @@ except Exception as e: pass
     
 def set_sentence_starts(doc):
     """
-    Adjust the elements in a spaCy Doc to record the sentence starts as output by sentence_segmenter()
+    Adjust the elements in a spaCy Doc to record the sentence starts as output by sentence_fixer()
 
     This function is designed to be a spaCy pipeline element
     """
+    verbose = False
     starts = set([])
-    for offsets in sentence_segmenter(doc):
+    
+    for offsets in find_sentence_offsets(doc):
+        if verbose:  err([offsets])
         start, end = offsets
         starts.add(start)
 
     for token in doc[:-1]:
         if token.i in starts:
             token.is_sent_start = True
+            if verbose:  err(["START", token])
         else:
-            token.is_sent_start = None
+            token.is_sent_start = False
+            if verbose:  err([token])
             
     return doc
 
 
-# POST-DEFINITIONAL LOADING
-# from spacy.tokenizer import Tokenizer
+""" POST-DEFINITIONAL LOADING
 
-# Add elements to the parsing pipeline to correct for the sentence tokenizer problems
+    Add elements to the parsing pipeline to correct for the sentence tokenizer problems
+
+This section attempts to directly alter the spacy pipeline so that it tags as correctly as possible.  The spacy sentencizer makes some
+obvious mistakes.
+
+After the end of the pipeline, some new errors are introduced and it is not known where, so the custom 'set_sentence_starts' will be applied again
+to the result, but not here.
+
+"""
 try:
-    spacy_parsing.add_pipe(set_sentence_starts, name='sentence_segmenter', before='tagger')
-    spacy_parsing.add_pipe(spacy_parsing.create_pipe('sentencizer'), before='sentence_segmenter')
+    spacy_parsing.add_pipe(set_sentence_starts, name='set_sentence_starts', before='tagger')
+    spacy_parsing.add_pipe(spacy_parsing.create_pipe('sentencizer'), before='set_sentence_starts')
+    
     tokenizer = spacy.tokenizer.Tokenizer(spacy_ner.vocab)
 except Exception as e:
     raise
     err([], {'exception':e})
 
 ################################################################################
+
+def get_sentences(doc):
+    """
+    Even after adding a custom func to the spacy pipeline, the sentence tokenization still gets messed up.  Use this for a final split.
+    """
+    verbose       = False
+    starts        = set([])
+    sentences     = []
+    this_sentence = set([])
+    """
+    for offsets in find_sentence_offsets(doc):
+        if verbose:  err([offsets])
+        start, end = offsets
+        starts.add(start)
+    """
+    for i, token in enumerate(doc[:-1]):
+        # if token.i in starts:
+        if token.is_sent_start:
+            if verbose:  err(["START", token])
+            if len(this_sentence) > 0:
+                sentences.append( doc[min(this_sentence):max(this_sentence)] )
+            this_sentence = set([i])
+        else:
+            if verbose:  err([token])
+            this_sentence.add(i)
+
+    if len(this_sentence) > 0:
+        sentences.append( doc[min(this_sentence):max(this_sentence)] )
+
+    return sentences
+            
+
+def sanity_check(spacy_doc):
+    """
+    To use for checking a parse
+    """
+    verbose = False
+    for i, token in enumerate(spacy_doc):
+        if token.is_sent_start:
+            if verbose:  err(["START", token])
+        else:
+            if verbose:  err([token])
+
 
 def generate_spacy_data(text):
     """
@@ -74,7 +130,7 @@ def generate_spacy_data(text):
     spaCy Doc
 
     """
-    # IN here put code to do the NER corrections
+    # Perform NER corrections
     # err([text])
     spacy_doc = spacy_parsing(text)
     spacy_nerdoc = spacy_ner(text)
@@ -135,7 +191,7 @@ def combine_with_previous(previous, current):
     return False
     
     
-def sentence_segmenter(doc):
+def find_sentence_offsets(doc):
     """
     Begin with spaCy sentence splits, then correct for some mistakes.
 
@@ -159,6 +215,7 @@ def sentence_segmenter(doc):
         start = sen.start
         end = sen.end
         current = doc[start:end]                       # Span for current sentence
+        if verbose:  err([start, end, current.text])
 
         # Previous Sentence
         if len(sen_offsets) > 0:
@@ -169,11 +226,11 @@ def sentence_segmenter(doc):
 
         # Correct for mistakes
         if previous is not None  and  combine_with_previous(previous, current)  and  False:      ### NEVER
-            if verbose:  err()
             sen_offsets[-1] = [p_start, end]           # Fold this sentence's tokens into previous sentence
+            if verbose:  err(sen_offsets)
         else:
-            if verbose:  err()
             sen_offsets.append( [start, end] )         # Add current offsets to list
+            if verbose:  err(sen_offsets)
 
     # Shift sentence starting token to previous sentence when necessary
     final_offsets = []

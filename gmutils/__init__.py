@@ -2,7 +2,7 @@ import sys, os
 verbose = False
 
 if verbose:  sys.stderr.write("\tLoading utils ...\n")
-from .utils import err, argparser, argparser_ml, serialize, deserialize, set_missing_attributes, isTrue, read_file, iter_file, read_dir, generate_file_iterator, monitor_setup, monitor, read_conceptnet_vectorfile, cosine_similarity, binary_distance, mkdirs, json_dump_gz, json_load_gz, deepcopy_list, deepcopy_dict, file_exists, dir_exists, file_timestamp
+from .utils import err, argparser, argparser_ml, serialize, deserialize, set_missing_attributes, isTrue, read_file, iter_file, read_dir, generate_file_iterator, monitor_setup, monitor, read_conceptnet_vectorfile, cosine_similarity, binary_distance, mkdirs, json_dump_gz, json_load_gz, deepcopy_list, deepcopy_dict, file_exists, dir_exists, file_timestamp, concat_from_list_of_dicts
 
 if verbose:  sys.stderr.write("\tLoading normalize ...\n")
 from .normalize import normalize, ascii_fold, simplify_for_distance

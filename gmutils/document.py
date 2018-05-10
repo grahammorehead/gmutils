@@ -13,7 +13,7 @@ from spacy.matcher import PhraseMatcher
 
 from gmutils.utils import err, argparser, deserialize, read_file, read_conceptnet_vectorfile, start_with_same_word, cosine_similarity, deepcopy_list
 from gmutils.normalize import normalize, clean_spaces, ascii_fold, ends_with_punctuation, close_enough, simplify_for_distance
-from gmutils.nlp import generate_spacy_data, tokenize
+from gmutils.nlp import generate_spacy_data, tokenize, get_sentences
 from gmutils.objects import Object
 from gmutils.node import Node, iprint
 
@@ -63,8 +63,8 @@ class Document(Object):
             text = normalize(text, options=options)
 
         try:
-            self.spacy_doc, self.ner, self.vocab = generate_spacy_data(text)   # Parse with spacy, get NER
-            self.generate_trees()                                  # Generate Node trees representing sentences
+            self.spacy_doc, self.ner, self.vocab = generate_spacy_data(text)    # Parse with spacy, get NER
+            self.generate_trees()                                               # Generate Node trees representing sentences
         except:
             raise
 
@@ -142,36 +142,15 @@ class Document(Object):
         return None
         
 
-    def get_sentences_by_breaks(self):
-        """
-        Instead of iterating over spacy.doc.sents attribute (unreliable), look at the .is_sent_start attributed (which we set)
-        """
-        sents = []
-        this_sent   = set([])   # Indices observed in a sentence
-
-        for i, token in enumerate(self.spacy_doc):
-            if token.is_sent_start:
-                if len(this_sent) > 0:
-                    sents.append( self.spacy_doc[min(this_sent):max(this_sent)] )
-                this_sent = set([i])
-            else:
-                this_sent.add(i)
-                
-        if len(this_sent) > 0:
-            sents.append( self.spacy_doc[min(this_sent):max(this_sent)] )
-        
-        return sents
-    
-    
     def generate_trees(self):
         """
         Parse doc into sentences, then generate a Node tree for each
 
         """
         verbose = False
-        self.trees = []            # array of Node
-        need_to_reparse = False
-        spacy_sentences = self.get_sentences_by_breaks()
+        self.trees = []     # array of Node
+        spacy_sentences = get_sentences(self.spacy_doc)    # Use this func because we cannot trust the spacy sentence tokenizer
+        # spacy_sentences = self.spacy_doc.sents
         for i, sen in enumerate(spacy_sentences):
             self.trees.append(Node(self, sen.root, options={'ID':'root.T'+str(i)}))
             
@@ -756,6 +735,7 @@ class Document(Object):
             i = len(tokens) - len(words)
             tokens = tokens[i:]
             err([tokens])
+            
         if tokens is not None:
             tokenset = set(tokens)
             err([tokenset])

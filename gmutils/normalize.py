@@ -160,6 +160,42 @@ def scrub_charByChar(text):
         err([], {'exception':e, 'exit':True})
 
 
+def replace_charByChar(text, default):
+    """
+    Replace strange characters in a string char-by-char.  Takes str, Returns str
+    """
+    verbose = False
+    try:
+        final = ""
+        for t in text:
+            if re.search(u'[ 0-9a-zA-ZñÑ\.,\'\?\!\"\:\;\&\$\%\@\|\_]', t):
+                final += t        # keep the char
+                if verbose:
+                    arr = [final]
+                    err([arr, [t]])
+                    
+            elif re.search(u'[—\-]', t):
+                final += '-'      # Replace with normalized dash
+                if verbose:
+                    arr = [final]
+                    err([arr, [t]])
+                    
+            else:   # Replace the char
+                final += default
+                if verbose:
+                    arr = [final]
+                    err([arr, [t]])
+                    
+        text = final
+        if verbose:
+            arr = [text]
+            err([arr])
+                    
+        return text
+    except Exception as e:
+        err([], {'exception':e, 'exit':True})
+
+
 def ascii_fold(s):
    return ''.join((c for c in unicodedata.normalize('NFD', s) if unicodedata.category(c) != 'Mn'))
 
@@ -213,8 +249,13 @@ def normalize(text, options=None):
     text = re.sub(r"\.*…+\.*", "...", text)
 
     # Strange multi-char issues
-    text = re.sub(r"\ud869\udf36", "□", text)
-    
+    #text = re.sub(r"\ud869\udf36", "□", text)
+    #text = re.sub(r"\ud869\udea5", "□", text)
+    try:
+        text = re.sub(r"\ud\w\w\w\ud\w\w\w", "□", text)
+    except:
+        text = replace_charByChar(text, "□")
+        
     # Attention to end of text
     text = re.sub(r" +\?$", "?", text)
     text = re.sub(r" +\!$", "!", text)
