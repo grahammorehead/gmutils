@@ -75,6 +75,7 @@ def generate_spacy_data(text):
 
     """
     # IN here put code to do the NER corrections
+    # err([text])
     spacy_doc = spacy_parsing(text)
     spacy_nerdoc = spacy_ner(text)
     assert( len(spacy_doc) == len(spacy_nerdoc) )

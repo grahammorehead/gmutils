@@ -29,4 +29,4 @@ from gmutils import TensorflowLayer
 from gmutils import TensorflowGraph
 from gmutils import TensorflowModel
 
-from gmutils import pytorch_utils
+import pytorch_utils

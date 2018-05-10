@@ -212,6 +212,9 @@ def normalize(text, options=None):
     text = re.sub(r"\-+", "-", text)
     text = re.sub(r"\.*…+\.*", "...", text)
 
+    # Strange multi-char issues
+    text = re.sub(r"\ud869\udf36", "□", text)
+    
     # Attention to end of text
     text = re.sub(r" +\?$", "?", text)
     text = re.sub(r" +\!$", "!", text)

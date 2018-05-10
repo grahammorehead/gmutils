@@ -54,7 +54,3 @@ try:
 except Exception as e:
     err([], {'exception':e, 'level':0})
 
-try:
-    import pytorch_utils
-except Exception as e:
-    err([], {'exception':e, 'level':0})
