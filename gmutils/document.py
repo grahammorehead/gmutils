@@ -149,8 +149,7 @@ class Document(Object):
         """
         verbose = False
         self.trees = []     # array of Node
-        spacy_sentences = get_sentences(self.spacy_doc)    # Use this func because we cannot trust the spacy sentence tokenizer
-        # spacy_sentences = self.spacy_doc.sents
+        spacy_sentences = self.spacy_doc.sents
         for i, sen in enumerate(spacy_sentences):
             self.trees.append(Node(self, sen.root, options={'ID':'root.T'+str(i)}))
             

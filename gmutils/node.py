@@ -181,24 +181,32 @@ class Node(Object):
             err([self, "disowns:", node])
         
         
-    def absorb(self, node):
+    def absorb(self, node, verbose=False):
         """
         Merge one Node with another.  Afterwards, nothing should link to 'node', only to 'self'
 
         """
-        verbose = False
+        altered = False
         
         if self == node:
             err([self], {'ex':'node = self'})   # Sanity check
 
         if self.is_descendant(node):
+            if verbose:  err()
             self.absorb_descendant(node)
+            altered = True
 
         elif self.is_ancestor(node):
-            self.absorb_ancestor(node)
+            if verbose:  err()
+            if not node.get_text() in ["'"]:
+                if verbose:  err()
+                self.absorb_ancestor(node)
+                altered = True
 
         else:
+            if verbose:  err()
             self.absorb_cousin(node)   # anywhere else on same tree
+            altered = True
 
         if verbose:
             print("\n[%s] done absorbing."% str(self))
@@ -212,6 +220,8 @@ class Node(Object):
             if child == self:
                 err([self], {'ex':'child = self'})
 
+        return altered
+    
                 
     def absorb_twin(self, node):
         """
@@ -325,8 +335,7 @@ class Node(Object):
             next_node = self.node_of_token(next_token)    # Get the Node containing that token
             if next_node is not None:
                 if next_node.get_entity_position() == 'I':
-                    self.absorb(next_node)
-                    altered = True
+                    altered = self.absorb(next_node, verbose=False)
 
         return altered
 
@@ -862,7 +871,7 @@ class Node(Object):
             return None
         nodes = []
 
-        if verbose:  err([self.tokens, tokenset, depth])
+        if verbose:  err([self.tokens, depth])
         if tokenset.intersection(set(self.tokens)):                  # Base case
             nodes.append(self)
             if verbose:  err(nodes)

@@ -209,18 +209,17 @@ def find_sentence_offsets(doc):
     spacy_sentences = list(doc.sents)
     previous = None
     
-    for i,sen in enumerate(spacy_sentences):
+    for i, current in enumerate(spacy_sentences):
 
         # Current Sentence
-        start = sen.start
-        end = sen.end
-        current = doc[start:end]                       # Span for current sentence
-        if verbose:  err([start, end, current.text])
+        start = current.start
+        end   = current.end
+        if verbose:  err([current, start, end])
 
         # Previous Sentence
         if len(sen_offsets) > 0:
-            p_start, p_end = sen_offsets[-1]           # Offsets for previous sentence
-            previous       = doc[p_start:p_end]        # Span for previous sentence
+            p_start = previous.start
+            p_end   = previous.end
             if verbose:
                 err([previous.text, (p_start, p_end), current.text, (start, end)])
 
@@ -232,6 +231,8 @@ def find_sentence_offsets(doc):
             sen_offsets.append( [start, end] )         # Add current offsets to list
             if verbose:  err(sen_offsets)
 
+        previous = current
+                
     # Shift sentence starting token to previous sentence when necessary
     final_offsets = []
     for offsets in sen_offsets:

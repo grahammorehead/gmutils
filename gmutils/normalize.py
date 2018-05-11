@@ -208,12 +208,6 @@ def normalize(text, options=None):
     ----------
     text : str
 
-    Options
-    -------
-    verbose : boolean
-
-    no_urls : boolean
-
     Returns
     -------
     str
@@ -226,6 +220,9 @@ def normalize(text, options=None):
 
     if options.get('remove_citations'):
         text = remove_citations(text)
+
+    if options.get('apost_quotes'):
+        text = re.sub(r'"', "'", text)
         
     if options.get('verbose'):
         err([[text]])
