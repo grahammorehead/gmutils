@@ -604,6 +604,8 @@ class Document(Object):
         """
         verbose = False
 
+        text             = re.sub(r'"', "'", text)
+        
         text             = re.escape(text)
         lowest_distance  = None
         best_span        = None
