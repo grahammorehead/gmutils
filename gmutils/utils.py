@@ -181,7 +181,7 @@ def err(vars=[], options={}):
     
     # Information about the urgency of this call
     call_level = options.get('level')
-    if call_level is None:  call_level = 2    # default is 2 (more urgent than level 1)
+    if call_level is None:  call_level = 2    # default is 2 (e.g. more urgent than level 1)
     os_level = 0
     try:
         os_level = int(os.environ['GM_LEVEL'])
@@ -215,7 +215,8 @@ def err(vars=[], options={}):
                 sys.stderr.write('\n')
 
     # Conditional printing of the exception
-    if isTrue(options, 'warning')  or  call_level+1 >= os_level:
+    # print("call_level:", call_level, "   os_level:", os_level)
+    if isTrue(options, 'warning')  or  call_level >= os_level:
         if isFalse(options, 'silent'):
             if exception:
                 for arg in exception.args:
