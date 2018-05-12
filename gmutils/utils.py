@@ -1032,7 +1032,17 @@ def deepcopy_dict(X):
     for k,v in X.items():
         out[k] = v
     return out
-    
+
+
+def concat_from_list_of_dicts(key, dicts):
+    """
+    Extract and concat the same key from each dict
+    """
+    out = []
+    for d in dicts:
+        out.append(d[key])
+    return ' '.join(out)
+
 
 ################################################################################
 # MAIN

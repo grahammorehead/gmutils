@@ -12,8 +12,8 @@ from spacy.matcher import Matcher
 from spacy.matcher import PhraseMatcher
 
 from gmutils.utils import err, argparser, deserialize, read_file, read_conceptnet_vectorfile, start_with_same_word, cosine_similarity, deepcopy_list
-from gmutils.normalize import normalize, clean_spaces, ascii_fold, ends_with_punctuation, close_enough
-from gmutils.nlp import generate_spacy_data, tokenize
+from gmutils.normalize import normalize, clean_spaces, ascii_fold, ends_with_punctuation, close_enough, simplify_for_distance
+from gmutils.nlp import generate_spacy_data, tokenize, get_sentences
 from gmutils.objects import Object
 from gmutils.node import Node, iprint
 
@@ -63,8 +63,8 @@ class Document(Object):
             text = normalize(text, options=options)
 
         try:
-            self.spacy_doc, self.ner, self.vocab = generate_spacy_data(text)   # Parse with spacy, get NER
-            self.generate_trees()                                  # Generate Node trees representing sentences
+            self.spacy_doc, self.ner, self.vocab = generate_spacy_data(text)    # Parse with spacy, get NER
+            self.generate_trees()                                               # Generate Node trees representing sentences
         except:
             raise
 
@@ -142,35 +142,14 @@ class Document(Object):
         return None
         
 
-    def get_sentences_by_breaks(self):
-        """
-        Instead of iterating over spacy.doc.sents attribute (unreliable), look at the .is_sent_start attributed (which we set)
-        """
-        sents = []
-        ind   = []   # Indices observed in a sentence
-        for i, token in enumerate(self.spacy_doc):
-            if token.is_sent_start:
-                if len(ind) > 0:
-                    sents.append( self.spacy_doc[ind[0]:ind[-1]] )
-                ind = [i]
-            else:
-                ind.append(i)
-                
-        if len(ind) > 0:
-            sents.append( self.spacy_doc[ind[0]:ind[-1]] )
-        
-        return sents
-    
-    
     def generate_trees(self):
         """
         Parse doc into sentences, then generate a Node tree for each
 
         """
         verbose = False
-        self.trees = []            # array of Node
-        need_to_reparse = False
-        spacy_sentences = self.get_sentences_by_breaks()
+        self.trees = []     # array of Node
+        spacy_sentences = self.spacy_doc.sents
         for i, sen in enumerate(spacy_sentences):
             self.trees.append(Node(self, sen.root, options={'ID':'root.T'+str(i)}))
             
@@ -625,6 +604,8 @@ class Document(Object):
         """
         verbose = False
 
+        text             = re.sub(r'"', "'", text)
+        
         text             = re.escape(text)
         lowest_distance  = None
         best_span        = None
@@ -704,44 +685,69 @@ class Document(Object):
 
         return nodes
 
-        
-    def get_matching_tokens_from_index(self, words, i):
+    
+    def get_matching_tokens_for_words(self, tokens, words):
         """
-        Get matching tokens starting at index i.  Returns None unless all words are matched
+        For a list of tokens, match words consecutively.  Apply recursively to decreasing lists.
+        List of tokens always decreasing.  Once a word is found (in order) it is removed from words.
+
+        Algorithm not perfect, but suitable for most cases.  It is rarely used --only with the SQuAD data contains incorrect answer offsets.
         """
         verbose = False
-        j = i
-        tokens = []
-        for word in words:
-            if j >= len(self.spacy_doc):
-                if verbose:  err()
-                return None
-            token = self.spacy_doc[j]
-            t_text = re.sub(r'\.$', '', token.text)
-            if verbose:  err([word, t_text])
-            if word == t_text  or  re.search(r'\b%s\b'% word, t_text, flags=re.I):
-                tokens.append(token)
-                if verbose:  err(tokens)
-                j += 1
+        matched = []
+        if verbose:  err([tokens, words])
+        
+        if not ( len(tokens)>0  and len(words)>0 ):
+            if verbose:  err([tokens, words])
+            pass    # Nothing to do
+        
+        elif close_enough(tokens[0].text, words[0]):
+            if verbose:  err([tokens, words])
+            matched = [ tokens[0] ]                                                       # Base Case
+            matched.extend( self.get_matching_tokens_for_words(tokens[1:], words[1:]) )   # Recursion
+            if verbose:  err([matched])
 
-        if verbose:  err(tokens)
-        return tokens
+        elif (len(tokens) > 1):
+            if verbose:  err([tokens, words])
+            matched = self.get_matching_tokens_for_words(tokens[1:], words)
+            if verbose:  err([matched])
+
+        else:
+            if verbose:  err([tokens, words])
+            
+        if verbose:  err([matched])
+        if len(matched) > 10:
+            exit()
+        return matched   # Return all matched tokens
     
     
     def get_nodes_matching_text(self, text):
         """
         Get a set of nodes (usually 1 or 0 members) such that each node is the lowest node completely containing 'text'
 
-        Tried to use Matcher and PhraseMatcher ~ they were ill-suited to the task
+        Tried to use spacy's Matcher and PhraseMatcher ~ both were ill-suited to the task
         """
+        nodes = None
         words = text.split()
-        for i,_ in enumerate(self.spacy_doc):
-            tokens = self.get_matching_tokens_from_index(words, i)
-            if tokens is not None:
-                tokenset = set(tokens)
-                nodes = self.get_nodes_with_tokens(tokenset)
-
-        return []
+        err([words, self.spacy_doc])
+        tokens = self.get_matching_tokens_for_words(self.spacy_doc, words)
+        err([tokens])
+        if len(tokens) > len(words):
+            i = len(tokens) - len(words)
+            tokens = tokens[i:]
+            err([tokens])
+            
+        if tokens is not None:
+            tokenset = set(tokens)
+            err([tokenset])
+            nodes = self.get_nodes_with_tokens(tokenset)
+            err([nodes])
+            if len(nodes) == 0:
+                err([nodes])
+                exit()
+            
+        err([nodes])
+        return nodes
             
     
 ################################################################################
