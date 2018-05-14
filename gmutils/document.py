@@ -12,7 +12,7 @@ from spacy.matcher import Matcher
 from spacy.matcher import PhraseMatcher
 
 from gmutils.utils import err, argparser, deserialize, read_file, read_conceptnet_vectorfile, start_with_same_word, cosine_similarity, deepcopy_list
-from gmutils.normalize import normalize, clean_spaces, ascii_fold, ends_with_punctuation, close_enough, simplify_for_distance
+from gmutils.normalize import normalize, clean_spaces, ascii_fold, ends_with_punctuation, close_enough, simplify_for_distance, naked_words
 from gmutils.nlp import generate_spacy_data, tokenize, get_sentences
 from gmutils.objects import Object
 from gmutils.node import Node, iprint
@@ -583,12 +583,36 @@ class Document(Object):
                 span = self.spacy_doc[start_token.i:end_token.i+1]     # Adding 1 here very important
 
         return span
+
+
+    def matching_words_from_start(self, awords, bwords):
+        """
+        Recursively find a sequence of words in bwords that matches awords looking for each a-word within each b-word
+        """
+        verbose = False
+        bword = simplify_for_distance(bwords[0])
+        if verbose:  err([awords[0], bword])
         
+        if len(awords) == 1:                                                           # Base Case
+            if re.search(awords[0], bword, flags=re.I):
+                if verbose:  err()
+                return [bwords[0]]
+            else:
+                if verbose:  err()
+                return []
+            
+        if re.search(awords[0], bword, flags=re.I):
+            if verbose:  err()
+            matched = [bwords[0]]
+            return matched + self.matching_words_from_start(awords[1:], bwords[1:])    # Recursion
+        else:
+            if verbose:  err()
+            return []
+    
     
     def text_to_char_offsets(self, text, start_char=0):
         """
-        Search in the text of this Document for a substring matching text.  If more than one is found, select the one having a first character
-        closest to start_char.
+        Search in the text of this Document for the first substring matching text
 
         Parameters
         ----------
@@ -603,30 +627,36 @@ class Document(Object):
 
         """
         verbose = False
-
-        text             = re.sub(r'"', "'", text)
+        words   = naked_words(text)             # Words to find
+        dwords  = self.get_text().split(' ')    # Document words
+        offsets = None
+        index   = 0
+        if verbose:  err([text, words, dwords])
         
-        text             = re.escape(text)
-        lowest_distance  = None
-        best_span        = None
-        
-        # Iterate over matches.  Select one closest to start_char
-        for m in re.finditer(text, self.get_text(), flags=re.I):
-            span = m.span()
-            distance = abs(span[0] - start_char)
-            if lowest_distance is None  or  distance < lowest_distance:
-                lowest_distance = distance
-                best_span = span
-
-        if best_span is None:
+        for i, dw in enumerate(dwords):
+            dw = simplify_for_distance(dw)
+            if re.search(words[0], dw, flags=re.I):
+                matched = self.matching_words_from_start(words, dwords[i:])
+                if len(matched) == len(words):
+                    matched_phrase = ' '.join(matched)
+                    end_index = index + len(matched_phrase)
+                    offsets = (index, end_index)
+                    break
+                
+            if i == 0:
+                index += len(dw)
+            else:
+                index += 1 + len(dw)
+            
+        if offsets is None:
             err([], {'ex':"No best span for [%s] in:\n%s"% (text, self.get_text())})
                 
-        return best_span  # pair of (int, int), NOT a spacy.Span object
+        return offsets  # pair of (int, int)
 
 
     def get_nodes(self):
         """
-        Return all nodes under this Docment, in order of lowest token index
+        Return all nodes under this Document, in order of lowest token index
         """
         nodes = set([])
         for tree in self.trees:

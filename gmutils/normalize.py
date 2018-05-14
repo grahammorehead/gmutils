@@ -246,10 +246,10 @@ def normalize(text, options=None):
     text = re.sub(r"\.*…+\.*", "...", text)
 
     # Strange multi-char issues
-    #text = re.sub(r"\ud869\udf36", "□", text)
-    #text = re.sub(r"\ud869\udea5", "□", text)
     try:
-        text = re.sub(r"\ud\w\w\w\ud\w\w\w", "□", text)
+        text = re.sub(r"\ud869\udf36", "□", text)
+        text = re.sub(r"\ud869\udea5", "□", text)
+        # text = re.sub(r"\ud\w\w\w\ud\w\w\w", "□", text)
     except:
         text = replace_charByChar(text, "□")
         
@@ -405,6 +405,27 @@ def close_enough(A, B):
     
     return False
 
+
+def naked_words(text):
+    """
+    Split text into words and strip off punctuation and capitalization
+    """
+    words = text.split(' ')
+    out   = []
+    for word in words:
+        out.append( simplify_for_distance(word) )
+    return out
+
+
+def findall_offsets(s, text):
+    """
+    Find all char offsets of s in text.  Return list of pairs
+    """
+    spans = []
+    for m in re.finditer(s, text, flags=re.I):
+        spans.append(m.span())
+    return spans
+    
     
 ################################################################################
 ###  MAIN
