@@ -249,6 +249,19 @@ def normalize(text, options=None):
     try:
         text = re.sub(r"\ud869\udf36", "□", text)
         text = re.sub(r"\ud869\udea5", "□", text)
+        text = re.sub(r"\ud808\uddb3", "□", text)
+        text = re.sub(r"\ud808\ude2a", "□", text)
+        text = re.sub(r"\ud808\udd11", "□", text)
+        text = re.sub(r"\ud808\ude92", "□", text)
+        text = re.sub(r"\ud841\udd3b", "□", text)
+        text = re.sub(r"\ud800\udc1e", "□", text)
+        text = re.sub(r"\ud800\udc0a", "□", text)
+        text = re.sub(r"\ud800\udc0d", "□", text)
+        text = re.sub(r"\ud800\udc1a", "□", text)
+        text = re.sub(r"\ud808\udf26", "□", text)
+        text = re.sub(r"\ud808\ude95", "□", text)
+        text = re.sub(r"\ud808\udcb5", "□", text)
+        
         # text = re.sub(r"\ud\w\w\w\ud\w\w\w", "□", text)
     except:
         text = replace_charByChar(text, "□")

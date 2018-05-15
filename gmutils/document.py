@@ -757,26 +757,27 @@ class Document(Object):
 
         Tried to use spacy's Matcher and PhraseMatcher ~ both were ill-suited to the task
         """
+        verbose = False
         nodes = None
         words = text.split()
-        err([words, self.spacy_doc])
+        if verbose:  err([words, self.spacy_doc])
         tokens = self.get_matching_tokens_for_words(self.spacy_doc, words)
-        err([tokens])
+        if verbose:  err([tokens])
         if len(tokens) > len(words):
             i = len(tokens) - len(words)
             tokens = tokens[i:]
-            err([tokens])
+            if verbose:  err([tokens])
             
         if tokens is not None:
             tokenset = set(tokens)
-            err([tokenset])
+            if verbose:  err([tokenset])
             nodes = self.get_nodes_with_tokens(tokenset)
-            err([nodes])
+            if verbose:  err([nodes])
             if len(nodes) == 0:
-                err([nodes])
+                if verbose:  err([nodes])
                 exit()
             
-        err([nodes])
+        if verbose:  err([nodes])
         return nodes
             
     
