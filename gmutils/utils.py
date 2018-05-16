@@ -1039,6 +1039,7 @@ def concat_from_list_of_dicts(key, dicts):
     """
     out = []
     for d in dicts:
+        err([d])
         out.append(d[key])
     return ' '.join(out)
 

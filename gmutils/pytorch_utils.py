@@ -12,6 +12,7 @@ import numpy as np
 
 from gmutils.utils import err, argparser, isTrue
 
+DEVICE = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 ################################################################################
 # FUNCTIONS
 
@@ -47,6 +48,7 @@ def torchvar(X, ttype=torch.FloatTensor, requires_grad=False):
     else:
         T = ttype(X)
         
+    T = T.to(DEVICE)
     V = torch.autograd.Variable(T, requires_grad=requires_grad)
     
     return V
@@ -57,7 +59,9 @@ def var_zeros(n):
     Returns Variable ready for computational graph
     """
     T = torch.zeros(n)
+    T = T.to(DEVICE)
     V = torch.autograd.Variable(T, requires_grad=False)
+    
     return V
     
 
@@ -66,7 +70,9 @@ def var_ones(n):
     Returns Variable ready for computational graph
     """
     T = torch.ones(n)
+    T = T.to(DEVICE)
     V = torch.autograd.Variable(T, requires_grad=False)
+    
     return V
 
 
@@ -75,7 +81,22 @@ def empty():
     Return a sequence of precisely zero tensors
     """
     return var_zeros(0)
-    
+
+
+def learning_rate_by_epoch(epoch, lr):
+    """
+    To compute a new learning rate for each epoch (lower each time, of course)
+
+    Parameters
+    ----------
+    epoch : int
+
+    Returns
+    -------
+    float
+
+    """
+    return lr * (0.8 ** (epoch-1))
 
 ################################################################################
 # MAIN
@@ -86,10 +107,3 @@ if __name__ == '__main__':
 
 ################################################################################
 ################################################################################
-
-
-
-
-
-
-                          
