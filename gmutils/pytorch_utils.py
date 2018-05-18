@@ -12,7 +12,12 @@ import numpy as np
 
 from gmutils.utils import err, argparser, isTrue
 
+torch.set_printoptions(linewidth=260)
+
 DEVICE = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+INF    = torch.Tensor([float("Inf")]).sum().to(DEVICE)
+negINF = torch.Tensor([float("-Inf")]).sum().to(DEVICE)
+
 ################################################################################
 # FUNCTIONS
 
@@ -27,9 +32,10 @@ def print_info(T):
     file  = os.path.basename(info.filename)
     line  = info.lineno
 
-    print("\nINFO from file: %s"% file, " Line: %d"% line, "\n\tsize: %s"% str(T.size()), "\n\ttype: %s"% str(type(T)))
+    sys.stderr.write("\nINFO from file: %s"% file + " Line: %d"% line + "\n\tsize: %s"% str(T.size()) + "\n\ttype: %s\n"% str(type(T)))
+    sys.stderr.write("\n\type: %s\n"% str(T.type()))
     try:
-        print("\tdtype:", T.data.type())
+        sys.stderr.write("\tdtype: %s\n"% str(T.data.type()))
     except:
         pass
     print()
@@ -97,6 +103,49 @@ def learning_rate_by_epoch(epoch, lr):
 
     """
     return lr * (0.8 ** (epoch-1))
+
+
+def hasnan(T):
+    """
+    Determine if a tensor has a NaN or Inf in it
+    """
+    s = T.data.sum()
+    if s != s:
+        return True
+    if s == INF:
+        return True
+    if s == negINF:
+        return True
+
+    T = T.data.cpu()
+    result = (T != T).numpy()
+    if result.sum():
+        err([s])
+        return True
+    return False
+
+
+def squash(T):
+    """
+    Normalize length of vector to the range [0,1] without altering direction.
+    """
+    if not T.sum().gt(0):
+        return T
+
+    sq = T.pow(2)
+    if not sq.sum().gt(0):
+        return T
+
+    sqnorm = sq.sum(-1, keepdim=True)
+    if not sqnorm.sum().gt(0):  err(); exit()
+
+    denom = 1 + sqnorm
+    scale = sqnorm / denom
+    unitvec = T / torch.sqrt(sqnorm)
+    out = sqnorm * unitvec
+
+    return out
+
 
 ################################################################################
 # MAIN

@@ -23,6 +23,8 @@ import pandas as pd
 from sklearn.model_selection import ShuffleSplit
 from scipy import spatial
 
+np.set_printoptions(linewidth=260)
+                        
 ################################################################################
 # FUNCTIONS
 
