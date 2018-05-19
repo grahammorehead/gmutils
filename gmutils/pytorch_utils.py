@@ -10,13 +10,13 @@ import torch.nn as nn
 import torch.nn.functional as F
 import numpy as np
 
-from gmutils.utils import err, argparser, isTrue
+from gmutils.utils import err, argparser, isTrue, read_dir
 
 torch.set_printoptions(linewidth=260)
 
 DEVICE = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
-INF    = torch.Tensor([float("Inf")]).sum().to(DEVICE)
-negINF = torch.Tensor([float("-Inf")]).sum().to(DEVICE)
+INF    = torch.Tensor([float("Inf")]).sum().double().to(DEVICE)
+negINF = torch.Tensor([float("-Inf")]).sum().double().to(DEVICE)
 
 ################################################################################
 # FUNCTIONS
@@ -33,15 +33,15 @@ def print_info(T):
     line  = info.lineno
 
     sys.stderr.write("\nINFO from file: %s"% file + " Line: %d"% line + "\n\tsize: %s"% str(T.size()) + "\n\ttype: %s\n"% str(type(T)))
-    sys.stderr.write("\n\type: %s\n"% str(T.type()))
+    sys.stderr.write("\tType: %s\n"% str(T.type()))
     try:
-        sys.stderr.write("\tdtype: %s\n"% str(T.data.type()))
+        sys.stderr.write("\tDType: %s\n"% str(T.data.type()))
     except:
         pass
     print()
     
 
-def torchvar(X, ttype=torch.FloatTensor, requires_grad=False):
+def torchvar(X, ttype=torch.DoubleTensor, requires_grad=False):
     """
     Converts X into a PyTorch autograd Variable, ready to be part of a computational graph
     """
@@ -49,7 +49,9 @@ def torchvar(X, ttype=torch.FloatTensor, requires_grad=False):
         narr = np.array(X)
         
         T = torch.from_numpy(narr)
-        if ttype == torch.FloatTensor:
+        if ttype == torch.DoubleTensor:
+            T = T.double()
+        elif ttype == torch.FloatTensor:
             T = T.float()
     else:
         T = ttype(X)
@@ -60,22 +62,32 @@ def torchvar(X, ttype=torch.FloatTensor, requires_grad=False):
     return V
 
 
-def var_zeros(n):
+def var_zeros(n, ttype=torch.DoubleTensor):
     """
     Returns Variable ready for computational graph
     """
     T = torch.zeros(n)
+    if ttype == torch.DoubleTensor:
+        T = T.double()
+    elif ttype == torch.FloatTensor:
+        T = T.float()
+            
     T = T.to(DEVICE)
     V = torch.autograd.Variable(T, requires_grad=False)
     
     return V
     
 
-def var_ones(n):
+def var_ones(n, ttype=torch.DoubleTensor):
     """
     Returns Variable ready for computational graph
     """
     T = torch.ones(n)
+    if ttype == torch.DoubleTensor:
+        T = T.double()
+    elif ttype == torch.FloatTensor:
+        T = T.float()
+            
     T = T.to(DEVICE)
     V = torch.autograd.Variable(T, requires_grad=False)
     
@@ -102,7 +114,7 @@ def learning_rate_by_epoch(epoch, lr):
     float
 
     """
-    return lr * (0.8 ** (epoch-1))
+    return lr * (0.9 ** (epoch-1))
 
 
 def hasnan(T):
@@ -147,6 +159,94 @@ def squash(T):
     return out
 
 
+def model_files_by_loss(dirpath):
+    """
+    List all available model files by loss
+    """
+    models = {}
+    model_dirs = read_dir(dirpath)
+    for f in model_dirs:
+        if re.search('^L', f):
+            lv = re.sub(r'^L', '', f)
+            lv = re.sub(r'_E\d+$', '', lv)
+            loss_val = float(lv)
+            models[loss_val] = dirpath +'/'+ f
+
+    return sorted(models.items(), key=lambda x: x[0])
+
+    
+def model_files_by_timestamp(dirpath):
+    """
+    List all available model files by timestamp, most recent first
+    """
+    models = {}
+    model_files = read_dir(dirpath)
+    for f in model_files:
+        if re.search('^L', f):
+            filepath = dirpath +'/'+ f
+            ts = os.path.getmtime(filepath)
+            models[ts] = filepath
+
+    return sorted(models.items(), key=lambda x: x[0], reverse=True)  # "reverse", because we want the highest timestamps (most recent) first
+
+
+def beta_choose(N):
+    """
+    Use an almost-Beta function to select an integer on [0, N]
+
+    """
+    x = int( np.random.beta(1, 128) * N+1 )
+    if x > 0:
+        x -= 1
+    return x
+
+
+def get_good_model(dirpath):
+    """
+    Randomly select and retrieve a good model (based on its loss) via a Beta distribution.  This will usually select the model correlated
+    with the lowest loss values but not always.  May help to escape from local minima.  Although the currently selected loss function is
+    convex for any given batch, since the graph is redrawn for each batch, I cannot yet confirm global convexity
+
+    Returns
+    -------
+    dict { var_name : numpy array }
+        Use these values to assign arrays to tensors
+
+    """
+    try:
+        models = model_files_by_loss(dirpath)   # sorted from lowest loss to highest
+        x = beta_choose(len(models))
+        loss_val, filepath = models[x]
+        model = json_load_gz(filepath)
+        return model
+    except:
+        return None
+
+
+def get_recent_model(dirpath):
+    """
+    Randomly select and retrieve a recent model via a Beta distribution.  This will usually select the most recent model but not always.
+    May help to escape from local minima.  Although the currently selected loss function is convex for any given batch, since the graph
+    is redrawn for each batch, I cannot yet confirm global convexity
+
+    A separate process will attempt to winnow out the models with higher loss.
+
+    Returns
+    -------
+    dict { var_name : numpy array }
+        Use these values to assign arrays to tensors
+
+    """
+    try:
+        models = model_files_by_timestamp(dirpath)   # sorted, most recent first
+        x = beta_choose(len(models))
+        loss_val, filepath = models[x]
+        model = json_load_gz(filepath)
+        return model
+    except:
+        return None
+
+    
 ################################################################################
 # MAIN
 
