@@ -212,11 +212,26 @@ def model_files_by_loss(dirpath):
     for f in model_dirs:
         if re.search('^L', f):
             lv = re.sub(r'^L', '', f)
-            lv = re.sub(r'_E\d+$', '', lv)
+            lv = re.sub(r'_E\d+_B\d+$', '', lv)
             loss_val = float(lv)
-            models[loss_val] = dirpath +'/'+ f
+            modelpath = dirpath +'/'+ f
+            models[modelpath] = loss_val
 
-    return sorted(models.items(), key=lambda x: x[0])
+    return sorted(models.items(), key=lambda x: x[1])
+
+    
+def best_model_file_by_loss(dirpath):
+    """
+    List all available model files by loss
+    """
+    sorted_models = model_files_by_loss(dirpath)
+    lowest_loss   = sorted_models[0][1]
+    best_models   = []
+    for model in sorted_models:
+        if model[1] == lowest_loss:
+            best_models.append(model[0])
+            
+    return random.choice(best_models)
 
     
 def model_files_by_timestamp(dirpath):
