@@ -136,6 +136,7 @@ def argparser_ml(options={}):
     parser.add_argument('--train_and_eval',   help='Separate data into train/eval sets, then train, then evaluate the trained model', required=False, action='store_true')
 
     # Argument-taking flags (single-use)
+    parser.add_argument('--batch',            help='Skip ahead to this batch', required=False, type=int)
     parser.add_argument('--batch_size',       help='Size of data for each epoch', required=False, type=int)
     parser.add_argument('--data_dir',         help='Directory where data is stored', required=False, type=str)
     parser.add_argument('--dataset_file',     help='Load a specific dataset file', required=False, type=str)
