@@ -117,6 +117,22 @@ def learning_rate_by_epoch(epoch, lr):
     return lr * (0.9 ** (epoch-1))
 
 
+def loss_threshold_by_epoch(epoch, lt):
+    """
+    To compute a new learning rate for each epoch (lower each time, of course)
+
+    Parameters
+    ----------
+    epoch : int
+
+    Returns
+    -------
+    float
+
+    """
+    return lt * (0.9 ** (epoch-1))
+
+
 def hasnan(T):
     """
     Determine if a tensor has a NaN or Inf in it
@@ -137,6 +153,34 @@ def hasnan(T):
     return False
 
 
+def squash_verbose(T):
+    """
+    Normalize length of vector to the range [0,1] without altering direction.
+    """
+    print('T:', T)
+    if not T.sum().gt(0):
+        return T
+
+    sq = T.pow(2)
+    if not sq.sum().gt(0):
+        return T
+    print('sq:', sq)
+    
+    sqsum = sq.sum(-1, keepdim=True)
+    if not sqsum.sum().gt(0):  err(); exit()
+    print('sqsum:', sqsum)
+
+    denom = 1 + sqsum
+    print('denom:', denom)
+    scale = sqsum / denom
+    print('scale:', scale)
+    unitvec = T / torch.sqrt(sqsum)
+    print('unitvec:', unitvec)
+    out = scale * unitvec
+
+    return out
+
+
 def squash(T):
     """
     Normalize length of vector to the range [0,1] without altering direction.
@@ -147,14 +191,14 @@ def squash(T):
     sq = T.pow(2)
     if not sq.sum().gt(0):
         return T
+    
+    sqsum = sq.sum(-1, keepdim=True)
+    if not sqsum.sum().gt(0):  err(); exit()
 
-    sqnorm = sq.sum(-1, keepdim=True)
-    if not sqnorm.sum().gt(0):  err(); exit()
-
-    denom = 1 + sqnorm
-    scale = sqnorm / denom
-    unitvec = T / torch.sqrt(sqnorm)
-    out = sqnorm * unitvec
+    denom = 1 + sqsum
+    scale = sqsum / denom
+    unitvec = T / torch.sqrt(sqsum)
+    out = scale * unitvec
 
     return out
 
@@ -217,10 +261,9 @@ def get_good_model(dirpath):
         models = model_files_by_loss(dirpath)   # sorted from lowest loss to highest
         x = beta_choose(len(models))
         loss_val, filepath = models[x]
-        model = json_load_gz(filepath)
-        return model
+        return filepath
     except:
-        return None
+        raise
 
 
 def get_recent_model(dirpath):
@@ -241,10 +284,9 @@ def get_recent_model(dirpath):
         models = model_files_by_timestamp(dirpath)   # sorted, most recent first
         x = beta_choose(len(models))
         loss_val, filepath = models[x]
-        model = json_load_gz(filepath)
-        return model
+        return filepath
     except:
-        return None
+        raise
 
     
 ################################################################################
