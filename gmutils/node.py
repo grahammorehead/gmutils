@@ -866,7 +866,7 @@ class Node(Object):
         ----------
         tokenset : set of spacy.Token
         """
-        verbose = True
+        verbose = False
         if self.is_dead:
             return None
         nodes = []

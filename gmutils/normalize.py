@@ -246,10 +246,23 @@ def normalize(text, options=None):
     text = re.sub(r"\.*…+\.*", "...", text)
 
     # Strange multi-char issues
-    #text = re.sub(r"\ud869\udf36", "□", text)
-    #text = re.sub(r"\ud869\udea5", "□", text)
     try:
-        text = re.sub(r"\ud\w\w\w\ud\w\w\w", "□", text)
+        text = re.sub(r"\ud869\udf36", "□", text)
+        text = re.sub(r"\ud869\udea5", "□", text)
+        text = re.sub(r"\ud808\uddb3", "□", text)
+        text = re.sub(r"\ud808\ude2a", "□", text)
+        text = re.sub(r"\ud808\udd11", "□", text)
+        text = re.sub(r"\ud808\ude92", "□", text)
+        text = re.sub(r"\ud841\udd3b", "□", text)
+        text = re.sub(r"\ud800\udc1e", "□", text)
+        text = re.sub(r"\ud800\udc0a", "□", text)
+        text = re.sub(r"\ud800\udc0d", "□", text)
+        text = re.sub(r"\ud800\udc1a", "□", text)
+        text = re.sub(r"\ud808\udf26", "□", text)
+        text = re.sub(r"\ud808\ude95", "□", text)
+        text = re.sub(r"\ud808\udcb5", "□", text)
+        
+        # text = re.sub(r"\ud\w\w\w\ud\w\w\w", "□", text)
     except:
         text = replace_charByChar(text, "□")
         
@@ -405,6 +418,27 @@ def close_enough(A, B):
     
     return False
 
+
+def naked_words(text):
+    """
+    Split text into words and strip off punctuation and capitalization
+    """
+    words = text.split(' ')
+    out   = []
+    for word in words:
+        out.append( simplify_for_distance(word) )
+    return out
+
+
+def findall_offsets(s, text):
+    """
+    Find all char offsets of s in text.  Return list of pairs
+    """
+    spans = []
+    for m in re.finditer(s, text, flags=re.I):
+        spans.append(m.span())
+    return spans
+    
     
 ################################################################################
 ###  MAIN

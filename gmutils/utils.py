@@ -23,6 +23,8 @@ import pandas as pd
 from sklearn.model_selection import ShuffleSplit
 from scipy import spatial
 
+np.set_printoptions(linewidth=260)
+                        
 ################################################################################
 # FUNCTIONS
 
@@ -137,7 +139,8 @@ def argparser_ml(options={}):
     parser.add_argument('--batch_size',       help='Size of data for each epoch', required=False, type=int)
     parser.add_argument('--data_dir',         help='Directory where data is stored', required=False, type=str)
     parser.add_argument('--dataset_file',     help='Load a specific dataset file', required=False, type=str)
-    parser.add_argument('--epochs',           help='Number of epochs for training', required=False, type=int)
+    parser.add_argument('--epoch',            help='Epochs to begin at for training', required=False, type=int)
+    parser.add_argument('--epochs',           help='Number of total epochs for training', required=False, type=int)
     parser.add_argument('--eval_file',        help='Evaluation files local or GCS', required=False, type=str)
     parser.add_argument('--eval_dir',         help='Directory where eval data is stored', required=False, type=str)
     parser.add_argument('--job_dir',          help='Directory where batches for parallel jobs are stored', required=False, type=str)
@@ -1040,6 +1043,7 @@ def concat_from_list_of_dicts(key, dicts):
     """
     out = []
     for d in dicts:
+        err([d])
         out.append(d[key])
     return ' '.join(out)
 
