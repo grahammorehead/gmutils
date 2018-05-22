@@ -333,7 +333,28 @@ def get_recent_model(dirpath):
     except:
         raise
 
-    
+
+def study_imbalanced_classes(h_labels, _monitor):
+    """
+    Use for determining just how imbalanced the labels are.  This information will be used to make weights for the cross entropy loss
+    """
+    if _monitor.get('W') is None:
+        W = var_zeros(2)
+    else:
+        W = _monitor['W']
+    total    = torch.numel(h_labels)
+    num_pos  = h_labels.sum().item()
+    num_neg  = total - num_pos
+    w        = torchvar([1/num_neg, 1/num_pos])
+    W        = W + w
+    W_norm   = W / _monitor['i']
+
+    print("\n\tW_norm =", W_norm)
+    _monitor['W'] = W
+
+    return _monitor
+
+            
 ################################################################################
 # MAIN
 
