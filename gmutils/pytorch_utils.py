@@ -220,11 +220,42 @@ def model_files_by_loss(dirpath):
     return sorted(models.items(), key=lambda x: x[1])
 
     
+def model_files_by_F1(dirpath):
+    """
+    List all available model files by loss
+    """
+    models = {}
+    model_dirs = read_dir(dirpath)
+    for f in model_dirs:
+        if re.search('^F', f):
+            fv = re.sub(r'^F', '', f)
+            fv = re.sub(r'_E\d+_B\d+$', '', fv)
+            F_val = float(fv)
+            modelpath = dirpath +'/'+ f
+            models[modelpath] = F_val
+
+    return sorted(models.items(), key=lambda x: x[1], reverse=True)
+
+    
 def best_model_file_by_loss(dirpath):
     """
     List all available model files by loss
     """
     sorted_models = model_files_by_loss(dirpath)
+    lowest_loss   = sorted_models[0][1]
+    best_models   = []
+    for model in sorted_models:
+        if model[1] == lowest_loss:
+            best_models.append(model[0])
+            
+    return random.choice(best_models)
+
+    
+def best_model_file_by_F1(dirpath):
+    """
+    List all available model files by loss
+    """
+    sorted_models = model_files_by_F1(dirpath)   # Highest-first
     lowest_loss   = sorted_models[0][1]
     best_models   = []
     for model in sorted_models:
@@ -273,7 +304,8 @@ def get_good_model(dirpath):
 
     """
     try:
-        models = model_files_by_loss(dirpath)   # sorted from lowest loss to highest
+        # models = model_files_by_loss(dirpath)   # sorted from lowest loss to highest
+        models = model_files_by_F1(dirpath)     # sorted from highest to lowest
         x = beta_choose(len(models))
         loss_val, filepath = models[x]
         return filepath

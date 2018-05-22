@@ -243,11 +243,11 @@ def parse_doc_output(doc):
     return out
 
 
-def match_search(line, index='default'):
+def match_search(line, index=:"default", field="name"):
     body = {
         "query": {
             "match": {
-                "name": {
+                field: {
                     "query":     line,
                     "fuzziness": "AUTO",
                     "operator":  "and"

@@ -1047,6 +1047,29 @@ def concat_from_list_of_dicts(key, dicts):
     return ' '.join(out)
 
 
+def binary_F1(L, P):
+    """
+    For a set of binary labels and predictions, compute the F1 score
+    """
+    assert(len(L) == len(P))
+
+    tp = fp = tn = fn = 0
+    for i,l in enumerate(L):
+        p = P[i]
+        if   l == 1  and  p == 1:
+            tp += 1
+        elif l == 0  and  p == 1:
+            fp += 1
+        elif l == 0  and  p == 0:
+            tn += 1
+        elif l == 1  and  p == 0:
+            fn += 1
+            
+    F1 = (2*tp) / (2*tp + fn + fp)
+    
+    return F1
+            
+
 ################################################################################
 # MAIN
 
