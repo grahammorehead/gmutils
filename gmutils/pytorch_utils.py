@@ -4,6 +4,7 @@
 
 """
 import sys, os, re
+import random
 import inspect
 import torch
 import torch.nn as nn
@@ -210,12 +211,11 @@ def model_files_by_loss(dirpath):
     models = {}
     model_dirs = read_dir(dirpath)
     for f in model_dirs:
-        if re.search('^L', f):
-            lv = re.sub(r'^L', '', f)
-            lv = re.sub(r'_E\d+_B\d+$', '', lv)
-            loss_val = float(lv)
-            modelpath = dirpath +'/'+ f
-            models[modelpath] = loss_val
+        lv = re.sub(r'^F', '', f)
+        lv = re.sub(r'_E\d+_B\d+$', '', lv)
+        loss_val = float(lv)
+        modelpath = dirpath +'/'+ f
+        models[modelpath] = loss_val
 
     return sorted(models.items(), key=lambda x: x[1])
 
@@ -227,12 +227,11 @@ def model_files_by_F1(dirpath):
     models = {}
     model_dirs = read_dir(dirpath)
     for f in model_dirs:
-        if re.search('^F', f):
-            fv = re.sub(r'^F', '', f)
-            fv = re.sub(r'_E\d+_B\d+$', '', fv)
-            F_val = float(fv)
-            modelpath = dirpath +'/'+ f
-            models[modelpath] = F_val
+        fv = re.sub(r'^F', '', f)
+        fv = re.sub(r'_E\d+_B\d+$', '', fv)
+        F_val = float(fv)
+        modelpath = dirpath +'/'+ f
+        models[modelpath] = F_val
 
     return sorted(models.items(), key=lambda x: x[1], reverse=True)
 
@@ -272,10 +271,9 @@ def model_files_by_timestamp(dirpath):
     models = {}
     model_files = read_dir(dirpath)
     for f in model_files:
-        if re.search('^L', f):
-            filepath = dirpath +'/'+ f
-            ts = os.path.getmtime(filepath)
-            models[ts] = filepath
+        filepath = dirpath +'/'+ f
+        ts = os.path.getmtime(filepath)
+        models[ts] = filepath
 
     return sorted(models.items(), key=lambda x: x[0], reverse=True)  # "reverse", because we want the highest timestamps (most recent) first
 
@@ -307,7 +305,7 @@ def get_good_model(dirpath):
         # models = model_files_by_loss(dirpath)   # sorted from lowest loss to highest
         models = model_files_by_F1(dirpath)     # sorted from highest to lowest
         x = beta_choose(len(models))
-        loss_val, filepath = models[x]
+        filepath, val = models[x]
         return filepath
     except:
         raise
@@ -330,7 +328,7 @@ def get_recent_model(dirpath):
     try:
         models = model_files_by_timestamp(dirpath)   # sorted, most recent first
         x = beta_choose(len(models))
-        loss_val, filepath = models[x]
+        val, filepath = models[x]
         return filepath
     except:
         raise
