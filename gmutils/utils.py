@@ -765,6 +765,7 @@ def monitor(_monitor, options={}):
     last_done = _monitor.get('last_done')
 
     progress_ratio = float(i)/float(total_i)
+    done = 100.0 * progress_ratio
     if done < 100.0  and  done - last_done > 0.005:
         _monitor['progress_ratio'] = progress_ratio
         line = "%04.4f%% "% done
