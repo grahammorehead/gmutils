@@ -783,7 +783,7 @@ def monitor(_monitor, options={}):
     skip = _monitor.get('skip')
     if skip  and  skip < done:
         _monitor['skip'] = False   # Clears the skip value when it crosses the threshold
-
+        
     return _monitor
 
 
@@ -1069,6 +1069,16 @@ def binary_F1(L, P):
     
     return F1
             
+
+def iter_next(iterator, N=1):
+    """
+    Return a list having the next N items pulled from the iterator
+    """
+    output = []
+    for n in range(N):
+        output.append(next(iterator))
+    return output
+    
 
 ################################################################################
 # MAIN

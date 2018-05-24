@@ -131,7 +131,7 @@ def loss_threshold_by_epoch(epoch, lt):
     float
 
     """
-    return lt * (0.9 ** (epoch-1))
+    return lt * (0.95 ** (epoch-1))
 
 
 def hasnan(T):
@@ -350,6 +350,8 @@ def study_imbalanced_classes(h_labels, _monitor):
     W_norm   = W / _monitor['i']
 
     print("\n\tW_norm =", W_norm)
+    print()
+    
     _monitor['W'] = W
 
     return _monitor

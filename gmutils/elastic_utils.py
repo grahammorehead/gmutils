@@ -243,7 +243,7 @@ def parse_doc_output(doc):
     return out
 
 
-def match_search(line, index=:"default", field="name"):
+def match_search(line, index="default", field="name", size=10):
     body = {
         "query": {
             "match": {
@@ -253,7 +253,8 @@ def match_search(line, index=:"default", field="name"):
                     "operator":  "and"
                 }
             }
-        }
+        },
+        "size": size
     }
     res = es.search(index=index, body=body)
     return res['hits']['hits']
