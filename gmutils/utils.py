@@ -140,6 +140,7 @@ def argparser_ml(options={}):
     parser.add_argument('--batch_size',       help='Size of data for each epoch', required=False, type=int)
     parser.add_argument('--data_dir',         help='Directory where data is stored', required=False, type=str)
     parser.add_argument('--dataset_file',     help='Load a specific dataset file', required=False, type=str)
+    parser.add_argument('--device',           help='Device, e.g. cuda:2', required=False, type=str)
     parser.add_argument('--epoch',            help='Epochs to begin at for training', required=False, type=int)
     parser.add_argument('--epochs',           help='Number of total epochs for training', required=False, type=int)
     parser.add_argument('--eval_file',        help='Evaluation files local or GCS', required=False, type=str)
@@ -326,7 +327,16 @@ def generate_file_iterator(dirpath, options={}):
     Yields one file at a time - NOT to be confused with iter_file()
     """
     verbose = False
-    for filepath in sorted(read_dir(dirpath, options=options)):
+    filepaths = sorted(read_dir(dirpath, options=options))
+
+    # Skip based on a percentage
+    if options.get('skip'):
+        skip_val = options.get('skip') / 100.0
+        N = len(filepaths)
+        skip_i = int(skip_val * N)
+        filepaths = filepaths[skip_i:]
+    
+    for filepath in filepaths:
         filepath = dirpath +'/'+ filepath
         if verbose:
             err([filepath])
@@ -779,13 +789,19 @@ def monitor(_monitor, options={}):
         _monitor['last_done'] = done
     _monitor['i'] = i
 
-    # Alter skip state based on 'done'
-    skip = _monitor.get('skip')
-    if skip  and  skip < done:
-        _monitor['skip'] = False   # Clears the skip value when it crosses the threshold
-
+    # Other tracking variables
     if not _monitor.get('t0'):
         _monitor['t0'] = time.time()
+
+    skip = _monitor.get('skip')
+    if skip:
+        if skip < done:
+            _monitor['skip'] = False   # Clears the skip value when it crosses the threshold
+    else:
+        if _monitor.get('N'):
+            _monitor['N'] += 1
+        else:
+            _monitor['N']  = 1
     
     return _monitor
 

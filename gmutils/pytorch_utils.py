@@ -13,11 +13,23 @@ import numpy as np
 
 from gmutils.utils import err, argparser, isTrue, read_dir
 
-torch.set_printoptions(linewidth=260)
+################################################################################
+# DEFAULTS
 
-DEVICE = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
-INF    = torch.Tensor([float("Inf")]).sum().double().to(DEVICE)
-negINF = torch.Tensor([float("-Inf")]).sum().double().to(DEVICE)
+torch.set_printoptions(linewidth=260)
+INF     = torch.Tensor([float("Inf")]).sum().double()
+negINF  = torch.Tensor([float("-Inf")]).sum().double()
+
+if torch.cuda.is_available():
+    # torch.cuda.manual_seed_all(12345)
+    cuda    = torch.device('cuda')
+    INF     = INF.cuda()
+    negINF  = negINF.cuda()
+
+################################################################################
+# VARS to be used in this file
+
+INF = negINF = None
 
 ################################################################################
 # FUNCTIONS
@@ -56,8 +68,9 @@ def torchvar(X, ttype=torch.DoubleTensor, requires_grad=False):
             T = T.float()
     else:
         T = ttype(X)
-        
-    T = T.to(DEVICE)
+
+    if torch.cuda.is_available():
+        T = T.cuda()
     V = torch.autograd.Variable(T, requires_grad=requires_grad)
     
     return V
@@ -73,7 +86,8 @@ def var_zeros(n, ttype=torch.DoubleTensor):
     elif ttype == torch.FloatTensor:
         T = T.float()
             
-    T = T.to(DEVICE)
+    if torch.cuda.is_available():
+        T = T.cuda()
     V = torch.autograd.Variable(T, requires_grad=False)
     
     return V
@@ -89,7 +103,8 @@ def var_ones(n, ttype=torch.DoubleTensor):
     elif ttype == torch.FloatTensor:
         T = T.float()
             
-    T = T.to(DEVICE)
+    if torch.cuda.is_available():
+        T = T.cuda()
     V = torch.autograd.Variable(T, requires_grad=False)
     
     return V
@@ -141,9 +156,9 @@ def hasnan(T):
     s = T.data.sum()
     if s != s:
         return True
-    if s == INF:
+    if s == get_inf():
         return True
-    if s == negINF:
+    if s == get_neginf():
         return True
 
     T = T.data.cpu()
