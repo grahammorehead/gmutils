@@ -4,6 +4,7 @@
 
 """
 import os, sys, re
+import shutil
 import time
 import traceback
 import json
@@ -322,27 +323,29 @@ def iter_file(file, options=None):
         yield line.rstrip()
 
 
-def generate_file_iterator(dirpath, options={}):
+def generate_file_iterator(dirpath, skip=None, options={}):
     """
     Yields one file at a time - NOT to be confused with iter_file()
     """
     verbose = False
-    filepaths = sorted(read_dir(dirpath, options=options))
+    filenames = sorted(read_dir(dirpath, options=options))
 
     # Skip based on a percentage
-    if options.get('skip'):
-        skip_val = options.get('skip') / 100.0
-        N = len(filepaths)
+    if skip:
+        skip_val = skip / 100.0
+        N = len(filenames)
         skip_i = int(skip_val * N)
-        filepaths = filepaths[skip_i:]
+        filenames = filenames[skip_i:]
     
-    for filepath in filepaths:
-        filepath = dirpath +'/'+ filepath
+    for filename in filenames:
+        filepath = dirpath +'/'+ filename
         if verbose:
             err([filepath])
-        yield filepath
 
+        else:   # Default behavior: original file
+            yield filepath
 
+            
 def write_file(file, content, options={}):
     """
     Write 'content' to 'file'
@@ -1097,6 +1100,15 @@ def iter_next(iterator, N=1):
     for n in range(N):
         output.append(next(iterator))
     return output
+    
+
+def tmpfile_name(options={}):
+    """
+    generate tmpfile name
+    """
+    dirpath = "./tmp"
+    mkdirs(dirpath)
+    return dirpath + "/%d"% os.getpid() + "." + options.get('ext')
     
 
 ################################################################################
