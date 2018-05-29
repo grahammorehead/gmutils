@@ -8,7 +8,6 @@ import json
 import pickle
 from copy import deepcopy
 import random
-import pandas as pd
 from sklearn.preprocessing import Binarizer
 from sklearn import metrics
 from sklearn.metrics import mean_absolute_error
@@ -16,6 +15,10 @@ from sklearn.metrics import mean_absolute_error
 from gmutils.utils import err, argparser, pandasize
 from gmutils.objects import Object
 
+try:
+    import pandas as pd
+except Exception as e: err([], {'exception':e, 'level':0})
+    
 ################################################################################
 # CONFIG
 

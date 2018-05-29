@@ -8,14 +8,16 @@ import os, re
 import numpy as np
 import itertools
 from copy import deepcopy
-import pandas as pd
-from sklearn.model_selection import train_test_split
 import spacy
 
 from gmutils.objects import Options
 from gmutils.normalize import normalize
 from gmutils.utils import err, argparser, read_file, read_dir, iter_file, isTrue, monitor_setup, monitor, serialize, deserialize
 
+try:
+    import pandas as pd
+except Exception as e: err([], {'exception':e, 'level':0})
+    
 ################################################################################
 # SPACY INTEGRATION
 

@@ -20,7 +20,10 @@ import csv
 import math
 import numpy as np
 import scipy
-import pandas as pd
+try:
+    import pandas as pd
+except Exception as e: print(e)
+
 from sklearn.model_selection import ShuffleSplit
 from scipy import spatial
 

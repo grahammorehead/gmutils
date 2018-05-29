@@ -7,7 +7,6 @@ import os, sys, re, time
 from copy import deepcopy
 from collections import deque
 import numpy as np
-import pandas as pd
 from spacy.matcher import Matcher
 from spacy.matcher import PhraseMatcher
 
@@ -17,6 +16,10 @@ from gmutils.nlp import generate_spacy_data, tokenize, get_sentences
 from gmutils.objects import Object
 from gmutils.node import Node, iprint
 
+try:
+    import pandas as pd
+except Exception as e: err([], {'exception':e, 'level':0})
+    
 ################################################################################
 
 class Document(Object):

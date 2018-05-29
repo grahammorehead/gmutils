@@ -5,12 +5,15 @@ Code and objects to manage datasets for training models
 """
 import os, sys, re
 import numpy as np
-import pandas as pd
 from sklearn.model_selection import train_test_split
 
 from gmutils.utils import err, argparser, read_dir, read_file
 from gmutils.objects import Object
 
+try:
+    import pandas as pd
+except Exception as e: err([], {'exception':e, 'level':0})
+    
 ################################################################################
 # DEFAULTS
 
