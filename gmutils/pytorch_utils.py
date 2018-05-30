@@ -226,7 +226,7 @@ def model_files_by_loss(dirpath):
     models = {}
     model_dirs = read_dir(dirpath)
     for f in model_dirs:
-        lv = re.sub(r'^F', '', f)
+        lv = re.sub(r'^L', '', f)
         lv = re.sub(r'_E\d+_B\d+$', '', lv)
         loss_val = float(lv)
         modelpath = dirpath +'/'+ f
