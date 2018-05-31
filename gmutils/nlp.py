@@ -11,7 +11,7 @@ from copy import deepcopy
 import spacy
 
 from gmutils.objects import Options
-from gmutils.normalize import normalize
+from gmutils.normalize import normalize, naked_words
 from gmutils.utils import err, argparser, read_file, read_dir, iter_file, isTrue, monitor_setup, monitor, serialize, deserialize
 
 try:
@@ -385,6 +385,33 @@ def generate_onehot_vocab(words):
     return vocab
 
 
+def words_below_freq(lines, freq=0.01):
+    """
+    Take a list of lines of text.  Return a set of all words below a certain frequency
+    """
+    words = {}
+    N     = 0    # total occurrences of any word
+    for line in lines:
+        for w in naked_words(line):
+            N += 1
+            if w in words:
+                words[w] += 1   # increment number of occurrences of w
+            else:
+                words[w]  = 1
+
+    output = set([])
+    N = float(N)
+    for word,occ in sorted(words.items(), key=lambda x: x[1]):
+        f = occ/N
+        print("\t(%0.4f)  %s"% (f, word))
+        if f < freq:
+            output.add(word)
+        else:
+            print("HF word:", word)
+
+    return output
+
+                
 ################################################################################
 # MAIN
 

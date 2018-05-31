@@ -130,7 +130,7 @@ def learning_rate_by_epoch(epoch, lr):
     float
 
     """
-    return lr * (0.9 ** (epoch-1))
+    return lr * (0.8 ** (epoch-1))
 
 
 def loss_threshold_by_epoch(epoch, lt):
@@ -146,7 +146,7 @@ def loss_threshold_by_epoch(epoch, lt):
     float
 
     """
-    return lt * (0.95 ** (epoch-1))
+    return lt * (0.98 ** (epoch-1))
 
 
 def hasnan(T):
@@ -298,7 +298,7 @@ def beta_choose(N):
     Use an almost-Beta function to select an integer on [0, N]
 
     """
-    x = int( np.random.beta(1, 128) * N+1 )
+    x = int( np.random.beta(1, 8) * N+1 )
     if x > 0:
         x -= 1
     return x
