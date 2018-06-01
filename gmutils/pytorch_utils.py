@@ -146,7 +146,7 @@ def loss_threshold_by_epoch(epoch, lt):
     float
 
     """
-    return lt * (0.98 ** (epoch-1))
+    return lt * (0.85 ** (epoch-1))
 
 
 def hasnan(T):
@@ -354,23 +354,36 @@ def study_imbalanced_classes(labels, _monitor):
     Use for determining just how imbalanced the labels are.  This information will be used to make weights for the cross entropy loss
     """
     if _monitor.get('W') is None:
-        W = var_zeros(2)
+        W = 0.0
+        _monitor['W seen']  = 1
     else:
         W = _monitor['W']
-    total    = torch.numel(labels)
-    num_pos  = labels.sum().item()
-    num_neg  = total - num_pos
-    w        = torchvar([1/num_neg, 1/num_pos])
-    W        = W + w
-    W_norm   = W / _monitor['i']
-
-    print("\n\tW_norm =", W_norm)
-    print()
+        _monitor['W seen'] += 1
+        
+    total    = float(torch.numel(labels))
+    num_pos  = float(len(labels.data.nonzero()))
+    W       += num_pos/total
+    W_norm   = W / _monitor['W seen']
     
     _monitor['W'] = W
+    sys.stderr.write("\tW: %0.4f\n"% W_norm)
 
-    return _monitor
 
+def tensor_cat(A, B, dim=0):
+    """
+    Intelligent concatentation
+    """
+    if A is None and B is None:
+        return None
+    if A is None:
+        return B
+    if B is None:
+        return A
+    return torch.cat([A, B], dim)
+
+    # h_labels  = pu.tensor_cat( [h_labels, cout.get('h_labels')], 0 )
+    # h_labels  =     torch.cat( [h_labels, cout.get('h_labels')], 0 )
+    
             
 ################################################################################
 # MAIN
