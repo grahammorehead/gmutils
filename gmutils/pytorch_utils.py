@@ -146,7 +146,7 @@ def loss_threshold_by_epoch(epoch, lt):
     float
 
     """
-    return lt * (0.85 ** (epoch-1))
+    return lt * (0.9 ** (epoch-1))
 
 
 def hasnan(T):
@@ -369,21 +369,33 @@ def study_imbalanced_classes(labels, _monitor):
     sys.stderr.write("\tW: %0.4f\n"% W_norm)
 
 
+def null_tensor(X):
+    """
+    If a tensor is None or 0-dim
+    """
+    if X is None:
+        return True
+    try:
+        if X.size() == torch.Size([0]):
+            return True
+    except:
+        return True
+
+    return False
+
+    
 def tensor_cat(A, B, dim=0):
     """
     Intelligent concatentation
     """
-    if A is None and B is None:
+    if null_tensor(A)  and  null_tensor(B):
         return None
-    if A is None:
+    if null_tensor(A):
         return B
-    if B is None:
+    if null_tensor(B):
         return A
     return torch.cat([A, B], dim)
 
-    # h_labels  = pu.tensor_cat( [h_labels, cout.get('h_labels')], 0 )
-    # h_labels  =     torch.cat( [h_labels, cout.get('h_labels')], 0 )
-    
             
 ################################################################################
 # MAIN
