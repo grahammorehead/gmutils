@@ -45,8 +45,17 @@ def print_info(T):
     file  = os.path.basename(info.filename)
     line  = info.lineno
 
-    sys.stderr.write("\nINFO from file: %s"% file + " Line: %d"% line + "\n\tsize: %s"% str(T.size()) + "\n\ttype: %s\n"% str(type(T)))
-    sys.stderr.write("\tType: %s\n"% str(T.type()))
+    try:
+        size = str(T.size())
+        typ  = str(type(T))
+        Ttyp = str(T.type())
+    except:
+        size = "None"
+        typ  = "None"
+        Ttyp = "None"
+    
+    sys.stderr.write("\nINFO from file: %s"% file + " Line: %d"% line + "\n\tsize: %s"% size + "\n\ttype: %s\n"% typ)
+    sys.stderr.write("\tType: %s\n"% Ttyp)
     try:
         sys.stderr.write("\tDType: %s\n"% str(T.data.type()))
     except:
