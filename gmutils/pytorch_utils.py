@@ -5,6 +5,7 @@
 """
 import sys, os, re
 import random
+import shutil
 import inspect
 import torch
 import torch.nn as nn
@@ -301,7 +302,28 @@ def model_files_by_timestamp(dirpath):
 
     return sorted(models.items(), key=lambda x: x[0], reverse=True)  # "reverse", because we want the highest timestamps (most recent) first
 
+    
+def clear_chaff_by_loss(dirpath):
+    """
+    Get a list of all models sorted by loss.  Keep MAX, and delete the rest
+    """
+    verbose = False
+    MAX = 100
 
+    models = model_files_by_loss(dirpath)   # sorted, lowest loss first
+    if len(models) > MAX:
+        try:
+            to_delete = models[MAX:]
+            for model in to_delete:
+                filepath, loss_val = model
+                if verbose:
+                    t = file_timestamp(filepath)
+                    print("rm -fr (%s):"% t, filepath)
+                shutil.rmtree(filepath)
+        except:
+            pass
+
+    
 def beta_choose(N):
     """
     Use an almost-Beta function to select an integer on [0, N]
@@ -313,7 +335,7 @@ def beta_choose(N):
     return x
 
 
-def get_good_model(dirpath):
+def good_model_file_by_loss(dirpath):
     """
     Randomly select and retrieve a good model (based on its loss) via a Beta distribution.  This will usually select the model correlated
     with the lowest loss values but not always.  May help to escape from local minima.  Although the currently selected loss function is
@@ -326,8 +348,7 @@ def get_good_model(dirpath):
 
     """
     try:
-        # models = model_files_by_loss(dirpath)   # sorted from lowest loss to highest
-        models = model_files_by_F1(dirpath)     # sorted from highest to lowest
+        models = model_files_by_loss(dirpath)   # sorted from lowest loss to highest
         x = beta_choose(len(models))
         filepath, val = models[x]
         return filepath
@@ -335,24 +356,36 @@ def get_good_model(dirpath):
         raise
 
 
-def get_recent_model(dirpath):
+def recent_model_file(dirpath):
     """
     Randomly select and retrieve a recent model via a Beta distribution.  This will usually select the most recent model but not always.
     May help to escape from local minima.  Although the currently selected loss function is convex for any given batch, since the graph
     is redrawn for each batch, I cannot yet confirm global convexity
 
-    A separate process will attempt to winnow out the models with higher loss.
-
     Returns
     -------
-    dict { var_name : numpy array }
-        Use these values to assign arrays to tensors
-
+    str
     """
     try:
         models = model_files_by_timestamp(dirpath)   # sorted, most recent first
         x = beta_choose(len(models))
         val, filepath = models[x]
+        return filepath
+    except:
+        raise
+
+
+def most_recent_model_file(dirpath):
+    """
+    Select and retrieve most recent model file
+
+    Returns
+    -------
+    str
+    """
+    try:
+        models = model_files_by_timestamp(dirpath)   # sorted, most recent first
+        val, filepath = models[0]
         return filepath
     except:
         raise

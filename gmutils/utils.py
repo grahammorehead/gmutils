@@ -389,7 +389,12 @@ def read_dir(path, options={}):
     verbose = False
     if verbose:
         err([path])
-    (dirpath, folders, files) = next(os.walk(path))
+    try:
+        (dirpath, folders, files) = next(os.walk(path))
+    except StopIteration:
+        return []
+    except:
+        raise
 
     # Files having a certain file extension (suffix)
     if isTrue(options, 'suffix'):
@@ -782,8 +787,8 @@ def monitor(_monitor, options={}):
 
     progress_ratio = float(i)/float(total_i)
     done = 100.0 * progress_ratio
+    
     if done < 100.0  and  done - last_done > 0.005:
-        _monitor['progress_ratio'] = progress_ratio
         line = "%04.4f%% "% done
         _monitor['progress'] = line
         if not options.get('silent'):
@@ -793,6 +798,8 @@ def monitor(_monitor, options={}):
             sys.stderr.flush()
             _monitor['last_line'] = line
         _monitor['last_done'] = done
+
+    _monitor['progress_ratio'] = progress_ratio
     _monitor['i'] = i
 
     # Other tracking variables
