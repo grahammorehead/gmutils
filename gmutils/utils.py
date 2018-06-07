@@ -4,6 +4,7 @@
 
 """
 import os, sys, re
+import types
 import shutil
 import time
 import traceback
@@ -1120,6 +1121,26 @@ def tmpfile_name(options={}):
     mkdirs(dirpath)
     return dirpath + "/%d"% os.getpid() + "." + options.get('ext')
     
+
+def args_to_options(args):
+    """
+    Convert a Namespace to a dict
+    """
+    options = {}
+    for key in dir(args):
+        # Skip some keys that shouldn't be absorbed into the next object
+        if re.search('^_', key):
+            continue
+        if key == 'input'  or  key == 'options':
+            continue
+        val = getattr(args, key)
+        if isinstance(val, types.MethodType):
+            continue
+
+        options[key] = val
+        
+    return options
+
 
 ################################################################################
 # MAIN
