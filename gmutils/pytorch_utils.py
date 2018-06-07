@@ -438,6 +438,25 @@ def tensor_cat(A, B, dim=0):
         return A
     return torch.cat([A, B], dim)
 
+
+def dilate_answers(preds, labels):
+    """
+    Increase the cost between preds and labels with a non-learning layer
+
+    Parameters
+    ----------
+    preds, labels : tensors of equal size (probably 1-dimensional)
+
+    Returns
+    -------
+    preds, labels : same tensors but modified
+    """
+    N = labels.numel()
+    att = N * labels
+    labels = att + labels
+    preds = att * preds + preds
+    
+    return preds, labels
             
 ################################################################################
 # MAIN
