@@ -11,7 +11,6 @@ import sys
 #sys.setdefaultencoding('utf8')
 
 import os, re
-import chardet
 import datetime
 import unicodedata
 
@@ -425,6 +424,8 @@ def naked_words(text):
     """
     words = text.split(' ')
     out   = []
+    if not isinstance(words, list):
+        words = [words]
     for word in words:
         out.append( simplify_for_distance(word) )
     return out

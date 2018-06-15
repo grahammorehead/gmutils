@@ -547,9 +547,10 @@ def serialize(thing, file=None, directory=None, options={}):
 
     directory : str
     """
+    thingType = re.sub(r"^.*'(.*)'.*$", r"\1", (str(type(thing))))
+    
     # Informative STDERR output
     if isVerbose(options):
-        thingType = re.sub(r"^.*'(.*)'.*$", r"\1", (str(type(thing))))
         thingType = re.sub(r"__main__\.", "", thingType)
         sys.stderr.write("Saving %s to %s ...\n"% ( thingType, file))
 
@@ -570,7 +571,8 @@ def serialize(thing, file=None, directory=None, options={}):
         filepath = file
     else:
         filepath = directory +'/'+ file
-        
+
+    # Save the pickled file    
     if isTrue(options, 'joblib'):
         joblib.dump(thing, file)
     elif isTrue(options, 'dill'):
@@ -1141,6 +1143,24 @@ def args_to_options(args):
         
     return options
 
+
+def num_pos_elements(X):
+    """
+    Number of positive nonzero elements in a list 'X'
+
+    Parameters
+    ----------
+    X : ndarray or list
+
+    Returns
+    -------
+    int
+    """
+    if isinstance(X, list):
+        X = np.array(X)
+
+    return np.where(X>0)[0].shape[0]
+        
 
 ################################################################################
 # MAIN

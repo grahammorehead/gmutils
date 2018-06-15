@@ -9,6 +9,8 @@ import numpy as np
 import itertools
 from copy import deepcopy
 import spacy
+from nltk.corpus import sentiwordnet as swn
+from nltk.corpus import wordnet
 
 from gmutils.objects import Options
 from gmutils.normalize import normalize, naked_words
@@ -21,14 +23,6 @@ except Exception as e: err([], {'exception':e, 'level':0})
 ################################################################################
 # SPACY INTEGRATION
 
-spacy_parsing = spacy_ner = None
-try:
-    spacy_ner     = spacy.load('en_core_web_lg')    # download separately: https://spacy.io/models/
-    if not os.environ.get('GM_NERONLY'):
-        spacy_parsing = spacy.load('en_core_web_lg')
-except Exception as e: pass
-
-    
 def set_sentence_starts(doc):
     """
     Adjust the elements in a spaCy Doc to record the sentence starts as output by sentence_fixer()
@@ -54,23 +48,30 @@ def set_sentence_starts(doc):
     return doc
 
 
-""" POST-DEFINITIONAL LOADING
+spacy_parsing = spacy_ner = None
 
-    Add elements to the parsing pipeline to correct for the sentence tokenizer problems
-
-This section attempts to directly alter the spacy pipeline so that it tags as correctly as possible.  The spacy sentencizer makes some
-obvious mistakes.
-
-After the end of the pipeline, some new errors are introduced and it is not known where, so the custom 'set_sentence_starts' will be applied again
-to the result, but not here.
-
-"""
 try:
-    spacy_parsing.add_pipe(set_sentence_starts, name='set_sentence_starts', before='tagger')
-    spacy_parsing.add_pipe(spacy_parsing.create_pipe('sentencizer'), before='set_sentence_starts')
-    
+    spacy_ner     = spacy.load('en_core_web_lg')    # download separately: https://spacy.io/models/
+    if not os.environ.get('GM_NERONLY'):
+        spacy_parsing = spacy.load('en_core_web_lg')
+        
+    """ POST-DEFINITIONAL LOADING
+
+        Add elements to the parsing pipeline to correct for the sentence tokenizer problems
+
+    This section attempts to directly alter the spacy pipeline so that it tags as correctly as possible.  The spacy sentencizer makes some
+    obvious mistakes.
+
+    After the end of the pipeline, some new errors are introduced and it is not known where, so the custom 'set_sentence_starts' will be applied again
+    to the result, but not here.
+
+    """
+    if not os.environ.get('GM_NERONLY'):
+        spacy_parsing.add_pipe(set_sentence_starts, name='set_sentence_starts', before='tagger')
+        spacy_parsing.add_pipe(spacy_parsing.create_pipe('sentencizer'), before='set_sentence_starts')
     tokenizer = spacy.tokenizer.Tokenizer(spacy_ner.vocab)
-except Exception as e:
+    
+except:
     raise
     err([], {'exception':e})
 
@@ -411,6 +412,27 @@ def words_below_freq(lines, freq=0.01):
 
     return output
 
+
+def get_synonyms(lemma):
+    """
+    Return a list of NLTK Sentiword synsets for 'word'
+
+    Parameters
+    ----------
+    word : str
+        For best results 'word' will be lemmatized in a way consistent with its POS
+
+    pos : str
+        Part of Speech
+        Used to get the lemma, but may also be used for future synset generators
+    """
+    output = []
+    synsets = wordnet.synsets(lemma)
+    for synset in synsets:
+        for sl in synset.lemmas():
+            output.append(sl.name())
+    return output
+
                 
 ################################################################################
 # MAIN
@@ -418,6 +440,7 @@ def words_below_freq(lines, freq=0.01):
 if __name__ == '__main__':
 
     parser = argparser({'desc': "Some general NLP tasks: nlp.py"})
+    parser.add_argument('--synset', help='Get the WordNet synonym set for a word', required=False, type=str)
     args = parser.parse_args()
 
     text = ''
@@ -428,6 +451,12 @@ if __name__ == '__main__':
             
     elif args.str:
         text = '  '.join(args.str)
+        
+    elif args.synset:
+        lemma = lemmatize(args.synset)
+        synset = get_synonyms(lemma)
+        print(synset)
+        exit()
         
     else:
         print(__doc__)

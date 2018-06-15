@@ -6,6 +6,7 @@ Helper functions for Elasticsearch
 from elasticsearch import Elasticsearch
 
 import os, sys, re
+import json
 from editdistance import eval as fast_levenshtein
 
 from elasticsearch import helpers
@@ -256,6 +257,7 @@ def match_search(line, index="default", field="name", size=10, operator="or"):
         },
         "size": size
     }
+    # print(json.dumps(body))
     res = es.search(index=index, body=body)
     return res['hits']['hits']
 
