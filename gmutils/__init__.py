@@ -52,3 +52,7 @@ try:
     from .tensorflow_model import TensorflowModel
 except Exception as e: err([], {'exception':e, 'level':0})
 
+try:
+    from .mysql_utils import mysql_connect, mysql_query
+except Exception as e: err([], {'exception':e, 'level':0})
+
