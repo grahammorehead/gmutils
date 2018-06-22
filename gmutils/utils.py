@@ -753,6 +753,8 @@ def monitor_setup(file, total_i=None, options={}):
             total_i = num_from_filename(file)
         else:
             total_i = num_lines_in_file(file)  # Assumes the input must be a file
+    if total_i == 0:
+        total_i = 1
         
     last_done = 0.0
     # sys.stderr.write("\tLines to read: %d\n"% total_i)

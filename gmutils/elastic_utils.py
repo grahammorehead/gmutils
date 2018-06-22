@@ -13,7 +13,7 @@ from elasticsearch import helpers
 es = Elasticsearch()
 
 from gmutils.utils import err, argparser, isTrue
-from gmutils.normalize import normalize
+from gmutils.normalize import normalize, naked_words
 from gmutils.lexical import damerauLevenshtein, phrase_similarity
 
 ################################################################################
@@ -258,6 +258,33 @@ def match_search(line, index="default", field="name", size=10, operator="or"):
         "size": size
     }
     # print(json.dumps(body))
+    res = es.search(index=index, body=body)
+    return res['hits']['hits']
+
+
+def constant_score_search(line, index="default", field="name", size=100, minimum_should_match="60%"):
+    """
+    A better tool when TFIDF is meaningless
+    """
+    terms = naked_words(line)
+    should  = []
+    for term in terms:
+        should.append( {"term":{field:term}} )
+            
+    body = {
+        "size": size,
+        "query": {
+            "constant_score": {
+                "filter": {
+                    "bool": {
+                        "should": should,
+                        "minimum_should_match":minimum_should_match
+                    }
+                }
+            }
+        },
+    }
+    print(json.dumps(body))
     res = es.search(index=index, body=body)
     return res['hits']['hits']
 
