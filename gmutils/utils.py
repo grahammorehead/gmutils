@@ -12,7 +12,6 @@ import json
 import gzip
 import zipfile
 import pickle
-from sklearn.externals import joblib
 import dill
 import inspect
 import requests
@@ -21,11 +20,7 @@ import csv
 import math
 import numpy as np
 import scipy
-try:
-    import pandas as pd
-except Exception as e: print(e)
 
-from sklearn.model_selection import ShuffleSplit
 from scipy import spatial
 
 np.set_printoptions(linewidth=260)
@@ -192,10 +187,11 @@ def err(vars=[], options={}):
     # Information about the urgency of this call
     call_level = options.get('level')
     if call_level is None:  call_level = 2    # default is 2 (more urgent than level 1)
-    os_level = 0
+    os_level = 2
     try:
         os_level = int(os.environ['GM_LEVEL'])
-    except:  pass
+    except:
+        pass
         
     callerframerecord = inspect.stack()[1]    # 0 represents this line
                                               # 1 represents line at caller
@@ -574,6 +570,9 @@ def serialize(thing, file=None, directory=None, options={}):
 
     # Save the pickled file    
     if isTrue(options, 'joblib'):
+        try:
+            from sklearn.externals import joblib
+        except Exception as e: err([], {'exception':e, 'level':0})
         joblib.dump(thing, file)
     elif isTrue(options, 'dill'):
         with open(file,'wb') as FH:
@@ -606,6 +605,9 @@ def deserialize(file=None, directory=None, options={}):
         sys.stderr.write("Deserializing %s ...\n"% file)
 
     if isTrue(options, 'joblib'):
+        try:
+            from sklearn.externals import joblib
+        except Exception as e: err([], {'exception':e, 'level':0})
         thing = joblib.load(file)
         return thing
     elif isTrue(options, 'dill'):
@@ -950,47 +952,6 @@ def start_with_same_word(A, B):
         return True
     return False
     
-
-def pandasize(X):
-    """
-    Convert some incoming data to a pandas DataFrame or Series, depending on its dimensionality
-
-    Parameters
-    ----------
-    X : list, array, or numpy Array
-
-    Returns
-    -------
-    pandas Series or DataFrame
-    """
-    make_series = False   # Assume DataFrame until otherwise indicated
-    
-    if isinstance(X, pd.Series):
-        return X
-    elif isinstance(X, pd.DataFrame):
-        return X
-        
-    elif isinstance(X, list):
-        make_series = True
-    
-    elif isinstance(X, np.ndarray):
-
-        if len(X.shape) == 1:
-            make_series = True
-
-        if len(X.shape) == 2:
-            if X.shape[0] == 1:
-                make_series = True
-                X = X[0]
-
-    if make_series:
-        X = pd.Series(X)
-
-    else:
-        X = pd.DataFrame(X)
-
-    return X
-
 
 def cosine_similarity(A, B):
     """

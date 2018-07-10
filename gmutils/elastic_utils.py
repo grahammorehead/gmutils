@@ -244,7 +244,7 @@ def parse_doc_output(doc):
     return out
 
 
-def match_search(line, index="default", field="name", size=10, operator="or"):
+def match_search(line, index="default", field="name", size=20, operator="or", min_score=0.5):
     body = {
         "query": {
             "match": {
@@ -255,14 +255,28 @@ def match_search(line, index="default", field="name", size=10, operator="or"):
                 }
             }
         },
-        "size": size
+        "size": size,
+        "min_score": min_score
     }
     # print(json.dumps(body))
     res = es.search(index=index, body=body)
     return res['hits']['hits']
 
 
-def constant_score_search(line, index="default", field="name", size=100, minimum_should_match="60%"):
+def phrase_search(line, index="default", field="name", size=20, operator="or", min_score=0.5):
+    body = {
+        "query": {
+            "match_phrase": { field: line }
+        },
+        "size": size,
+        "min_score": min_score
+    }
+    # print(json.dumps(body))
+    res = es.search(index=index, body=body)
+    return res['hits']['hits']
+
+
+def constant_score_search(line, index="default", field="name", size=20, minimum_should_match="60%"):
     """
     A better tool when TFIDF is meaningless
     """
@@ -284,8 +298,8 @@ def constant_score_search(line, index="default", field="name", size=100, minimum
             }
         },
     }
-    print(json.dumps(body))
-    res = es.search(index=index, body=body)
+    # print(json.dumps(body))
+    res = es.msearch(index=index, body=body)
     return res['hits']['hits']
 
 

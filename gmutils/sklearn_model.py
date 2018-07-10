@@ -17,12 +17,16 @@ except Exception as e: err([], {'exception':e, 'level':0})
 import csv
 import math
 
-from sklearn.linear_model import SGDClassifier
-from sklearn.svm import SVR
-from sklearn.tree import DecisionTreeClassifier
-from sklearn.neural_network import MLPClassifier, MLPRegressor
-from sklearn.ensemble import RandomForestClassifier
-from sklearn.ensemble import VotingClassifier
+try:
+    from sklearn.linear_model import SGDClassifier
+    from sklearn.svm import SVR
+    from sklearn.tree import DecisionTreeClassifier
+    from sklearn.neural_network import MLPClassifier, MLPRegressor
+    from sklearn.ensemble import RandomForestClassifier
+    from sklearn.ensemble import VotingClassifier
+    from sklearn.ensemble import AdaBoostClassifier
+    from sklearn.externals.joblib.parallel import parallel_backend
+except Exception as e: err([], {'exception':e, 'level':0})
 
 from gmutils.model import Model
 
@@ -53,7 +57,7 @@ class SklearnModel(Model):
     label : str
         The supervised label
 
-    model : a Keras, TensorFlow, or Scikit-Learn Model
+    model : Scikit-Learn Model
 
     model_dir : str
         Path to where the model is stored
@@ -63,8 +67,15 @@ class SklearnModel(Model):
 
     estimators : array of str
         Names of the underlying estimator(s) to be used
-
     """
+    def __init__(self, options=None):
+        """
+        Instantiate the object and set options
+        """
+        self.set_options(options, default)
+        super().__init__(options)
+
+        
     def generate(self):
         """
         Generate the guts of the model
@@ -80,6 +91,7 @@ class SklearnModel(Model):
             estimators.append(('SVM', svm))
 
         """  SVR Support-Vector Regression
+        Hard Voting ONLY
         """
         if 'svr' in self.get('estimators'):
             svr = SVR(kernel='rbf', degree=3, gamma='auto', coef0=0.0, tol=0.001, C=1.0, epsilon=0.1, shrinking=True, cache_size=200, verbose=False, max_iter=-1)
@@ -98,6 +110,7 @@ class SklearnModel(Model):
 
         """  NN Regressor
                  more info: http://scikit-learn.org/stable/modules/generated/sklearn.neural_network.MLPRegressor.html
+        Hard Voting ONLY
         """
         if 'nnr' in self.get('estimators'):
             nnr = MLPRegressor(hidden_layer_sizes=self.get('nn_hl'), activation='relu', solver='sgd', alpha=0.0001, batch_size='auto', learning_rate='adaptive', learning_rate_init=0.1, power_t=0.5, max_iter=self.get('nn_max_iter'), shuffle=True, tol=0.0001, verbose=True, warm_start=False, momentum=0.9, nesterovs_momentum=True, early_stopping=False, validation_fraction=0.1, beta_1=0.9, beta_2=0.999, epsilon=1e-08)
@@ -116,7 +129,7 @@ class SklearnModel(Model):
                  more info: http://scikit-learn.org/stable/modules/generated/sklearn.ensemble.RandomForestClassifier.html
         """
         if 'rf' in self.get('estimators'):                #####################  Removed: max_features=1000,
-            rf = RandomForestClassifier(n_estimators=10000, criterion='entropy', max_depth=None, min_samples_split=2, max_leaf_nodes=None, min_impurity_split=1e-07, bootstrap=True, oob_score=True, n_jobs=-1, verbose=verbose)
+            rf = RandomForestClassifier(n_estimators=1000, criterion='entropy', max_depth=None, min_samples_split=2, max_leaf_nodes=None, min_impurity_split=1e-07, bootstrap=True, oob_score=True, n_jobs=-1, verbose=verbose)
             estimators.append(('RF', rf))
 
 

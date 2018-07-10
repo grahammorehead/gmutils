@@ -824,11 +824,17 @@ def load_vocab(file):
 if __name__ == '__main__':
     parser = argparser({'desc': "Document object: document.py"})
     parser.add_argument('--vocab', help='File with word embeddings', required=False, type=str)
+    parser.add_argument('--print_vocab', help='Print out with word embeddings', required=False, action='store_true')
     parser.add_argument('--trinary', help='Build trinary tree', required=False, action='store_true')
     args = parser.parse_args()   # Get inputs and options
     vocab = load_vocab(args.vocab)
     
-    if args.file:
+    if args.print_vocab:
+        for k,v in vocab.items():
+            v = list(v)
+            print(k, ' '.join(map(str,v)))
+        
+    elif args.file:
         docs = []
         for file in args.file:
             docs.append( Document(text) )
