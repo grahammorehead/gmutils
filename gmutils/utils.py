@@ -3,7 +3,13 @@
     Helper functions
 
 """
-import os, sys, re
+import sys
+if not sys.warnoptions:
+    import warnings
+    warnings.filterwarnings("ignore", message="numpy.dtype size changed")
+    warnings.filterwarnings("ignore", message="numpy.ufunc size changed")
+
+import os, re
 import types
 import shutil
 import time
@@ -24,9 +30,16 @@ import scipy
 from scipy import spatial
 
 np.set_printoptions(linewidth=260)
-                        
+
 ################################################################################
 # FUNCTIONS
+
+def filter_warnings():
+    if not sys.warnoptions:
+        import warnings
+        warnings.filterwarnings("ignore", message="numpy.dtype size changed")
+        warnings.filterwarnings("ignore", message="numpy.ufunc size changed")
+
 
 def isTrue(options, key):
     """
@@ -1021,6 +1034,16 @@ def deepcopy_list(X):
     out = []
     for x in X:
         out.append(x)
+    return out
+    
+
+def deepcopy_set(X):
+    """
+    Deep-ish copy the set X (Python deepcopy fails for many object types)
+    """
+    out = set([])
+    for x in X:
+        out.add(x)
     return out
     
 

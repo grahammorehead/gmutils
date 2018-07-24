@@ -3,19 +3,18 @@
     Class to manage all internal elements of a document having an underlying Spacy Doc
 
 """
-import os, sys, re, time
+import sys
+import os, re, time
 from copy import deepcopy
 from collections import deque
 import numpy as np
-from spacy.matcher import Matcher
-from spacy.matcher import PhraseMatcher
-
 from gmutils.utils import err, argparser, deserialize, read_file, read_conceptnet_vectorfile, start_with_same_word, cosine_similarity, deepcopy_list
 from gmutils.normalize import normalize, clean_spaces, ascii_fold, ends_with_punctuation, close_enough, simplify_for_distance, naked_words
 from gmutils.nlp import generate_spacy_data, tokenize, get_sentences
 from gmutils.objects import Object
 from gmutils.node import Node, iprint
-
+from spacy.matcher import Matcher
+from spacy.matcher import PhraseMatcher
 try:
     import pandas as pd
 except Exception as e: err([], {'exception':e, 'level':0})
