@@ -2045,7 +2045,8 @@ class Node(Object):
         
         # Recursion
         for child in self.children:
-            child.pretty_print(depth + 1, options=options)
+            if depth < 6:
+                child.pretty_print(depth + 1, options=options)
 
             
     def pretty_print_trinary(self, sib_num=0, options={}):

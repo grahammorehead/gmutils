@@ -514,7 +514,7 @@ class Document(Object):
         """
         Print parsed elements in an easy-to-read format
         """
-        for tree in self.trees:
+        for tree in self.trees:   # Each 'tree' is of the Node class
             print("\nSENTENCE:", tree.get_supporting_text(), "\n")
             tree.pretty_print(options=options)
 

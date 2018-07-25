@@ -19,13 +19,13 @@ from gmutils.lexical import damerauLevenshtein, phrase_similarity
 ################################################################################
 # ADMIN FUNCTIONS
 
-def delete_index(index='default'):
+def delete_index(indexes=['default']):
     """
-    Delete the given index
-
+    Delete the given indexes
     """
-    sys.stderr.write('Deleting '+ index +'...\n')
-    es.indices.delete(index=index, ignore=[400, 404])
+    for index in indexes:
+        sys.stderr.write('Deleting '+ index +'...\n')
+        es.indices.delete(index=index, ignore=[400, 404])
 
 
 def list_indices():
@@ -417,13 +417,13 @@ if __name__ == '__main__':
         list_indices()
         exit()
 
+    if args.delete:
+        delete_index(args.index)
+        exit()
+
     index = 'default'
     if args.index:
         index = args.index[0]
-
-    if args.delete:
-        delete_index(index)
-        exit()
 
     if args.get:
         docs = match_all(index)
