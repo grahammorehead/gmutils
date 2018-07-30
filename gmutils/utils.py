@@ -1146,7 +1146,16 @@ def num_pos_elements(X):
         X = np.array(X)
 
     return np.where(X>0)[0].shape[0]
-        
+
+
+def move_file(filepath, newdir):
+    """
+    mv 'filepath' to the directory 'newdir'
+    """
+    filename = os.path.basename(filepath)
+    newpath = newdir +'/'+ filename
+    os.rename(filepath, newpath)
+
 
 ################################################################################
 # MAIN
