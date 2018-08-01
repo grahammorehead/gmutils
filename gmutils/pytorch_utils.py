@@ -11,7 +11,6 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 import numpy as np
-
 from gmutils.utils import err, argparser, isTrue, read_dir
 
 ################################################################################
@@ -64,29 +63,59 @@ def print_info(T):
     print()
     
 
+def torchtensor(X, ttype=torch.DoubleTensor, requires_grad=False):
+    """
+    Converts X into a PyTorch Tensor
+    """
+    if isinstance(X, torch.Tensor):
+        T = X
+        if ttype == torch.DoubleTensor:    # float 64
+            T = T.double()
+        elif ttype == torch.FloatTensor:   # float 32
+            T = T.float()
+        elif ttype == torch.HalfTensor:    # float 16
+            T = T.half()
+        elif ttype == torch.ByteTensor:    # uint 8
+            T = T.byte()
+        elif ttype == torch.CharTensor:    # int 8
+            T = T.char()
+        elif ttype == torch.ShortTensor:   # int 16
+            T = T.short()
+        elif ttype == torch.IntTensor:     # int 32
+            T = T.int()
+        elif ttype == torch.LongTensor:    # int 64
+            T = T.long()
+            
+    else:
+        if isinstance(X, int)  or  isinstance(X, float):
+            X = [X]
+        if not isinstance(X, list):
+            err([X])
+            exit()
+        T = ttype(X)
+
+    T.requires_grad = requires_grad
+    # print_info(T)
+    return T
+
+    
 def torchvar(X, ttype=torch.DoubleTensor, requires_grad=False):
     """
     Converts X into a PyTorch autograd Variable, ready to be part of a computational graph
-    """
-    if len(X) > 1:
-        narr = np.array(X)
-        
-        T = torch.from_numpy(narr)
-        if ttype == torch.DoubleTensor:
-            T = T.double()
-        elif ttype == torch.FloatTensor:
-            T = T.float()
-    else:
-        T = ttype(X)
 
+    NOTE:  This code reflects a change in Pytorch 0.4.0, Variable and Tensor have merged
+    """
+    T = torchtensor(X, requires_grad=requires_grad)   # First convert X to a tensor
     if torch.cuda.is_available():
         T = T.cuda()
-    V = torch.autograd.Variable(T, requires_grad=requires_grad)
+
+    # Next line commented out for PyTorch 0.4.0  
+    # V = torch.autograd.Variable(T, requires_grad=requires_grad)
     
-    return V
+    return T
 
 
-def var_zeros(n, ttype=torch.DoubleTensor):
+def var_zeros(n, ttype=torch.DoubleTensor, requires_grad=False):
     """
     Returns Variable ready for computational graph
     """
@@ -98,12 +127,14 @@ def var_zeros(n, ttype=torch.DoubleTensor):
             
     if torch.cuda.is_available():
         T = T.cuda()
-    V = torch.autograd.Variable(T, requires_grad=False)
+        
+    T.requires_grad = requires_grad
+    # V = torch.autograd.Variable(T, requires_grad=False)
     
-    return V
+    return T
     
 
-def var_ones(n, ttype=torch.DoubleTensor):
+def var_ones(n, ttype=torch.DoubleTensor, requires_grad=False):
     """
     Returns Variable ready for computational graph
     """
@@ -115,9 +146,11 @@ def var_ones(n, ttype=torch.DoubleTensor):
             
     if torch.cuda.is_available():
         T = T.cuda()
-    V = torch.autograd.Variable(T, requires_grad=False)
+        
+    T.requires_grad = requires_grad
+    # V = torch.autograd.Variable(T, requires_grad=False)
     
-    return V
+    return T
 
 
 def empty():
