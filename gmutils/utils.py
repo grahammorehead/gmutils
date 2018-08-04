@@ -341,6 +341,7 @@ def generate_file_iterator(dirpath, skip=None, options={}):
     Yields one file at a time - NOT to be confused with iter_file()
     """
     verbose = False
+    _monitor = options.get('_monitor')
     filenames = sorted(read_dir(dirpath, options=options))
 
     # Skip based on a percentage

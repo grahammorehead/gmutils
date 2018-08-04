@@ -472,6 +472,17 @@ def tensor_cat(A, B, dim=0):
     return torch.cat([A, B], dim)
 
 
+def tensor_sum(tensors):
+    """
+    Element-wise sum a set of tensors all having same dimensionality
+    """
+    output = tensors[0]
+    if len(tensors) > 1:
+        for tensor in tensors[1:]:
+            output = output + tensor
+    return output
+    
+    
 def dilate_answers(preds, labels):
     """
     Increase the cost between preds and labels with a non-learning layer
@@ -490,7 +501,21 @@ def dilate_answers(preds, labels):
     preds = att * preds + preds
     
     return preds, labels
-            
+
+
+def pearson_coeff(X, Y):
+    """
+    The Pearson correlation coefficient is a measure of the linear correlation between two variables.
+
+    PCC = cov(X,Y)/(stdev_X * stdev_Y)
+    """
+    vx   = X - torch.mean(X)
+    vy   = Y - torch.mean(Y)
+    pcc = torch.sum(vx * vy) / (torch.sqrt(torch.sum(vx ** 2)) * torch.sqrt(torch.sum(vy ** 2)))
+    
+    return pcc
+
+
 ################################################################################
 # MAIN
 
