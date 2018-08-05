@@ -101,16 +101,33 @@ def torchtensor(X, ttype=torch.DoubleTensor, requires_grad=False):
     
 def torchvar(X, ttype=torch.DoubleTensor, requires_grad=False):
     """
-    Converts X into a PyTorch autograd Variable, ready to be part of a computational graph
+    Converts X into a PyTorch tensor, ready to be part of a computational graph
 
     NOTE:  This code reflects a change in Pytorch 0.4.0, Variable and Tensor have merged
     """
-    T = torchtensor(X, requires_grad=requires_grad)   # First convert X to a tensor
+    T = torchtensor(X, ttype=ttype, requires_grad=requires_grad)   # First convert X to a tensor
     if torch.cuda.is_available():
         T = T.cuda()
 
     # Next line commented out for PyTorch 0.4.0  
     # V = torch.autograd.Variable(T, requires_grad=requires_grad)
+    
+    return T
+
+
+def torchvar_list(X, ttype=torch.DoubleTensor, requires_grad=False):
+    """
+    Converts a list X of Python variables into PyTorch tensors, ready to be part of a computational graph
+
+    NOTE:  This code reflects a change in Pytorch 0.4.0, Variable and Tensor have merged
+    """
+    tensors = []
+    for x in X:
+        t = torchtensor(x, ttype=ttype, requires_grad=requires_grad)   # First convert X to a tensor
+        tensors.append(t)
+    T = torch.stack(tensors)
+    if torch.cuda.is_available():
+        T = T.cuda()
     
     return T
 
@@ -472,7 +489,7 @@ def tensor_cat(A, B, dim=0):
     return torch.cat([A, B], dim)
 
 
-def tensor_sum(tensors):
+def tensor_sum_old(tensors):
     """
     Element-wise sum a set of tensors all having same dimensionality
     """
@@ -481,6 +498,33 @@ def tensor_sum(tensors):
         for tensor in tensors[1:]:
             output = output + tensor
     return output
+    
+    
+def tensor_sum(tensors):
+    """
+    Element-wise sum a set of tensors all having same dimensionality
+    """
+    T   = torch.sum(tensors, 0)
+    return T
+    
+    
+def L1_norm_sum_of_vectors(vectors):
+    """
+    L1-Normalized Element-wise sum a set of vectors all having same dimensionality
+    """
+    tensors = torchvar_list(vectors)   # A stacked array of tensors with the same dimensionality
+    T = torch.sum(tensors, 0)          # A single tensor with the original dimension
+    T = F.normalize(T.unsqueeze(0), 1).squeeze(0)
+    return T
+    
+    
+def L1_norm_sum(tensors):
+    """
+    L1-Normalized Element-wise sum a set of tensors all having same dimensionality
+    """
+    T = torch.sum(tensors, 0)
+    T = F.normalize(T.unsqueeze(0), 1).squeeze(0)
+    return T
     
     
 def dilate_answers(preds, labels):
