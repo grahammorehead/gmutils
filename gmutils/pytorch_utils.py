@@ -511,6 +511,10 @@ def tensor_sum(tensors):
 def L1_norm_sum_of_vectors(vectors):
     """
     L1-Normalized Element-wise sum a set of vectors all having same dimensionality
+
+    Parameters
+    ----------
+    tensors : python list of python vectors (which are also lists)
     """
     tensors = torchvar_list(vectors)   # A stacked array of tensors with the same dimensionality
     T = torch.sum(tensors, 0)          # A single tensor with the original dimension
@@ -521,7 +525,12 @@ def L1_norm_sum_of_vectors(vectors):
 def L1_norm_sum(tensors):
     """
     L1-Normalized Element-wise sum a set of tensors all having same dimensionality
+
+    Parameters
+    ----------
+    tensors : python list of PyTorch tensors
     """
+    tensors = torch.stack(tensors)
     T = torch.sum(tensors, 0)
     T = F.normalize(T.unsqueeze(0), 1).squeeze(0)
     return T
