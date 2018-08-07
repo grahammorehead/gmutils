@@ -167,7 +167,7 @@ def argparser_ml(options={}):
     parser.add_argument('--thresh',           help='Threshold for some output label operations such as binarization', type=float, required=False)
     parser.add_argument('--train_file',       help='Training files local or GCS', required=False, type=str)
     parser.add_argument('--train_dir',        help='Directory where training data is stored', required=False, type=str)
-    parser.add_argument('--steps_per_epoch',  help='Steps per epoch', required=False, type=int)
+    parser.add_argument('--steps',            help='Steps per training batch', required=False, type=int)
     parser.add_argument('--weights',          help='A weights file to load', required=False, type=str)
 
     return parser
@@ -336,6 +336,16 @@ def iter_file(file, options=None):
         yield line.rstrip()
 
 
+def file_number(filepath):
+    """
+    Get the number in a squad training file
+    """
+    num = os.path.basename(filepath)
+    num = re.sub(r'\.json\.gz$', '', num)
+
+    return int(num)
+
+
 def generate_file_iterator(dirpath, skip=None, options={}):
     """
     Yields one file at a time - NOT to be confused with iter_file()
@@ -349,6 +359,7 @@ def generate_file_iterator(dirpath, skip=None, options={}):
         skip_val = skip / 100.0
         N = len(filenames)
         skip_i = int(skip_val * N)
+        sys.stderr.write("Skipping %d files ...\n"% skip_i)
         filenames = filenames[skip_i:]
     
     for filename in filenames:

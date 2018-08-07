@@ -503,8 +503,26 @@ def tensor_sum_old(tensors):
 def tensor_sum(tensors):
     """
     Element-wise sum a set of tensors all having same dimensionality
+
+    Parameters
+    ----------
+    tensors : python list of PyTorch tensors
     """
+    tensors = torch.stack(tensors)
     T   = torch.sum(tensors, 0)
+    return T
+    
+    
+def tensor_sum_of_vectors(vectors):
+    """
+    Element-wise sum a set of tensors all having same dimensionality
+
+    Parameters
+    ----------
+    tensors : python list of PyTorch tensors
+    """
+    tensors = torchvar_list(vectors)   # A stacked array of tensors with the same dimensionality
+    T       = torch.sum(tensors, 0)
     return T
     
     
@@ -517,8 +535,8 @@ def L1_norm_sum_of_vectors(vectors):
     tensors : python list of python vectors (which are also lists)
     """
     tensors = torchvar_list(vectors)   # A stacked array of tensors with the same dimensionality
-    T = torch.sum(tensors, 0)          # A single tensor with the original dimension
-    T = F.normalize(T.unsqueeze(0), 1).squeeze(0)
+    T       = torch.sum(tensors, 0)          # A single tensor with the original dimension
+    T       = F.normalize(T.unsqueeze(0), 1).squeeze(0)
     return T
     
     
@@ -531,14 +549,38 @@ def L1_norm_sum(tensors):
     tensors : python list of PyTorch tensors
     """
     tensors = torch.stack(tensors)
-    T = torch.sum(tensors, 0)
-    T = F.normalize(T.unsqueeze(0), 1).squeeze(0)
+    T       = torch.sum(tensors, 0)
+    T       = F.normalize(T.unsqueeze(0), 1).squeeze(0)
     return T
     
     
-def dilate_answers(preds, labels):
+def dilate_positive_error(preds, labels):
     """
-    Increase the cost between preds and labels with a non-learning layer
+    Increase the cost between preds and labels in the cases where the label is a positive example
+
+    This funciton acts like a non-learning layer
+
+    Parameters
+    ----------
+    preds, labels : tensors of equal size (probably 1-dimensional)
+
+    Returns
+    -------
+    preds, labels : same tensors but modified
+    """
+    N = labels.numel()
+    att = N * labels
+    labels = att + labels
+    preds = att * preds + preds
+    
+    return preds, labels
+
+
+def dilate_error(preds, labels):
+    """
+    Increase the cost between preds and labels via a smooth funciton, exentuating error
+
+    This funciton acts like a non-learning layer
 
     Parameters
     ----------
@@ -568,6 +610,13 @@ def pearson_coeff(X, Y):
     
     return pcc
 
+
+def pearson_loss(X, Y):
+    """
+    Loss function based on the Pearson Correlation Coefficient
+    """
+    return 1.0 - pearson_coeff(X, Y)
+    
 
 ################################################################################
 # MAIN
