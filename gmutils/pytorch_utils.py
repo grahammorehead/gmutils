@@ -672,7 +672,16 @@ class PearsonLoss(Loss._Loss):
 
 if __name__ == '__main__':
     parser = argparser({'desc': "Utils for PyTorch: pytorch_utils.py"})
+    parser.add_argument('--rate_by_epoch', help='Test a learning rate against the rate_by_epoch function', required=False, type=float, default=0)
+    args = parser.parse_args()
 
+    if args.rate_by_epoch:
+        orig = args.rate_by_epoch
+        for i in range(50):
+            epoch = i + 1
+            output = learning_rate_by_epoch(epoch, args.rate_by_epoch)
+            print("E %d  Lr: %0.8f"% (epoch, output))
+        
 
 ################################################################################
 ################################################################################
