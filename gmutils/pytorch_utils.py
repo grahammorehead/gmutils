@@ -662,9 +662,12 @@ class PearsonLoss(Loss._Loss):
     """
     def __init__(self, size_average=None, reduce=None, reduction='elementwise_mean'):
         super(PearsonLoss, self).__init__(size_average, reduce, reduction)
+        self.L1 = nn.L1Loss()
 
     def forward(self, input, target):
-        return pearson_loss(input, target)
+        pl = pearson_loss(input, target)
+        l1 = self.L1(input, target)
+        return max(pl, l1)
 
 
 ################################################################################
