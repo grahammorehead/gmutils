@@ -51,7 +51,7 @@ setopt no_share_history
 install_mac2:
 	# sh -c "$(curl -fsSL https://raw.github.com/robbyrussell/oh-my-zsh/master/tools/install.sh)"
 	python -m spacy download 'en_core_web_lg'
-	defaults write -g InitialKeyRepeat -int 12 # normal minimum is 15 (225 ms)
+	defaults write -g InitialKeyRepeat -int 15 # normal minimum is 15 (225 ms)
 	defaults write -g KeyRepeat -int 2 # normal minimum is 2 (30 ms)
 
 
