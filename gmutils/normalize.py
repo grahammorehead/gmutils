@@ -11,7 +11,6 @@ import sys
 #sys.setdefaultencoding('utf8')
 
 import os, re
-import chardet
 import datetime
 import unicodedata
 
@@ -341,9 +340,9 @@ def simplify(text):
 
         # Iterate over characters
         for x in text:
-            # Previously filtered char-by-char: (u'[0-9a-zA-ZñÑ\.\'\?\!\"\:\$\%\@]', t)
+            # Previously filtered char-by-char
             # char-by-char scrubbing
-            if re.search(u'[\dA-ZñÑ\'\-\s\?\!\.\,\;]', x, flags=re.I):   # further simplification / sanity check
+            if re.search(u'[\dA-ZñÑ\'\-\s\?\!\.\,\;\_]', x, flags=re.I):   # further simplification / sanity check
                 output += x
 
         if verbose:
@@ -425,6 +424,8 @@ def naked_words(text):
     """
     words = text.split(' ')
     out   = []
+    if not isinstance(words, list):
+        words = [words]
     for word in words:
         out.append( simplify_for_distance(word) )
     return out
@@ -447,6 +448,7 @@ if __name__ == '__main__':
 
     parser = argparser({'desc': "normalize.py"})
     parser.add_argument('--ascii_fold', help='Fold special characters to ASCII', required=False, type=str)
+    parser.add_argument('--naked_words', help='Normalize using naked_words()', required=False, type=str)
     args = parser.parse_args()   # Get inputs and options
 
     if args.str:
@@ -455,6 +457,9 @@ if __name__ == '__main__':
     elif args.ascii_fold:
         print(ascii_fold(args.ascii_fold))
 
+    elif args.naked_words:
+        print(naked_words(args.naked_words))
 
+        
 ################################################################################
 ################################################################################

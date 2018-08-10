@@ -6,25 +6,26 @@ Helper functions for Elasticsearch
 from elasticsearch import Elasticsearch
 
 import os, sys, re
+import json
 from editdistance import eval as fast_levenshtein
 
 from elasticsearch import helpers
 es = Elasticsearch()
 
 from gmutils.utils import err, argparser, isTrue
-from gmutils.normalize import normalize
+from gmutils.normalize import normalize, naked_words
 from gmutils.lexical import damerauLevenshtein, phrase_similarity
 
 ################################################################################
 # ADMIN FUNCTIONS
 
-def delete_index(index='default'):
+def delete_index(indexes=['default']):
     """
-    Delete the given index
-
+    Delete the given indexes
     """
-    sys.stderr.write('Deleting '+ index +'...\n')
-    es.indices.delete(index=index, ignore=[400, 404])
+    for index in indexes:
+        sys.stderr.write('Deleting '+ index +'...\n')
+        es.indices.delete(index=index, ignore=[400, 404])
 
 
 def list_indices():
@@ -243,19 +244,62 @@ def parse_doc_output(doc):
     return out
 
 
-def match_search(line, index='default'):
+def match_search(line, index="default", field="name", size=20, operator="or", min_score=0.5):
     body = {
         "query": {
             "match": {
-                "name": {
+                field: {
                     "query":     line,
                     "fuzziness": "AUTO",
-                    "operator":  "and"
+                    "operator":  operator
                 }
             }
-        }
+        },
+        "size": size,
+        "min_score": min_score
     }
+    # print(json.dumps(body))
     res = es.search(index=index, body=body)
+    return res['hits']['hits']
+
+
+def phrase_search(line, index="default", field="name", size=20, operator="or", min_score=0.5):
+    body = {
+        "query": {
+            "match_phrase": { field: line }
+        },
+        "size": size,
+        "min_score": min_score
+    }
+    # print(json.dumps(body))
+    res = es.search(index=index, body=body)
+    return res['hits']['hits']
+
+
+def constant_score_search(line, index="default", field="name", size=20, minimum_should_match="60%"):
+    """
+    A better tool when TFIDF is meaningless
+    """
+    terms = naked_words(line)
+    should  = []
+    for term in terms:
+        should.append( {"term":{field:term}} )
+            
+    body = {
+        "size": size,
+        "query": {
+            "constant_score": {
+                "filter": {
+                    "bool": {
+                        "should": should,
+                        "minimum_should_match":minimum_should_match
+                    }
+                }
+            }
+        },
+    }
+    # print(json.dumps(body))
+    res = es.msearch(index=index, body=body)
     return res['hits']['hits']
 
 
@@ -373,13 +417,13 @@ if __name__ == '__main__':
         list_indices()
         exit()
 
+    if args.delete:
+        delete_index(args.index)
+        exit()
+
     index = 'default'
     if args.index:
         index = args.index[0]
-
-    if args.delete:
-        delete_index(index)
-        exit()
 
     if args.get:
         docs = match_all(index)

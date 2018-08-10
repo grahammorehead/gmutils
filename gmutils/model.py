@@ -8,14 +8,20 @@ import json
 import pickle
 from copy import deepcopy
 import random
-import pandas as pd
-from sklearn.preprocessing import Binarizer
-from sklearn import metrics
-from sklearn.metrics import mean_absolute_error
-
-from gmutils.utils import err, argparser, pandasize
+import numpy as np
+import scipy
+from gmutils.utils import err, argparser
 from gmutils.objects import Object
-
+try:
+    from sklearn.preprocessing import Binarizer
+    from sklearn import metrics
+    from sklearn.metrics import mean_absolute_error
+    from sklearn.externals.joblib.parallel import parallel_backend
+except Exception as e: err([], {'exception':e, 'level':0})
+try:
+    import pandas as pd
+except Exception as e: err([], {'exception':e, 'level':0})
+    
 ################################################################################
 # CONFIG
 
@@ -111,8 +117,11 @@ class Model(Object):
         verbose = self.get('verbose')
 
         X = dataset.x_train
-        Y = dataset.y_train.values.ravel()   # to prevent DataConversionWarning
-        self.model.fit(X, Y)
+        Y = dataset.y_train.values
+
+        # Y = dataset.y_train.values.ravel()   # to prevent DataConversionWarning
+        with parallel_backend('threading'):
+            self.model.fit(X, Y)
         sys.stderr.write("Done Training.\n")
 
 
@@ -351,8 +360,52 @@ class Model(Object):
                     break
                 
         return Xs
+
+################################################################################
+# FUNCTIONS    
+    
+def pandasize(X):
+    """
+    Convert some incoming data to a pandas DataFrame or Series, depending on its dimensionality
+
+    Parameters
+    ----------
+    X : list, array, or numpy Array
+
+    Returns
+    -------
+    pandas Series or DataFrame
+    """
+    make_series = False   # Assume DataFrame until otherwise indicated
+    
+    if isinstance(X, pd.Series):
+        return X
+    elif isinstance(X, pd.DataFrame):
+        return X
         
-        
+    elif isinstance(X, list):
+        make_series = True
+    
+    elif isinstance(X, np.ndarray):
+
+        if len(X.shape) == 1:
+            make_series = True
+
+        if len(X.shape) == 2:
+            if X.shape[0] == 1:
+                make_series = True
+                X = X[0]
+
+    if make_series:
+        X = pd.Series(X)
+    elif isinstance(X, scipy.sparse.csr_matrix):
+        X = pd.DataFrame(X.toarray())
+    else:
+        X = pd.DataFrame(X)
+
+    return X
+
+
 ################################################################################
 ##   MAIN   ##
 

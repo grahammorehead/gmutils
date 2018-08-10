@@ -3,14 +3,21 @@
     Helper functions
 
 """
-import os, sys, re
+import sys
+if not sys.warnoptions:
+    import warnings
+    warnings.filterwarnings("ignore", message="numpy.dtype size changed")
+    warnings.filterwarnings("ignore", message="numpy.ufunc size changed")
+
+import os, re
+import types
+import shutil
 import time
 import traceback
 import json
 import gzip
 import zipfile
 import pickle
-from sklearn.externals import joblib
 import dill
 import inspect
 import requests
@@ -19,14 +26,20 @@ import csv
 import math
 import numpy as np
 import scipy
-import pandas as pd
-from sklearn.model_selection import ShuffleSplit
+
 from scipy import spatial
 
 np.set_printoptions(linewidth=260)
-                        
+
 ################################################################################
 # FUNCTIONS
+
+def filter_warnings():
+    if not sys.warnoptions:
+        import warnings
+        warnings.filterwarnings("ignore", message="numpy.dtype size changed")
+        warnings.filterwarnings("ignore", message="numpy.ufunc size changed")
+
 
 def isTrue(options, key):
     """
@@ -136,9 +149,11 @@ def argparser_ml(options={}):
     parser.add_argument('--train_and_eval',   help='Separate data into train/eval sets, then train, then evaluate the trained model', required=False, action='store_true')
 
     # Argument-taking flags (single-use)
+    parser.add_argument('--batch',            help='Skip ahead to this batch', required=False, type=int)
     parser.add_argument('--batch_size',       help='Size of data for each epoch', required=False, type=int)
     parser.add_argument('--data_dir',         help='Directory where data is stored', required=False, type=str)
     parser.add_argument('--dataset_file',     help='Load a specific dataset file', required=False, type=str)
+    parser.add_argument('--device',           help='Device, e.g. cuda:2', required=False, type=str)
     parser.add_argument('--epoch',            help='Epochs to begin at for training', required=False, type=int)
     parser.add_argument('--epochs',           help='Number of total epochs for training', required=False, type=int)
     parser.add_argument('--eval_file',        help='Evaluation files local or GCS', required=False, type=str)
@@ -152,7 +167,7 @@ def argparser_ml(options={}):
     parser.add_argument('--thresh',           help='Threshold for some output label operations such as binarization', type=float, required=False)
     parser.add_argument('--train_file',       help='Training files local or GCS', required=False, type=str)
     parser.add_argument('--train_dir',        help='Directory where training data is stored', required=False, type=str)
-    parser.add_argument('--steps_per_epoch',  help='Steps per epoch', required=False, type=int)
+    parser.add_argument('--steps',            help='Steps per training batch', required=False, type=int)
     parser.add_argument('--weights',          help='A weights file to load', required=False, type=str)
 
     return parser
@@ -184,11 +199,17 @@ def err(vars=[], options={}):
     
     # Information about the urgency of this call
     call_level = options.get('level')
+<<<<<<< HEAD
     if call_level is None:  call_level = 2    # default is 2 (e.g. more urgent than level 1)
     os_level = 0
+=======
+    if call_level is None:  call_level = 2    # default is 2 (more urgent than level 1)
+    os_level = 2
+>>>>>>> master
     try:
         os_level = int(os.environ['GM_LEVEL'])
-    except:  pass
+    except:
+        pass
         
     callerframerecord = inspect.stack()[1]    # 0 represents this line
                                               # 1 represents line at caller
@@ -321,18 +342,41 @@ def iter_file(file, options=None):
         yield line.rstrip()
 
 
-def generate_file_iterator(dirpath, options={}):
+def file_number(filepath):
+    """
+    Get the number in a squad training file
+    """
+    num = os.path.basename(filepath)
+    num = re.sub(r'\.json\.gz$', '', num)
+
+    return int(num)
+
+
+def generate_file_iterator(dirpath, skip=None, options={}):
     """
     Yields one file at a time - NOT to be confused with iter_file()
     """
     verbose = False
-    for filepath in sorted(read_dir(dirpath, options=options)):
-        filepath = dirpath +'/'+ filepath
+    _monitor = options.get('_monitor')
+    filenames = sorted(read_dir(dirpath, options=options))
+
+    # Skip based on a percentage
+    if skip:
+        skip_val = skip / 100.0
+        N = len(filenames)
+        skip_i = int(skip_val * N)
+        sys.stderr.write("Skipping %d files ...\n"% skip_i)
+        filenames = filenames[skip_i:]
+    
+    for filename in filenames:
+        filepath = dirpath +'/'+ filename
         if verbose:
             err([filepath])
-        yield filepath
 
+        else:   # Default behavior: original file
+            yield filepath
 
+            
 def write_file(file, content, options={}):
     """
     Write 'content' to 'file'
@@ -373,7 +417,12 @@ def read_dir(path, options={}):
     verbose = False
     if verbose:
         err([path])
-    (dirpath, folders, files) = next(os.walk(path))
+    try:
+        (dirpath, folders, files) = next(os.walk(path))
+    except StopIteration:
+        return []
+    except:
+        raise
 
     # Files having a certain file extension (suffix)
     if isTrue(options, 'suffix'):
@@ -525,9 +574,10 @@ def serialize(thing, file=None, directory=None, options={}):
 
     directory : str
     """
+    thingType = re.sub(r"^.*'(.*)'.*$", r"\1", (str(type(thing))))
+    
     # Informative STDERR output
     if isVerbose(options):
-        thingType = re.sub(r"^.*'(.*)'.*$", r"\1", (str(type(thing))))
         thingType = re.sub(r"__main__\.", "", thingType)
         sys.stderr.write("Saving %s to %s ...\n"% ( thingType, file))
 
@@ -548,8 +598,12 @@ def serialize(thing, file=None, directory=None, options={}):
         filepath = file
     else:
         filepath = directory +'/'+ file
-        
+
+    # Save the pickled file    
     if isTrue(options, 'joblib'):
+        try:
+            from sklearn.externals import joblib
+        except Exception as e: err([], {'exception':e, 'level':0})
         joblib.dump(thing, file)
     elif isTrue(options, 'dill'):
         with open(file,'wb') as FH:
@@ -582,6 +636,9 @@ def deserialize(file=None, directory=None, options={}):
         sys.stderr.write("Deserializing %s ...\n"% file)
 
     if isTrue(options, 'joblib'):
+        try:
+            from sklearn.externals import joblib
+        except Exception as e: err([], {'exception':e, 'level':0})
         thing = joblib.load(file)
         return thing
     elif isTrue(options, 'dill'):
@@ -729,10 +786,11 @@ def monitor_setup(file, total_i=None, options={}):
             total_i = num_from_filename(file)
         else:
             total_i = num_lines_in_file(file)  # Assumes the input must be a file
+    if total_i == 0:
+        total_i = 1
         
     last_done = 0.0
-    sys.stderr.write("\tLines to read: %d\n"% total_i)
-    sys.stderr.write("      ")
+    # sys.stderr.write("\tLines to read: %d\n"% total_i)
     i = 0
     _monitor = { 'total_i':total_i,
                  'i':i,
@@ -767,8 +825,8 @@ def monitor(_monitor, options={}):
 
     progress_ratio = float(i)/float(total_i)
     done = 100.0 * progress_ratio
+
     if done < 100.0  and  done - last_done > 0.005:
-        _monitor['progress_ratio'] = progress_ratio
         line = "%04.4f%% "% done
         _monitor['progress'] = line
         if not options.get('silent'):
@@ -778,13 +836,24 @@ def monitor(_monitor, options={}):
             sys.stderr.flush()
             _monitor['last_line'] = line
         _monitor['last_done'] = done
+
+    _monitor['progress_ratio'] = progress_ratio
     _monitor['i'] = i
 
-    # Alter skip state based on 'done'
-    skip = _monitor.get('skip')
-    if skip  and  skip < done:
-        _monitor['skip'] = False   # Clears the skip value when it crosses the threshold
+    # Other tracking variables
+    if not _monitor.get('t0'):
+        _monitor['t0'] = time.time()
 
+    skip = _monitor.get('skip')
+    if skip:
+        if skip < done:
+            _monitor['skip'] = False   # Clears the skip value when it crosses the threshold
+    else:
+        if _monitor.get('N'):
+            _monitor['N'] += 1
+        else:
+            _monitor['N']  = 1
+    
     return _monitor
 
 
@@ -915,47 +984,6 @@ def start_with_same_word(A, B):
     return False
     
 
-def pandasize(X):
-    """
-    Convert some incoming data to a pandas DataFrame or Series, depending on its dimensionality
-
-    Parameters
-    ----------
-    X : list, array, or numpy Array
-
-    Returns
-    -------
-    pandas Series or DataFrame
-    """
-    make_series = False   # Assume DataFrame until otherwise indicated
-    
-    if isinstance(X, pd.Series):
-        return X
-    elif isinstance(X, pd.DataFrame):
-        return X
-        
-    elif isinstance(X, list):
-        make_series = True
-    
-    elif isinstance(X, np.ndarray):
-
-        if len(X.shape) == 1:
-            make_series = True
-
-        if len(X.shape) == 2:
-            if X.shape[0] == 1:
-                make_series = True
-                X = X[0]
-
-    if make_series:
-        X = pd.Series(X)
-
-    else:
-        X = pd.DataFrame(X)
-
-    return X
-
-
 def cosine_similarity(A, B):
     """
     The cosine similarity between two vectors, A and B
@@ -1027,6 +1055,16 @@ def deepcopy_list(X):
     return out
     
 
+def deepcopy_set(X):
+    """
+    Deep-ish copy the set X (Python deepcopy fails for many object types)
+    """
+    out = set([])
+    for x in X:
+        out.add(x)
+    return out
+    
+
 def deepcopy_dict(X):
     """
     Deep-ish copy the dict X (Python deepcopy fails for many object types)
@@ -1046,6 +1084,95 @@ def concat_from_list_of_dicts(key, dicts):
         err([d])
         out.append(d[key])
     return ' '.join(out)
+
+
+def binary_F1(L, P):
+    """
+    For a set of binary labels and predictions, compute the F1 score
+    """
+    assert(len(L) == len(P))
+
+    tp = fp = tn = fn = 0
+    for i,l in enumerate(L):
+        p = P[i]
+        if   l == 1  and  p == 1:
+            tp += 1
+        elif l == 0  and  p == 1:
+            fp += 1
+        elif l == 0  and  p == 0:
+            tn += 1
+        elif l == 1  and  p == 0:
+            fn += 1
+            
+    F1 = (2*tp) / (2*tp + fn + fp)
+    
+    return F1
+            
+
+def iter_next(iterator, N=1):
+    """
+    Return a list having the next N items pulled from the iterator
+    """
+    output = []
+    for n in range(N):
+        output.append(next(iterator))
+    return output
+    
+
+def tmpfile_name(options={}):
+    """
+    generate tmpfile name
+    """
+    dirpath = "./tmp"
+    mkdirs(dirpath)
+    return dirpath + "/%d"% os.getpid() + "." + options.get('ext')
+    
+
+def args_to_options(args):
+    """
+    Convert a Namespace to a dict
+    """
+    options = {}
+    for key in dir(args):
+        # Skip some keys that shouldn't be absorbed into the next object
+        if re.search('^_', key):
+            continue
+        if key == 'input'  or  key == 'options':
+            continue
+        val = getattr(args, key)
+        if isinstance(val, types.MethodType):
+            continue
+
+        options[key] = val
+        
+    return options
+
+
+def num_pos_elements(X):
+    """
+    Number of positive nonzero elements in a list 'X'
+
+    Parameters
+    ----------
+    X : ndarray or list
+
+    Returns
+    -------
+    int
+    """
+    if isinstance(X, list):
+        X = np.array(X)
+
+    return np.where(X>0)[0].shape[0]
+
+
+def move_file(filepath, newdir):
+    """
+    mv 'filepath' to the directory 'newdir'
+    """
+    filename = os.path.basename(filepath)
+    newpath = newdir +'/'+ filename
+    os.rename(filepath, newpath)
 
 
 ################################################################################

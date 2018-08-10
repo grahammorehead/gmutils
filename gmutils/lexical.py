@@ -3,18 +3,20 @@
     Some Tools to assist with lexical operations
 
 """
-
 import time, sys, re
 from numpy import sqrt
-
 from editdistance import eval as fast_levenshtein
+from gmutils.utils import err
+from gmutils.normalize import simplify_for_distance
 
-from .utils import err
-from .normalize import simplify_for_distance
+################################################################################
+# DEFAULTS
 
-# Globals
-global stringType
-stringType = type('abc')
+low_val_str = "i, me, my, myself, we, our, ours, ourselves, you, your, yours, yourself, yourselves, he, him, his, himself, she, her, hers, herself, it, its, itself, they, them, their, theirs, themselves, what, which, who, whom, this, that, these, those, am, is, are, was, were, be, been, being, have, has, had, having, do, does, did, doing, a, an, the, and, but, if, or, because, as, until, while, of, at, by, for, with, about, against, between, into, through, during, before, after, above, below, to, from, up, down, in, out, on, off, over, under, again, further, then, once, here, there, when, where, why, how, all, any, both, each, few, more, most, other, some, such, no, nor, not, only, own, same, so, than, too, very, s, t, can, will, just, don, should, now"
+
+low_val_words = set(low_val_str.split(', '))
+
+medium_val_words = set([])
 
 ################################################################################
 
@@ -133,7 +135,7 @@ def levenshtein(s, t, cost=letterCost, options={}):
     #     s,n,j are associated
     #     t,m,i are associated
     
-    verbose = True
+    verbose = False
     if verbose:
         print( '\n\nComparing:  ',s,':',t )
 
@@ -232,7 +234,6 @@ def levenshtein(s, t, cost=letterCost, options={}):
         return [final_cost, norm[m][n]]
 
     return final_cost
-
 
 
 def levenshtein_r(s, t, cost=letterCost):
@@ -454,7 +455,7 @@ def swapIndices(s, i, j):
     ''' swaps the index of the two elements in s '''
     if i == j: return s
 
-    if type(s) == stringType:
+    if isinstance(s, str):
         if i < j:
             a,b = i,j
         else:
@@ -587,17 +588,17 @@ def string_distance(A, B, options={}):
     Normalized Levenshtein-Damerau distance between two strings
     """
     verbose = False
-
     len_A = len(A)
     len_B = len(B)
     length = float( max( len_A, len_B ) )
     abs_dist = damerauLevenshtein(A, B)
-    diff_length = abs(len_A - len_B)
+    
+    # diff_length = abs(len_A - len_B)
     # rel_diff_length = diff_length / length
     
     distance = abs_dist / length
     if verbose:
-        err([A, B, abs_dist, length, rel_diff_length, distance])
+        err([A, B, abs_dist, length, distance])
     
     return distance
     
@@ -628,18 +629,17 @@ def find_and_rm_perfect_match(token, indices, A):
     return best_i, indices
 
 
-def find_and_rm_best_match(token, indices, A):
+def find_and_rm_best_match(token, indices, A, options={}):
     """
     for a given token, will search through the indices in A for the best match in A
     """
     verbose = False
-    
     if len(indices) < 1:
         err(["ERROR: empty list of indices"])
         exit()
     
     keep = []
-    smallest_distance = 1.0  # distance goes between [0,1]
+    smallest_distance = 1.0    # distance goes between [0,1]
     best_i = None
 
     for i in indices:
@@ -654,17 +654,15 @@ def find_and_rm_best_match(token, indices, A):
                 best_i = i
 
     if best_i is not None:
-        
-        # Special accounting for longer, i.e. more meaningful words
-        if len(token) >= 4:
-            if len(A[best_i]) >= 4:
-                smallest_distance = sqrt(smallest_distance)
+        if options.get('boost_long_words'):    # Special accounting for longer, i.e. more meaningful words
+            if len(token) >= 4:
+                if len(A[best_i]) >= 4:
+                    smallest_distance = sqrt(smallest_distance)
 
         if verbose:
             err([token, A, indices])
             err([best_i, smallest_distance])
             err([A[best_i]])
-
         try:
             indices.remove(best_i)
         except:
@@ -676,11 +674,28 @@ def find_and_rm_best_match(token, indices, A):
 def process_perfect_matches(A, B):
     """
     Look for words that match between A, B and perform some overhead
+
+    Parameters
+    ----------
+    A : array of str
+
+    B : array of str
+
+    Returns
+    -------
+    closest : dict of int
+        matches each token with its best match if one exists
+
+    indices_A : array of int
+        remaining unmatched indices of tokens in A
+
+    indices_B : array of int
+        remaining unmatched indices of tokens in B
     """
     verbose = False
     
-    indices_A = range(len(A))   # track remaining unmatched indices of tokens in A
-    indices_B = range(len(B))   # track remaining unmatched indices of tokens in B
+    indices_A = list(range(len(A)))   # track remaining unmatched indices of tokens in A
+    indices_B = list(range(len(B)))   # track remaining unmatched indices of tokens in B
     closest = {}
     #  closest = Memory of closest matches for re-order
     #                    key: index in A
@@ -695,14 +710,14 @@ def process_perfect_matches(A, B):
                 indices_B.remove(i_B)
                 if verbose:
                     token_A = A[i_A]
-                    print('Perfect match  A:%s  ~  B:%s'% (token_A, token_B))
+                    print('\tPerfect match  A:%s  ~  B:%s'% (token_A, token_B))
 
     return closest, indices_A, indices_B
 
 
 def marginal_cost(i_A, token_A, i_B, token_B, distance=1.0):
     """
-    Associate a cost with this distance.  Use two external word lists
+    Associate a cost with this distance.  Uses two external word lists
     """
     verbose = False
     
@@ -728,16 +743,43 @@ def marginal_cost(i_A, token_A, i_B, token_B, distance=1.0):
 
 def process_best_matches(A, B, closest, indices_A, indices_B):
     """
-    Process best remaining matches between A, B.  Handle overhead
+    Process best remaining matches between A, B.  Starts where 'perfect_matches' leaves off.  Handle some overhead.
 
     cost calculations begin here
+
+    Parameters
+    ----------
+    A : array of str
+
+    B : array of str
+
+    closest : dict of int
+        matches each token with its best match if one exists
+
+    indices_A : array of int
+        remaining unmatched indices of tokens in A
+
+    indices_B : array of int
+        remaining unmatched indices of tokens in B
+
+    Returns
+    -------
+    closest : dict of int
+        matches each token with its best match if one exists
+
+    indices_A : array of int
+        remaining unmatched indices of tokens in A
+
+    indices_B : array of int
+        remaining unmatched indices of tokens in B
     """
     verbose = False
-    
     cost = 0.0
     
     # Iterate over remaining tokens in B (filtered on indices_B)
-    #     from longest to shortest, finding best matches
+    #     from longest to shortest, finding best matches.
+    #     Keep track of which tokens in B (if any) don't have a match.
+    unmatched_i_B = []
     for i_B,token_B in sorted( enumerate(B), reverse=True, key=lambda x: len(x[1])):
         if i_B not in indices_B:
             continue
@@ -747,6 +789,8 @@ def process_best_matches(A, B, closest, indices_A, indices_B):
 
             # Attempt to find a match for token_B
             distance, i_A, indices_A = find_and_rm_best_match(token_B,indices_A, A)
+            if distance > .21:
+                unmatched_i_B.append(i_B)
             if verbose:
                 err([distance, i_A, indices_A])
                 
@@ -757,42 +801,47 @@ def process_best_matches(A, B, closest, indices_A, indices_B):
             closest[i_A] = i_B           # Store match using indices
             token_A = A[i_A]
             if verbose:
-                print('  Best match (%0.4f)  A:%s  ~  B:%s'% (distance, token_A, token_B))
+                print('\tBest match (%0.4f)  A:%s  ~  B:%s'% (distance, token_A, token_B))
 
             cost += marginal_cost(i_A, token_A, i_B, token_B, distance)
-              
-    return closest, indices_A, indices_B, cost
+
+    if verbose:
+        err([closest, indices_A, unmatched_i_B, cost])
+    return closest, indices_A, unmatched_i_B, cost
 
 
-def process_reordering_costs(A, B, closest, indices_B):
+def process_reordering_costs(A, B, closest, indices_B, cost=0.0):
     """
     Calculate the reordering cost.  Handle some overhead
     """
     verbose = False
-
     if verbose:
+        err([A, B, closest, indices_B, cost])
         print('\nAttempting to reorder:\n "%s" "%s"'% (' '.join(A), ' '.join(B)))
-        print('\nClosest:')
+        print('\nClosest: (not in order)')
         for k,v in closest.items():
             kA = A[k]
             vB = B[v]
             print('\t', kA, ' : ', vB)
 
-    cost = 0.0
     out_A = []
     out_B = []
     last_i_B = -1
-    
+
     # Iterate over all tokens in A.
     #     Add to the reordering cost whenever B indices come out of order
     for i_A,token_A in enumerate(A):
 
         skip_cost = marginal_cost(i_A, token_A, None, None)
+        if verbose:
+            err([token_A, "skip_cost:", skip_cost])
         
         # If next i_B unmatched, incur skip cost
         i_B = last_i_B + 1
         while i_B in indices_B:
             cost += skip_cost              # Cost of skipping
+            if verbose:
+                err(["cost:", cost])
             token_B = B[i_B]
             out_A.append(None)             # Add to out_ arrays
             out_B.append(token_B)
@@ -808,9 +857,13 @@ def process_reordering_costs(A, B, closest, indices_B):
             reorder_cost = marginal_cost(i_A, token_A, i_B, token_B)
             if i_B < last_i_B:
                 cost += reorder_cost       # Reordering cost only if out of order
+                if verbose:
+                    err(["cost:", cost])
                 
         else:                              # There is no token_B for this token_A
             cost += skip_cost              # Cost of skipping
+            if verbose:
+                err(["Skipping for:", token_A])
             out_A.append(token_A)          # Add to out_ arrays
             out_B.append(None)
             
@@ -824,25 +877,60 @@ def process_reordering_costs(A, B, closest, indices_B):
         print ('cost:', cost)
 
     return cost
+
+
+def holistic_cost(A, B, closest, indices_A, indices_B, cost, length, verbose=False):
+    """
+    Compute a holistic sentence-level fuzzy weighted edit-distance score
+    """
+    if verbose:
+        err([A, indices_A, B, indices_B, closest, cost, length])
+        print('\nAttempting to reorder:\n\t"%s"\n\t"%s"'% (' '.join(A), ' '.join(B)))
+        print('\nClosest: (not in order?)')
+        for k,v in closest.items():
+            token_A = A[k]
+            token_B = B[v]
+            print('\t', token_A, ' : ', token_B)
+
+    # Add reordering costs for matches
+    for k,v in closest.items():
+        token_A = A[k]
+        token_B = B[v]
+        new_cost = (abs(k-v)/length)
+        cost += new_cost
+        if verbose:  print('\t', token_A, ' : ', token_B, '  cost:', new_cost)
+
+    # Add costs for unmatched tokens and normalize
+    num_matched    = 2 * len(closest)
+    num_unmatched  = len(indices_A) + len(indices_B)
+    unmatched_cost = num_unmatched / (num_unmatched + num_matched)
+    untapped_cost  = 1 - cost
+    rel_um_cost    = unmatched_cost * untapped_cost
+    if verbose:
+        err([num_unmatched, num_matched, rel_um_cost, cost])
+    cost          += rel_um_cost
+    cost           = min(1, cost)
+
+    return cost
+
     
-    
-def cost_best_reorder(A, B):
+def cost_best_reorder(A, B, length, verbose=True):
     """
     Reorders the tokens in B to best match those in A.
 
     Greedily matches from longest to shortest tokens in B
     """
-
     # Perfect matches first  (no cost associated with these matches)
     closest, indices_A, indices_B = process_perfect_matches(A, B)
 
     # Then best matches  (cost calculations begin here)
     closest, indices_A, indices_B, cost = process_best_matches(A, B, closest, indices_A, indices_B)
-
+    
     # Process reordering costs
-    cost = process_reordering_costs(A, B, closest, indices_B)
+    # rcost = process_reordering_costs(A, B, closest, indices_B, cost)
+    hcost = holistic_cost(A, B, closest, indices_A, indices_B, cost, length, verbose)
 
-    return cost
+    return hcost
 
 
 def meaningful_length(A):
@@ -860,7 +948,7 @@ def meaningful_length(A):
     return m
 
 
-def phrase_similarity(a, b):
+def phrase_similarity(a, b, verbose=False):
     """
     Similarity score between two strings, a and b
 
@@ -876,11 +964,8 @@ def phrase_similarity(a, b):
     score : float
         between [0,1]
     """
-    verbose = False
-    
     a = simplify_for_distance(a)
     b = simplify_for_distance(b)
-    if verbose: err([a,b])
     if a == b:
         return 1.0   # Perfect Match
     
@@ -891,27 +976,26 @@ def phrase_similarity(a, b):
 
     if len(A) >= len(B):
         length = meaningful_length(A)
-        cost = cost_best_reorder(A, B)   # Reorder so the closest words line up
+        cost = cost_best_reorder(A, B, length, verbose)   # Reorder so the closest words line up
+        if verbose:
+            err([A, B, length, cost, 1-cost])
     else:
         length = meaningful_length(B)
-        cost = cost_best_reorder(B, A)   # Reorder so the closest words line up
+        cost = cost_best_reorder(B, A, length, verbose)   # Reorder so the closest words line up
+        if verbose:
+            err([A, B, length, cost, 1-cost])
 
-    if cost >= length:
-        score = 0.0
-    else:
-        score = (length - cost) / length
+    score = 1 - cost
 
     if verbose:
-        err([length, cost, score])
+        err([a, b, length, cost, score])
             
     return score
     
 
+################################################################################
+# MAIN
 
-
-############
-##  MAIN  ##
-############
 if __name__ == '__main__':
 
     # Compute Levenshtein distance
@@ -948,3 +1032,6 @@ if __name__ == '__main__':
         dist = string_distance(sys.argv[2], sys.argv[3])
         print ('Dist:', dist)
         
+
+################################################################################
+################################################################################

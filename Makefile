@@ -90,6 +90,8 @@ install_ubuntu2:
 	pip install --upgrade pip
 	pip install -r requirements.txt
 	pip install awscli
+	pip install nltk
+	pip install pip-review
 	pip-review --local --interactive
 	python -m spacy download en_core_web_lg
 	# if desired

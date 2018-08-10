@@ -5,12 +5,17 @@ Code and objects to manage datasets for training models
 """
 import os, sys, re
 import numpy as np
-import pandas as pd
-from sklearn.model_selection import train_test_split
 
 from gmutils.utils import err, argparser, read_dir, read_file
 from gmutils.objects import Object
 
+try:
+    from sklearn.model_selection import train_test_split
+except Exception as e: err([], {'exception':e, 'level':0})
+try:
+    import pandas as pd
+except Exception as e: err([], {'exception':e, 'level':0})
+    
 ################################################################################
 # DEFAULTS
 
@@ -68,6 +73,21 @@ class Dataset(Object):
             self.balance_by_copies()
         
 
+    def explicit_load(self, x_train, x_test, y_train, y_test):
+        """
+        Eplicitly load sets
+        """
+        self.x_train  = x_train
+        self.x_test   = x_test
+        self.y_train  = y_train
+        self.y_test   = y_test
+            
+        self.print_set_sizes()
+
+        if self.get('balance_by_copies'):   # only affects training data
+            self.balance_by_copies()
+
+            
     def read_data(self, inputs):
         """
         Default function for reading data into a Dataset.  Will accept one of:

@@ -3,20 +3,22 @@
     Class to manage all internal elements of a document having an underlying Spacy Doc
 
 """
-import os, sys, re, time
+import sys
+import os, re, time
 from copy import deepcopy
 from collections import deque
 import numpy as np
-import pandas as pd
-from spacy.matcher import Matcher
-from spacy.matcher import PhraseMatcher
-
 from gmutils.utils import err, argparser, deserialize, read_file, read_conceptnet_vectorfile, start_with_same_word, cosine_similarity, deepcopy_list
 from gmutils.normalize import normalize, clean_spaces, ascii_fold, ends_with_punctuation, close_enough, simplify_for_distance, naked_words
 from gmutils.nlp import generate_spacy_data, tokenize, get_sentences
 from gmutils.objects import Object
 from gmutils.node import Node, iprint
-
+from spacy.matcher import Matcher
+from spacy.matcher import PhraseMatcher
+try:
+    import pandas as pd
+except Exception as e: err([], {'exception':e, 'level':0})
+    
 ################################################################################
 
 class Document(Object):
@@ -512,7 +514,7 @@ class Document(Object):
         """
         Print parsed elements in an easy-to-read format
         """
-        for tree in self.trees:
+        for tree in self.trees:   # Each 'tree' is of the Node class
             print("\nSENTENCE:", tree.get_supporting_text(), "\n")
             tree.pretty_print(options=options)
 
@@ -821,11 +823,17 @@ def load_vocab(file):
 if __name__ == '__main__':
     parser = argparser({'desc': "Document object: document.py"})
     parser.add_argument('--vocab', help='File with word embeddings', required=False, type=str)
+    parser.add_argument('--print_vocab', help='Print out with word embeddings', required=False, action='store_true')
     parser.add_argument('--trinary', help='Build trinary tree', required=False, action='store_true')
     args = parser.parse_args()   # Get inputs and options
     vocab = load_vocab(args.vocab)
     
-    if args.file:
+    if args.print_vocab:
+        for k,v in vocab.items():
+            v = list(v)
+            print(k, ' '.join(map(str,v)))
+        
+    elif args.file:
         docs = []
         for file in args.file:
             docs.append( Document(text) )

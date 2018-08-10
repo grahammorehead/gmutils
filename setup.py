@@ -7,7 +7,5 @@ setup(name='gmutils',
       author='grahammorehead',
       license='GPL',
       packages=['gmutils'],
-      install_requires=[
-          'spacy', 'numpy', 'scipy'
-      ],
+      install_requires=['numpy', 'scipy', 'dill', 'requests', 'editdistance'],
       zip_safe=False)

@@ -95,7 +95,7 @@ class Object(object):
                     self.set(key, val)
 
             else:
-                print('ERROR: options object is of type:', type(options))
+                print('(gmutils/objects.py) ERROR: options object is of type:', type(options))
                 exit()
 
         self.set_missing_attributes(default)
