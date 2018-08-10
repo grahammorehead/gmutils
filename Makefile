@@ -34,18 +34,11 @@ force:
 install_mac1:
 	# Suggested version of Python 3 as of this writing:
 	brew install https://raw.githubusercontent.com/Homebrew/homebrew-core/ec545d45d4512ace3570782283df4ecda6bb0044/Formula/python3.rb
+	brew install zsh
 	wget https://bootstrap.pypa.io/get-pip.py
 	pip install --upgrade pip
 	# By hand: (Using Python 3)
 	# python -m venv ~/envs/sample
-	# Add following lines to .zshrc \
-alias rm="rm -i" \
-alias mv="mv -i" \
-alias cp="cp -i" \
-alias python=python3 \
-alias python2=/usr/bin/python \
-unsetopt share_history \
-setopt no_share_history
 
 
 install_mac2:
