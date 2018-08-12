@@ -7,10 +7,12 @@ import sys, os, re
 import random
 import shutil
 import inspect
+import math
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
 import torch.nn.modules.loss as Loss
+from torch.optim.optimizer import Optimizer
 import numpy as np
 from gmutils.utils import err, argparser, isTrue, read_dir
 
@@ -45,7 +47,9 @@ def print_info(T):
     info  = inspect.getframeinfo(frame)
     file  = os.path.basename(info.filename)
     line  = info.lineno
-
+    grad_fn = T.grad_fn
+    requires_grad = T.requires_grad
+    
     try:
         size = str(T.size())
         typ  = str(type(T))
@@ -61,6 +65,8 @@ def print_info(T):
         sys.stderr.write("\tDType: %s\n"% str(T.data.type()))
     except:
         pass
+    sys.stderr.write("\tGrad Fn: %s\n"% grad_fn)
+    sys.stderr.write("\tRequires grad: %s\n"% requires_grad)
     print()
     
 
@@ -555,6 +561,22 @@ def L1_norm_sum(tensors):
     return T
     
     
+def L1_norm(T):
+    """
+    L1-Normalize a tensor
+    """
+    T       = F.normalize(T.unsqueeze(0), 1).squeeze(0)
+    return T
+    
+    
+def L2_norm(T):
+    """
+    L2-Normalize a tensor
+    """
+    T       = F.normalize(T.unsqueeze(0), 2).squeeze(0)
+    return T
+    
+    
 def dilate_positive_error(preds, labels):
     """
     Increase the cost between preds and labels in the cases where the label is a positive example
@@ -664,12 +686,35 @@ class PearsonLoss(Loss._Loss):
         super(PearsonLoss, self).__init__(size_average, reduce, reduction)
         self.L1 = nn.L1Loss()
 
+ 
+    def pearson_coeff(self, X, Y):
+        """
+        The Pearson correlation coefficient is a measure of the linear correlation between two variables.
+
+        PCC = cov(X,Y)/(stdev_X * stdev_Y)
+        """
+        vx   = X - torch.mean(X)
+        vy   = Y - torch.mean(Y)
+        pcc = torch.sum(vx * vy) / (torch.sqrt(torch.sum(vx ** 2)) * torch.sqrt(torch.sum(vy ** 2)))
+
+        return pcc
+       
+        
+    def loss(self, X, Y):
+        """
+        Loss function based on the Pearson Correlation Coefficient
+        """
+        return 1.0 - self.pearson_coeff(X, Y)
+
+
     def forward(self, input, target):
-        pl = pearson_loss(input, target)
-        l1 = self.L1(input, target)
-        return max(pl, l1)
+        pl = self.loss(input, target)
+        return pl
+        # l1 = self.L1(input, target)
+        # return l1
+        # return max(pl, l1)
 
-
+    
 ################################################################################
 # MAIN
 

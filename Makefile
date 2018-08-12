@@ -34,17 +34,24 @@ force:
 install_mac1:
 	# Suggested version of Python 3 as of this writing:
 	brew install https://raw.githubusercontent.com/Homebrew/homebrew-core/ec545d45d4512ace3570782283df4ecda6bb0044/Formula/python3.rb
-	brew install zsh
 	wget https://bootstrap.pypa.io/get-pip.py
 	pip install --upgrade pip
 	# By hand: (Using Python 3)
 	# python -m venv ~/envs/sample
+	# Add following lines to .zshrc \
+alias rm="rm -i" \
+alias mv="mv -i" \
+alias cp="cp -i" \
+alias python=python3 \
+alias python2=/usr/bin/python \
+unsetopt share_history \
+setopt no_share_history
 
 
 install_mac2:
 	# sh -c "$(curl -fsSL https://raw.github.com/robbyrussell/oh-my-zsh/master/tools/install.sh)"
 	python -m spacy download 'en_core_web_lg'
-	defaults write -g InitialKeyRepeat -int 15 # normal minimum is 15 (225 ms)
+	defaults write -g InitialKeyRepeat -int 12 # normal minimum is 15 (225 ms)
 	defaults write -g KeyRepeat -int 2 # normal minimum is 2 (30 ms)
 
 

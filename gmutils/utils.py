@@ -199,13 +199,8 @@ def err(vars=[], options={}):
     
     # Information about the urgency of this call
     call_level = options.get('level')
-<<<<<<< HEAD
-    if call_level is None:  call_level = 2    # default is 2 (e.g. more urgent than level 1)
-    os_level = 0
-=======
     if call_level is None:  call_level = 2    # default is 2 (more urgent than level 1)
     os_level = 2
->>>>>>> master
     try:
         os_level = int(os.environ['GM_LEVEL'])
     except:
@@ -239,8 +234,7 @@ def err(vars=[], options={}):
                 sys.stderr.write('\n')
 
     # Conditional printing of the exception
-    # print("call_level:", call_level, "   os_level:", os_level)
-    if isTrue(options, 'warning')  or  call_level >= os_level:
+    if isTrue(options, 'warning')  or  call_level+1 >= os_level:
         if isFalse(options, 'silent'):
             if exception:
                 for arg in exception.args:
@@ -361,13 +355,13 @@ def generate_file_iterator(dirpath, skip=None, options={}):
     filenames = sorted(read_dir(dirpath, options=options))
 
     # Skip based on a percentage
-    if skip:
+    if skip  and  skip > 0.0:
         skip_val = skip / 100.0
         N = len(filenames)
         skip_i = int(skip_val * N)
         sys.stderr.write("Skipping %d files ...\n"% skip_i)
         filenames = filenames[skip_i:]
-    
+
     for filename in filenames:
         filepath = dirpath +'/'+ filename
         if verbose:
