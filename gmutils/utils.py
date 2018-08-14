@@ -545,6 +545,89 @@ def read_conceptnet_vectorfile(filename, options={}):
     return vocab
 
     
+def serialize_and_save_glove_vectorfile(vectorfile, pklfile):
+    """
+    Read GloVe embeddings from file and serialize to disk
+    """
+    def preprocess(word, vector):
+        """
+        Carefully process and discard some words from this embedding
+        """
+        word = ascii_fold(word)
+        word = normalize(word)
+        if not re.search(r'^[a-z_\'’]*$', word):
+            word = False
+            vector = None
+        return word, vector
+
+    vectors = read_glove_vectorfile(vectorfile, {'preprocess':preprocess})
+    print("Serializing %d vectors to the file: %s ..."% (len(vectors), pklfile))
+    serialize(vectors, pklfile)
+
+
+def read_glove_vectorfile(filename, options={}):
+    """
+    Read a file formatted like a GloVe vector file, which is a simple txt file.  These vectors are simple arrays of float.
+
+    Parmmeters
+    ----------
+    filename : str
+
+    Options
+    -------
+    preprocess : func
+        str,vector -> str,vector, or False,None
+        A function that alters some entries, leaves others untouched, and removes some
+
+    Returns
+    -------
+    dict of dict of dict (str:vector)
+        vocab : <languange code> : <word> : <vector>
+
+    """
+    verbose = False
+    vocab = {}
+    repeats = {}    # will be used at the end to compute the average vector for any collisions
+    lang  = 'en'    # GloVe only English
+    vocab[lang] = {}
+    repeats[lang] = {}
+
+    # Iterate through the file
+    for line in read_file(filename):
+
+        # Parse each line
+        word, *vector = line.split(' ')
+        vector = np.array(list(map(float, vector)))   # convert to numpy array of floats
+        
+        # Preprocessing.  After this step collisions sometimes occur
+        if options.get('preprocess'):
+            word, vector = options.get('preprocess')(word, vector)
+            if word == False:
+                continue
+            
+        if re.search(r'^[a-z_\'’]*$', word):
+            pass
+        else:
+            if verbose: print('IGNORE:', word)
+            continue
+
+        # Structure outgoing data into a dict of dicts.  Where necessary, handle collisions by summing the vectors
+        if word in vocab[lang]:
+            if word in repeats[lang]:
+                repeats[lang][word].append(vector)
+            else:
+                repeats[lang][word] = [vector]
+        else:
+            vocab[lang][word] = vector
+
+    # For each repeated entry, compute an averaged vector
+    for lang in repeats.keys():
+        for word in repeats[lang].keys():
+            vocab[lang][word] = vector_average([vocab[lang][word]] + repeats[lang][word])
+            
+    return vocab
+
+    
 def is_KerasModel(thing):
     """
     Determine if an object is a subclass of gmutils.model.Model
@@ -1182,8 +1265,13 @@ if __name__ == '__main__':
     if args.file:   # Can be used for various one-off needs
 
         if args.pklfile:   # Read and save a vector file
-            serialize_and_save_conceptnet_vectorfile(args.file[0], args.pklfile)
-
+            if re.search('numberbatch', args.file[0]):
+                serialize_and_save_conceptnet_vectorfile(args.file[0], args.pklfile)
+            elif re.search('glove', args.file[0]):
+                serialize_and_save_glove_vectorfile(args.file[0], args.pklfile)
+            else:
+                err(args.file)
+                exit()
         else:
             for file in args.file:
                 for line in read_file(file):

@@ -73,6 +73,11 @@ def print_info(T):
 def torchtensor(X, ttype=torch.DoubleTensor, requires_grad=False):
     """
     Converts X into a PyTorch Tensor
+
+    Parameters
+    ----------
+    X : in, float, or torch.Tensor
+
     """
     if isinstance(X, torch.Tensor):
         T = X
@@ -111,6 +116,11 @@ def torchvar(X, ttype=torch.DoubleTensor, requires_grad=False):
     Converts X into a PyTorch tensor, ready to be part of a computational graph
 
     NOTE:  This code reflects a change in Pytorch 0.4.0, Variable and Tensor have merged
+
+    Parameters
+    ----------
+    X : in, float, or torch.Tensor
+
     """
     T = torchtensor(X, ttype=ttype, requires_grad=requires_grad)   # First convert X to a tensor
     if torch.cuda.is_available():
@@ -360,12 +370,11 @@ def model_files_by_timestamp(dirpath):
     return sorted(models.items(), key=lambda x: x[0], reverse=True)  # "reverse", because we want the highest timestamps (most recent) first
 
     
-def clear_chaff_by_loss(dirpath):
+def clear_chaff_by_loss(dirpath, MAX=100):
     """
     Get a list of all models sorted by loss.  Keep MAX, and delete the rest
     """
     verbose = False
-    MAX = 100
 
     models = model_files_by_loss(dirpath)   # sorted, lowest loss first
     if len(models) > MAX:
@@ -547,6 +556,20 @@ def L1_norm_sum_of_vectors(vectors):
     return T
     
     
+def L2_norm_sum_of_vectors(vectors):
+    """
+    L2-Normalized Element-wise sum a set of vectors all having same dimensionality
+
+    Parameters
+    ----------
+    tensors : python list of python vectors (which are also lists)
+    """
+    tensors = torchvar_list(vectors)   # A stacked array of tensors with the same dimensionality
+    T       = torch.sum(tensors, 0)          # A single tensor with the original dimension
+    T       = F.normalize(T.unsqueeze(0), 2).squeeze(0)
+    return T
+    
+    
 def L1_norm_sum(tensors):
     """
     L1-Normalized Element-wise sum a set of tensors all having same dimensionality
@@ -558,6 +581,20 @@ def L1_norm_sum(tensors):
     tensors = torch.stack(tensors)
     T       = torch.sum(tensors, 0)
     T       = F.normalize(T.unsqueeze(0), 1).squeeze(0)
+    return T
+    
+    
+def L2_norm_sum(tensors):
+    """
+    L2-Normalized Element-wise sum a set of tensors all having same dimensionality
+
+    Parameters
+    ----------
+    tensors : python list of PyTorch tensors
+    """
+    tensors = torch.stack(tensors)
+    T       = torch.sum(tensors, 0)
+    T       = F.normalize(T.unsqueeze(0), 2).squeeze(0)
     return T
     
     

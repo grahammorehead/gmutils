@@ -1,11 +1,13 @@
 # Makefile for gmutils
 
 #########################################################################################################################
-# Data
+# Vectors
 
 serialize_and_save_conceptnet_vectorfile:
 	python gmutils/utils.py --file $(HOME)/data/ConceptNet/numberbatch-17.06.txt --pklfile $(HOME)/data/ConceptNet/numberbatch_en.pkl
 
+serialize_and_save_glove_vectorfile:
+	python gmutils/utils.py --file $(HOME)/data/glove/glove.840B.300d.txt --pklfile $(HOME)/data/glove/glove.840B.300d.pkl
 
 #########################################################################################################################
 # Admin
