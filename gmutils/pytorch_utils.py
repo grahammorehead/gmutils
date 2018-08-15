@@ -274,7 +274,7 @@ def squash_verbose(T):
     return out
 
 
-def squash(T):
+def squash_old(T):
     """
     Normalize length of vector to the range [0,1] without altering direction.
     """
@@ -294,6 +294,17 @@ def squash(T):
     out = scale * unitvec
 
     return out
+
+
+def squash(T, dim):
+	"""
+    This is Eq.1 from the CapsNet paper
+    """
+	mag_sq  = torch.sum(T**2, dim=dim, keepdim=True)
+	mag     = torch.sqrt(mag_sq)
+	T       = (mag_sq / (1.0 + mag_sq)) * (T / mag)
+    
+	return T
 
 
 def model_files_by_loss(dirpath):
