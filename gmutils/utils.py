@@ -1252,6 +1252,17 @@ def move_file(filepath, newdir):
     os.rename(filepath, newpath)
 
 
+def copy_file(filepath, newdir):
+    """
+    cp 'filepath' to the directory 'newdir'
+
+    Must be a file
+    """
+    filename = os.path.basename(filepath)
+    newpath = newdir +'/'+ filename
+    shutil.copy(filepath, newpath)
+
+
 ################################################################################
 # MAIN
 
