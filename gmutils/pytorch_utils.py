@@ -4,6 +4,7 @@
 
 """
 import sys, os, re
+import subprocess
 import random
 import shutil
 import inspect
@@ -687,7 +688,23 @@ def pearson_loss(X, Y):
     Loss function based on the Pearson Correlation Coefficient
     """
     return 1.0 - pearson_coeff(X, Y)
+
+
+def get_GPU_memory():
+    """
+    Return a list of how much memory is currently used by each GPU
+    """
+    mem = subprocess.check_output(['nvidia-smi', '--query-gpu=memory.used', '--format=csv,nounits,noheader']).strip().split(b'\n')
+    mem = list(map(int, mem))
+    try:
+        dev = int(os.environ['CUDA_VISIBLE_DEVICES'])
+    except:
+        dev = 0
+    return mem[dev]
+
     
+##############################################################################################
+# OBJECTS
 
 class PearsonLoss(Loss._Loss):
     """
