@@ -352,7 +352,7 @@ class Document(Object):
 
     def agglomerate_twins(self):
         """
-        For the purpose of tree simplification (lower branching factor), absorb childless modifiers into their parents
+        Agglomerate nodes that have the same text and dep
         """
         altered = True
         while altered:
@@ -486,22 +486,15 @@ class Document(Object):
 
         """
         verbose = False
+        if verbose:  err()
         # self.agglomerate_verbs_preps(vocab)
-        if verbose:  err()
-        self.agglomerate_compound_adj(vocab)
-        if verbose:  err()
-        self.agglomerate_entities()
-        if verbose:  err()
-        self.delegate_to_negations()
-        if verbose:  err()
-        self.agglomerate_modifiers()
-        if verbose:  err()
-        self.agglomerate_twins()
-        if verbose:  err()
+        # self.agglomerate_compound_adj(vocab)    # Might raise the branching factor
+        self.agglomerate_entities()               # Treat each entity as a single thing with a single vector (important), even though it might raise branching factor
+        self.delegate_to_negations()              # Can lower the branching factor
+        self.agglomerate_modifiers()              # Can lower the branching factor
+        # self.agglomerate_twins()                # Can raise branching factor
         self.agglomerate_verbauxes()
-        if verbose:  err()
-        self.delegate_to_conjunctions()
-        if verbose:  err()
+        self.delegate_to_conjunctions()           # Can lower the branching factor
         self.agglomerate_idioms()
         if verbose:  err()
             

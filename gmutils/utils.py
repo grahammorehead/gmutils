@@ -1043,10 +1043,26 @@ def vector_average(vectors):
     Returns
     -------
     same-length vector with averaged values
-
     """
     arr = np.array(vectors)
     arr = np.mean(arr, axis=0)
+    return arr
+
+
+def vector_sum(vectors):
+    """
+    Return the vector sum of a list of floating-point vectors
+
+    Parameters
+    ----------
+    vectors : array of array of float, all of the same length
+
+    Returns
+    -------
+    same-length vector with averaged values
+    """
+    arr = np.array(vectors)
+    arr = np.sum(arr, axis=0)
     return arr
 
 

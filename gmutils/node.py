@@ -9,7 +9,7 @@ from functools import reduce
 import numpy as np
 
 from gmutils.objects import Object
-from gmutils.utils import err, argparser, vector_average, cosine_similarity, deepcopy_list
+from gmutils.utils import err, argparser, vector_average, vector_sum, cosine_similarity, deepcopy_list
 from gmutils.nlp import generate_onehot_vocab
 
 ################################################################################
@@ -424,7 +424,7 @@ class Node(Object):
         if self.parent is None:
             return altered
         
-        if len(self.children) == 0:
+        if len(self.children) == 0:                     # ONLY operate on childless nodes
             if self.has_dep(MODIFIER_DEPS):
                 if len(self.get_dep()) == 1:
                     if self.has_lemma( set(['no']) ):   # Skip these. Handle via negation instead
@@ -1624,7 +1624,7 @@ class Node(Object):
 
     def get_role_vector(self, options={}):
         """
-        Like a poor man's semantic role vectorization.  For the role-taking argument, not the head verb.
+        Like a poor man's semantic role vectorization.  For the role-taking argument, not as much for the head verb but used everywhere for consistency.
 
         Glean what we can about the semantic role of a node, represented in a vector.  Applies best theoretically if parent is a verb
 
@@ -1654,6 +1654,8 @@ class Node(Object):
                 vector = c
             else:
                 vector = np.maximum.reduce([vector, c])  # binary OR: maintain sparse vector
+                err()
+                exit()  # Shouldn't happen
 
         if vector is None:  # For cases such as leaf punctuation
             dep    = self.get_empty_dep_embedding()
@@ -1734,7 +1736,6 @@ class Node(Object):
     def embed(self, vocab):
         """
         Given some vocab (embedding) produce a vector that represents this node
-
         """
         verbose = False
         found_embedding = False
@@ -1780,12 +1781,12 @@ class Node(Object):
             lemmas = self.get_lemmas()
             if verbose:
                 print("Found nothing for: %s ... Trying an average ..."% lemmas)
-            self.embedding, found_embedding = average_of_word_embeddings(lemmas, vocab)
+            self.embedding, found_embedding = sum_of_word_embeddings(lemmas, vocab)
 
         # Try averaging with original text
         if not found_embedding:
             texts = self.get_texts()
-            self.embedding, found_embedding = average_of_word_embeddings(texts, vocab)
+            self.embedding, found_embedding = sum_of_word_embeddings(texts, vocab)
 
         # No embedding found
         if not found_embedding:
@@ -2209,6 +2210,30 @@ def average_of_word_embeddings(words, vocab):
                 found_embedding = True
         if len(vecs) > 1:
             vec = vector_average(vecs)
+        elif len(vecs) == 1:
+            vec = vecs[0]
+
+        return vec, found_embedding
+
+
+def sum_of_word_embeddings(words, vocab):
+        """
+        Take a list of words and a vocab, and return a summed embedding
+        """
+        verbose = False
+        found_embedding = False
+        vecs = []
+        for word in words:
+            vec = vocab.get(word)
+            if vec is None:
+                vecs.append(default.get('empty_embedding'))
+                if verbose: print("Found nothing for: %s"% word)
+            else:
+                if verbose: print("Found sub-vector for: %s"% word)
+                vecs.append(vec)
+                found_embedding = True
+        if len(vecs) > 1:
+            vec = vector_sum(vecs)
         elif len(vecs) == 1:
             vec = vecs[0]
 
