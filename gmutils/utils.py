@@ -359,7 +359,7 @@ def generate_file_iterator(dirpath, skip=None, options={}):
         skip_val = skip / 100.0
         N = len(filenames)
         skip_i = int(skip_val * N)
-        sys.stderr.write("Skipping %d files ...\n"% skip_i)
+        sys.stderr.write("Skipping %d files ...   (%0.3f)\n"% (skip_i, skip))
         filenames = filenames[skip_i:]
 
     for filename in filenames:
