@@ -702,6 +702,24 @@ def get_GPU_memory():
         dev = 0
     return mem[dev]
 
+
+def generate_powerlaw_distro(w):
+    """
+    For some width 'w', generate a set of points following the desired kind of power-law distribution
+
+    Using:  y = 1/x
+    """
+    x         =  0.1  # the starting point
+    end       = 10
+    interval  = (end - x) / w
+    output    = []
+    for i in range(w):
+        output.append(1/x)
+        x += interval
+
+    output = torchvar(output)
+    return output
+
     
 ##############################################################################################
 # OBJECTS
