@@ -20,6 +20,7 @@ try:
 except Exception as e: err([], {'exception':e, 'level':0})
     
 ################################################################################
+# OBJECTS
 
 class Document(Object):
     """

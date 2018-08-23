@@ -208,7 +208,7 @@ def learning_rate_by_epoch(epoch, lr):
     float
 
     """
-    return lr * (0.8 ** (epoch-1))
+    return lr * (0.7 ** (epoch-1))
 
 
 def loss_threshold_by_epoch(epoch, lt):
@@ -709,15 +709,20 @@ def generate_powerlaw_distro(w):
 
     Using:  y = 1/x
     """
-    x         =  0.1  # the starting point
+    x         =  2  # the starting point
     end       = 10
     interval  = (end - x) / w
     output    = []
+
     for i in range(w):
         output.append(1/x)
         x += interval
 
+    if len(output) > 256:
+        err()
+        exit()
     output = torchvar(output)
+
     return output
 
     
