@@ -694,14 +694,30 @@ def get_GPU_memory():
     """
     Return a list of how much memory is currently used by each GPU
     """
-    mem = subprocess.check_output(['nvidia-smi', '--query-gpu=memory.used', '--format=csv,nounits,noheader']).strip().split(b'\n')
-    mem = list(map(int, mem))
     try:
         dev = int(os.environ['CUDA_VISIBLE_DEVICES'])
     except:
         dev = 0
-    return mem[dev]
+    # mem = subprocess.check_output(['nvidia-smi', '--query-gpu=memory.used', '--format=csv,nounits,noheader']).strip().split(b'\n')
+    # mem = list(map(int, mem))
+    # return mem[dev]
+    mem = torch.cuda.memory_allocated(device=dev)
+    return mem
 
+
+def print_GPU_memstats(mem_max=None):
+    """
+    If mem_max is None, assume Tesla V100 16GB
+    """
+    if mem_max is None:
+        mem_max = 17179869184   # in bytes
+    try:
+        dev = int(os.environ['CUDA_VISIBLE_DEVICES'])
+    except:
+        dev = 0
+    mem    = torch.cuda.memory_allocated(device=dev)
+    print("\t< usage: %0.3f >     (%d out of %d)"% (mem/mem_max, mem, mem_max))
+    
 
 def generate_powerlaw_distro(w):
     """

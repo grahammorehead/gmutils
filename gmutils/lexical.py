@@ -5,6 +5,8 @@
 """
 import time, sys, re
 from numpy import sqrt
+import numpy as np
+from scipy.special import expit
 from editdistance import eval as fast_levenshtein
 from gmutils.utils import err
 from gmutils.normalize import simplify_for_distance
@@ -718,8 +720,18 @@ def process_perfect_matches(A, B):
 def marginal_cost(i_A, token_A, i_B, token_B, distance=1.0):
     """
     Associate a cost with this distance.  Uses two external word lists
+
+    Parameters
+    ----------
+    i_A, i_B : index of the words being costed
+
+    token_A, token_B : the tokens
+
+    distance : pre-computed information-agnostic string distance
     """
     verbose = False
+    if verbose:
+        err([i_A, token_A, i_B, token_B, distance])
     
     # Both words can be safely ignored
     if  token_A in low_val_words  and  token_B in low_val_words:
@@ -741,7 +753,7 @@ def marginal_cost(i_A, token_A, i_B, token_B, distance=1.0):
     return distance
 
 
-def process_best_matches(A, B, closest, indices_A, indices_B):
+def process_best_matches(A, B, closest, indices_A, indices_B, verbose=False, options={}):
     """
     Process best remaining matches between A, B.  Starts where 'perfect_matches' leaves off.  Handle some overhead.
 
@@ -773,8 +785,8 @@ def process_best_matches(A, B, closest, indices_A, indices_B):
     indices_B : array of int
         remaining unmatched indices of tokens in B
     """
-    verbose = False
     cost = 0.0
+    length = float( max(len(A), len(B)) )
     
     # Iterate over remaining tokens in B (filtered on indices_B)
     #     from longest to shortest, finding best matches.
@@ -803,11 +815,16 @@ def process_best_matches(A, B, closest, indices_A, indices_B):
             if verbose:
                 print('\tBest match (%0.4f)  A:%s  ~  B:%s'% (distance, token_A, token_B))
 
-            cost += marginal_cost(i_A, token_A, i_B, token_B, distance)
+            if options.get('marginal_cost'):
+                cost += marginal_cost(i_A, token_A, i_B, token_B, distance)
+            else:
+                cost += distance
 
+    norm_cost = cost / length
+                
     if verbose:
-        err([closest, indices_A, unmatched_i_B, cost])
-    return closest, indices_A, unmatched_i_B, cost
+        err([closest, indices_A, unmatched_i_B, cost, norm_cost])
+    return closest, indices_A, unmatched_i_B, norm_cost
 
 
 def process_reordering_costs(A, B, closest, indices_B, cost=0.0):
@@ -879,37 +896,75 @@ def process_reordering_costs(A, B, closest, indices_B, cost=0.0):
     return cost
 
 
-def holistic_cost(A, B, closest, indices_A, indices_B, cost, length, verbose=False):
+def normalize_cost_by_expit(cost):
+    return 2 * (expit(cost) - 0.5)
+
+
+def holistic_cost(A, B, closest, indices_A, indices_B, cost, length, verbose=False, options={}):
     """
     Compute a holistic sentence-level fuzzy weighted edit-distance score
+
+    Parameters
+    ----------
+    A, B : list of str
+        the words in each phrase
+
+    indices_A, indices_B : list of int
+        list of unmatched indices
+
+    closest: dict
+        indices of A matching with indices in B
+
+    cost : float
+        Average string distance for the words that have already been lined up
+
+    length : int
+        zero-indexed number of words in longer phrase
+
     """
-    if verbose:
-        err([A, indices_A, B, indices_B, closest, cost, length])
-        print('\nAttempting to reorder:\n\t"%s"\n\t"%s"'% (' '.join(A), ' '.join(B)))
-        print('\nClosest: (not in order?)')
-        for k,v in closest.items():
-            token_A = A[k]
-            token_B = B[v]
-            print('\t', token_A, ' : ', token_B)
-
-    # Add reordering costs for matches
-    for k,v in closest.items():
-        token_A = A[k]
-        token_B = B[v]
-        new_cost = (abs(k-v)/length)
-        cost += new_cost
-        if verbose:  print('\t', token_A, ' : ', token_B, '  cost:', new_cost)
-
-    # Add costs for unmatched tokens and normalize
+    # Some values that may be useful
     num_matched    = 2 * len(closest)
     num_unmatched  = len(indices_A) + len(indices_B)
-    unmatched_cost = num_unmatched / (num_unmatched + num_matched)
-    untapped_cost  = 1 - cost
-    rel_um_cost    = unmatched_cost * untapped_cost
+    length         = num_matched + num_unmatched
+    
     if verbose:
-        err([num_unmatched, num_matched, rel_um_cost, cost])
+        err([A, indices_A, B, indices_B, closest, cost, length])
+        print('Attempting to reorder:\n\t"%s"\n\t"%s"'% (' '.join(A), ' '.join(B)))
+        print('\nClosest matches:')
+
+    # Find reordering costs for matches
+    word_reorder_cost = 0.0
+    N = 0
+    for k, v in closest.items():
+        N += 1
+        token_A = A[k]
+        token_B = B[v]
+        wo_cost = (abs(k-v)/length)
+        word_reorder_cost += wo_cost
+        if verbose:  print('\t', token_A, ' : ', token_B, '  (Reorder cost: %0.3f)'% (wo_cost))
+            
+    if verbose:
+        print("Matched reorder cost:", word_reorder_cost)
+            
+    # Add reordering costs for unmatched tokens and normalize
+    word_reorder_cost += num_unmatched
+    if verbose:
+        print("Total reorder cost:", word_reorder_cost)
+    
+    word_reorder_cost  = normalize_cost_by_expit(word_reorder_cost/length)   # Normalize
+    if verbose:
+        print("Normalized reorder cost:", word_reorder_cost)
+
+    # Incorporate this cost in a normalized manner
+    cost += word_reorder_cost
+    if verbose:
+        print("Total cost:", cost)
+    """    
+    untapped_cost  = 1 - cost  # (like headroom)
+    rel_um_cost    = unmatched_cost * untapped_cost
     cost          += rel_um_cost
-    cost           = min(1, cost)
+    """    
+    cost           = min(1.0, cost)   # Keep cost <= 1
 
     return cost
 
@@ -924,7 +979,8 @@ def cost_best_reorder(A, B, length, verbose=True):
     closest, indices_A, indices_B = process_perfect_matches(A, B)
 
     # Then best matches  (cost calculations begin here)
-    closest, indices_A, indices_B, cost = process_best_matches(A, B, closest, indices_A, indices_B)
+    #    This 'cost' represents the average string edit cost for the words that were close enough of a match
+    closest, indices_A, indices_B, cost = process_best_matches(A, B, closest, indices_A, indices_B, verbose)
     
     # Process reordering costs
     # rcost = process_reordering_costs(A, B, closest, indices_B, cost)
@@ -948,7 +1004,7 @@ def meaningful_length(A):
     return m
 
 
-def phrase_similarity(a, b, verbose=False):
+def phrase_similarity(a, b, verbose=False, options={}):
     """
     Similarity score between two strings, a and b
 
@@ -972,21 +1028,23 @@ def phrase_similarity(a, b, verbose=False):
     A = a.split(' ')
     B = b.split(' ')
     A1 = B1 = word_trans = None
-    length = cost = 0.0
+    cost = 0.0
 
-    if len(A) >= len(B):
-        length = meaningful_length(A)
+    if len(A) >= len(B):  # First phrase longer (or equal)
+        if options.get('meaningful_length'):
+            length = meaningful_length(A)
+        else:
+            length = len(A)
         cost = cost_best_reorder(A, B, length, verbose)   # Reorder so the closest words line up
-        if verbose:
-            err([A, B, length, cost, 1-cost])
-    else:
-        length = meaningful_length(B)
+        
+    else:  # Second phrase longer (otherwise identical to the above clause)
+        if options.get('meaningful_length'):
+            length = meaningful_length(B)
+        else:
+            length = len(B)
         cost = cost_best_reorder(B, A, length, verbose)   # Reorder so the closest words line up
-        if verbose:
-            err([A, B, length, cost, 1-cost])
-
+        
     score = 1 - cost
-
     if verbose:
         err([a, b, length, cost, score])
             
@@ -1024,7 +1082,7 @@ if __name__ == '__main__':
 
     # Phase Similarity
     elif sys.argv[1] == '--ps':
-        score = phrase_similarity(sys.argv[2], sys.argv[3])
+        score = phrase_similarity(sys.argv[2], sys.argv[3], verbose=True)
         print ('Score:', score)
         
     # String Distance
