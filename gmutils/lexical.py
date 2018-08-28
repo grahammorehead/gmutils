@@ -798,7 +798,6 @@ def process_best_matches(A, B, closest, indices_A, indices_B, verbose=False, opt
     #     from longest to shortest, finding best matches.
     #     Keep track of which tokens in B (if any) don't have a match.
     unmatched_i_B = []
-    norm = 0.0  # Normalization factor
     for i_B,token_B in sorted( enumerate(B), reverse=True, key=lambda x: len(x[1])):
         if i_B not in indices_B:
             continue
@@ -816,7 +815,6 @@ def process_best_matches(A, B, closest, indices_A, indices_B, verbose=False, opt
                 continue
 
             # Match was found
-            norm += 1.0
             closest[i_A] = i_B           # Store match using indices
             token_A = A[i_A]
             if verbose:
@@ -827,14 +825,9 @@ def process_best_matches(A, B, closest, indices_A, indices_B, verbose=False, opt
             else:
                 cost += distance
 
-    if norm > 0:
-        norm_cost = cost / norm
-    else:
-        norm_cost = cost
-                
     if verbose:
-        err([closest, indices_A, unmatched_i_B, cost, norm_cost])
-    return closest, indices_A, unmatched_i_B, norm_cost
+        err([closest, indices_A, unmatched_i_B, cost])
+    return closest, indices_A, unmatched_i_B, cost
 
 
 def process_reordering_costs(A, B, closest, indices_B, cost=0.0):
@@ -935,7 +928,7 @@ def holistic_cost(A, B, closest, indices_A, indices_B, cost, length, verbose=Fal
 
     """
     # Some values that may be useful
-    num_matched    = 2 * len(closest)
+    num_matched    = len(closest)
     num_unmatched  = max(len(indices_A), len(indices_B))
     length         = num_matched + num_unmatched
     
@@ -955,26 +948,40 @@ def holistic_cost(A, B, closest, indices_A, indices_B, cost, length, verbose=Fal
         word_reorder_cost += wo_cost
         if verbose:  print('\t', token_A, ' : ', token_B, '  (Reorder cost: %0.3f)'% (wo_cost))
 
-    # ?
-    word_reorder_cost  = word_reorder_cost/length   # Normalize
+    # Must attenuate this signal because the reordering of well-matched words should be less important than correctly-ordered words that don't match as well
+    word_reorder_cost = word_reorder_cost / 2.0
+    if word_reorder_cost < 1.0:
+        word_reorder_cost = word_reorder_cost**2
+    
+    ###  COST COMPILATION  ###
+    
+    # Unmatched tokens
+    #  - order doesn't matter
+    #  - higher than any matched token could be
+    unmatched_cost = num_unmatched
+    if verbose:
+        print("\nUnmatched cost:", unmatched_cost)
+
+    # Matched tokens
+    #  - similarity and order both taken in to account
     # word_reorder_cost  = normalize_cost_by_expit(word_reorder_cost/length)   # Normalize
     if verbose:
-        print("Reordering cost:", word_reorder_cost)
+        print("Cost of matched words before reordering:", cost)
+        print("Reordering cost of matched words:", word_reorder_cost)   # Total cost associated with reordering all matched words
             
-    # Add cost of unmatched tokens and normalize
-    unmatched_cost = num_unmatched / float(length)
-    if verbose:
-        print("Unmatched cost:", unmatched_cost)
-    
     # Use these costs to compile a final score
     cost += word_reorder_cost
     if verbose:
         print("Total matched cost:", cost)
 
-    cost = max(cost, unmatched_cost)
-    cost = min(1.0, cost)   # Keep cost <= 1
+    cost += unmatched_cost
     if verbose:
-        print("Total cost:", cost)
+        print("Total cost before normalization:", cost)
+    cost  = cost / length    # Normalize
+    cost  = min(1.0, cost)   # Keep cost <= 1
+    if verbose:
+        print("Final cost:", cost)
+        
     """    
     untapped_cost  = 1 - cost  # (like headroom)
     rel_um_cost    = unmatched_cost * untapped_cost

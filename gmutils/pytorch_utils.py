@@ -769,11 +769,9 @@ def collect_garbage():
     # sys.stderr.write("Collecting garbage ...\n")
     gc.collect()
     torch.cuda.empty_cache()
-    gc.collect()
-    torch.cuda.empty_cache()
     # sys.stderr.write("Should be empty now.\n")
     count_tensors()
-    print_GPU_memstats()
+    # print_GPU_memstats()
 
     
 ##############################################################################################
