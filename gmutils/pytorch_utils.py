@@ -3,7 +3,7 @@
     A set of utils to make PyTorch code simpler
 
 """
-import sys, os, re
+import sys, os, re, gc
 import subprocess
 import random
 import shutil
@@ -716,7 +716,7 @@ def print_GPU_memstats(mem_max=None):
     except:
         dev = 0
     mem    = torch.cuda.memory_allocated(device=dev)
-    print("\t< usage: %0.3f >     (%d out of %d)"% (mem/mem_max, mem, mem_max))
+    sys.stderr.write("\t< usage: %0.3f >     (%d out of %d)\n"% (mem/mem_max, mem, mem_max))
     
 
 def generate_powerlaw_distro(w):
@@ -740,6 +740,40 @@ def generate_powerlaw_distro(w):
     output = torchvar(output)
 
     return output
+
+
+def count_tensors(gpu_only=True):
+    """
+    Deletes the Tensors being tracked by the garbage collector.
+    """
+    total_size = 0
+    for obj in gc.get_objects():
+        try:
+            dirs = dir(obj)
+            if len(dirs) == 0:
+                continue
+            if dir(obj)[0] in ['LoadLibrary', '_LazyLoader__load', '_LazyCorpusLoader__args']:
+                continue
+            if torch.is_tensor(obj):
+                if not gpu_only or obj.is_cuda:
+                    total_size += obj.numel()
+            elif hasattr(obj, "data") and torch.is_tensor(obj.data):
+                if not gpu_only or obj.is_cuda:
+                    total_size += obj.data.numel()
+        except Exception as e:
+            pass        
+    # sys.stderr.write("GC tracking: %d\n"% total_size)
+
+
+def collect_garbage():
+    # sys.stderr.write("Collecting garbage ...\n")
+    gc.collect()
+    torch.cuda.empty_cache()
+    gc.collect()
+    torch.cuda.empty_cache()
+    # sys.stderr.write("Should be empty now.\n")
+    count_tensors()
+    print_GPU_memstats()
 
     
 ##############################################################################################

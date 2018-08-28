@@ -588,17 +588,20 @@ def ngrams(list):
 def string_distance(A, B, options={}):
     """
     Normalized Levenshtein-Damerau distance between two strings
+
+    Normalized to [0,1], with values above some threshold being set to 1
     """
     verbose = False
     len_A = len(A)
     len_B = len(B)
-    length = float( max( len_A, len_B ) )
+    length = float( min( len_A, len_B ) )
     abs_dist = damerauLevenshtein(A, B)
     
     # diff_length = abs(len_A - len_B)
     # rel_diff_length = diff_length / length
-    
-    distance = abs_dist / length
+
+    distance = abs_dist/length
+    distance = min(distance, 1.0)
     if verbose:
         err([A, B, abs_dist, length, distance])
     
@@ -645,10 +648,8 @@ def find_and_rm_best_match(token, indices, A, options={}):
     best_i = None
 
     for i in indices:
-        distance = string_distance(token, A[i], {'suppress vowels':True})
-        if distance > 1.0:
-            err([token, A[i]])
-            exit()
+        distance = string_distance(token, A[i], {'suppress vowels':False})  # normalized to 0-1
+        assert(distance <= 1.0)
 
         if distance <= smallest_distance:
             smallest_distance = distance
@@ -676,6 +677,9 @@ def find_and_rm_best_match(token, indices, A, options={}):
 def process_perfect_matches(A, B):
     """
     Look for words that match between A, B and perform some overhead
+
+    ASSUMPTIONS:  A is as long or longer than B
+        |A| >= |B|
 
     Parameters
     ----------
@@ -759,6 +763,9 @@ def process_best_matches(A, B, closest, indices_A, indices_B, verbose=False, opt
 
     cost calculations begin here
 
+    ASSUMPTIONS:  A is as long or longer than B
+        |A| >= |B|
+
     Parameters
     ----------
     A : array of str
@@ -786,12 +793,12 @@ def process_best_matches(A, B, closest, indices_A, indices_B, verbose=False, opt
         remaining unmatched indices of tokens in B
     """
     cost = 0.0
-    length = float( max(len(A), len(B)) )
     
     # Iterate over remaining tokens in B (filtered on indices_B)
     #     from longest to shortest, finding best matches.
     #     Keep track of which tokens in B (if any) don't have a match.
     unmatched_i_B = []
+    norm = 0.0  # Normalization factor
     for i_B,token_B in sorted( enumerate(B), reverse=True, key=lambda x: len(x[1])):
         if i_B not in indices_B:
             continue
@@ -803,13 +810,13 @@ def process_best_matches(A, B, closest, indices_A, indices_B, verbose=False, opt
             distance, i_A, indices_A = find_and_rm_best_match(token_B,indices_A, A)
             if distance > .21:
                 unmatched_i_B.append(i_B)
-            if verbose:
-                err([distance, i_A, indices_A])
-                
-            if i_A is None:  # no suitable match was found
+                continue  # NO suitable match was found
+            
+            if i_A is None:
                 continue
 
-            # A match was found
+            # Match was found
+            norm += 1.0
             closest[i_A] = i_B           # Store match using indices
             token_A = A[i_A]
             if verbose:
@@ -820,7 +827,10 @@ def process_best_matches(A, B, closest, indices_A, indices_B, verbose=False, opt
             else:
                 cost += distance
 
-    norm_cost = cost / length
+    if norm > 0:
+        norm_cost = cost / norm
+    else:
+        norm_cost = cost
                 
     if verbose:
         err([closest, indices_A, unmatched_i_B, cost, norm_cost])
@@ -916,7 +926,9 @@ def holistic_cost(A, B, closest, indices_A, indices_B, cost, length, verbose=Fal
         indices of A matching with indices in B
 
     cost : float
-        Average string distance for the words that have already been lined up
+        Average string distance for the words that have already been lined up.  From now on we will consider such
+        tokens to be perfect matches that may or may not be in the right order (reordering cost computed below).
+        These tokens have "paid their cost to society"
 
     length : int
         zero-indexed number of words in longer phrase
@@ -924,7 +936,7 @@ def holistic_cost(A, B, closest, indices_A, indices_B, cost, length, verbose=Fal
     """
     # Some values that may be useful
     num_matched    = 2 * len(closest)
-    num_unmatched  = len(indices_A) + len(indices_B)
+    num_unmatched  = max(len(indices_A), len(indices_B))
     length         = num_matched + num_unmatched
     
     if verbose:
@@ -942,21 +954,25 @@ def holistic_cost(A, B, closest, indices_A, indices_B, cost, length, verbose=Fal
         wo_cost = (abs(k-v)/length)
         word_reorder_cost += wo_cost
         if verbose:  print('\t', token_A, ' : ', token_B, '  (Reorder cost: %0.3f)'% (wo_cost))
-            
-    if verbose:
-        print("Matched reorder cost:", word_reorder_cost)
-            
-    # Add reordering costs for unmatched tokens and normalize
-    word_reorder_cost += num_unmatched
-    if verbose:
-        print("Total reorder cost:", word_reorder_cost)
-    
-    word_reorder_cost  = normalize_cost_by_expit(word_reorder_cost/length)   # Normalize
-    if verbose:
-        print("Normalized reorder cost:", word_reorder_cost)
 
-    # Incorporate this cost in a normalized manner
+    # ?
+    word_reorder_cost  = word_reorder_cost/length   # Normalize
+    # word_reorder_cost  = normalize_cost_by_expit(word_reorder_cost/length)   # Normalize
+    if verbose:
+        print("Reordering cost:", word_reorder_cost)
+            
+    # Add cost of unmatched tokens and normalize
+    unmatched_cost = num_unmatched / float(length)
+    if verbose:
+        print("Unmatched cost:", unmatched_cost)
+    
+    # Use these costs to compile a final score
     cost += word_reorder_cost
+    if verbose:
+        print("Total matched cost:", cost)
+
+    cost = max(cost, unmatched_cost)
+    cost = min(1.0, cost)   # Keep cost <= 1
     if verbose:
         print("Total cost:", cost)
     """    
@@ -964,7 +980,6 @@ def holistic_cost(A, B, closest, indices_A, indices_B, cost, length, verbose=Fal
     rel_um_cost    = unmatched_cost * untapped_cost
     cost          += rel_um_cost
     """    
-    cost           = min(1.0, cost)   # Keep cost <= 1
 
     return cost
 
@@ -974,6 +989,19 @@ def cost_best_reorder(A, B, length, verbose=True):
     Reorders the tokens in B to best match those in A.
 
     Greedily matches from longest to shortest tokens in B
+
+    ASSUMPTIONS:  A is as long or longer than B
+        |A| >= |B|
+
+    Parameters
+    ----------
+    A, B : str
+
+    length : int
+
+    Returns
+    -------
+    float between [0, 1]
     """
     # Perfect matches first  (no cost associated with these matches)
     closest, indices_A, indices_B = process_perfect_matches(A, B)

@@ -8,8 +8,8 @@ if not sys.warnoptions:
     import warnings
     warnings.filterwarnings("ignore", message="numpy.dtype size changed")
     warnings.filterwarnings("ignore", message="numpy.ufunc size changed")
-
 import os, re
+import hashlib
 import types
 import shutil
 import time
@@ -1277,6 +1277,14 @@ def copy_file(filepath, newdir):
     filename = os.path.basename(filepath)
     newpath = newdir +'/'+ filename
     shutil.copy(filepath, newpath)
+
+
+def sha256(text):
+    """
+    Return the SHA 256 hash of 'text'
+    """
+    text = str.encode(text)
+    return hashlib.sha256(text).hexdigest()
 
 
 ################################################################################
