@@ -7,5 +7,5 @@ setup(name='gmutils',
       author='grahammorehead',
       license='GPL',
       packages=['gmutils'],
-      install_requires=['numpy', 'scipy', 'dill', 'requests', 'editdistance'],
+      install_requires=['numpy', 'scipy', 'dill', 'requests', 'editdistance', 'ijson'],
       zip_safe=False)
