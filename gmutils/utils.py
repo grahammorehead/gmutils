@@ -115,10 +115,11 @@ def argparser(options={}):
     parser.add_argument('--normalize',        help='Normalize input text', required=False, action='store_true')
 
     # Argument-taking flags
-    parser.add_argument('--df',               help='Panda Dataframe CSV to be read', required=False, nargs='?', action='append')
     parser.add_argument('--dir',              help='A folder having files to be read', required=False, nargs='?', action='append')
     parser.add_argument('--file',             help='A file to be read', required=False, nargs='?', action='append')
+    parser.add_argument('--passwd',           help='Password', required=False, type=str)
     parser.add_argument('--str',              help='A string to be read', required=False, nargs='?', action='append')
+    parser.add_argument('--user',             help='Username', required=False, type=str)
 
     # Argument-taking flags (single-use)
     parser.add_argument('--bucket_id',        help='Google bucket ID', type=str, required=False, default=None, action='append')
