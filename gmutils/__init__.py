@@ -4,7 +4,9 @@ verbose = False
 if verbose:  sys.stderr.write("\tLoading utils ...\n")
 from .utils import err, argparser, argparser_ml, serialize, deserialize, set_missing_attributes, isTrue, read_file, iter_file, read_dir, generate_file_iterator, monitor_setup, monitor, read_conceptnet_vectorfile, cosine_similarity, binary_distance, mkdirs, json_dump_gz, json_load_gz, deepcopy_list, deepcopy_set, deepcopy_dict, file_exists, dir_exists, file_timestamp, concat_from_list_of_dicts, binary_F1, iter_next, args_to_options, num_pos_elements, num_lines_in_file, filter_warnings, move_file, copy_file, vector_average, sha256
 
-from .neo4j_utils import neo4j_graph
+try:
+    from .neo4j_utils import neo4j_graph
+except Exception as e: err([], {'exception':e, 'level':0})
 
 if verbose:  sys.stderr.write("\tLoading normalize ...\n")
 from .normalize import normalize, ascii_fold, simplify_for_distance, naked_words, clean_spaces
