@@ -324,6 +324,25 @@ def model_files_by_loss(dirpath):
     return sorted(models.items(), key=lambda x: x[1])
 
     
+def model_files_by_pcc(dirpath):
+    """
+    List all available model files by PCC
+    """
+    models = {}
+    model_dirs = read_dir(dirpath)
+    for f in model_dirs:
+        lv = re.sub(r'^PCC', '', f)
+        lv = re.sub(r'_E\d+_B\d+$', '', lv)
+        try:
+            loss_val = float(lv)
+            modelpath = dirpath +'/'+ f
+            models[modelpath] = loss_val
+        except:
+            pass
+
+    return sorted(models.items(), key=lambda x: x[1], reverse=True)
+
+    
 def model_files_by_F1(dirpath):
     """
     List all available model files by loss
@@ -333,39 +352,41 @@ def model_files_by_F1(dirpath):
     for f in model_dirs:
         fv = re.sub(r'^F', '', f)
         fv = re.sub(r'_E\d+_B\d+$', '', fv)
-        F_val = float(fv)
-        modelpath = dirpath +'/'+ f
-        models[modelpath] = F_val
+        try:
+            F_val = float(fv)
+            modelpath = dirpath +'/'+ f
+            models[modelpath] = F_val
+        except:
+            pass
 
     return sorted(models.items(), key=lambda x: x[1], reverse=True)
 
     
 def best_model_file_by_loss(dirpath):
     """
-    List all available model files by loss
+    Return model file with lowest loss
     """
     sorted_models = model_files_by_loss(dirpath)
-    lowest_loss   = sorted_models[0][1]
-    best_models   = []
-    for model in sorted_models:
-        if model[1] == lowest_loss:
-            best_models.append(model[0])
-            
-    return random.choice(best_models)
+    best = sorted_models[0][0]
+    return best
+
+    
+def best_model_file_by_pcc(dirpath):
+    """
+    Return model file with highest PCC
+    """
+    sorted_models = model_files_by_pcc(dirpath)
+    best = sorted_models[0][0]
+    return best
 
     
 def best_model_file_by_F1(dirpath):
     """
-    List all available model files by loss
+    Return model file with highest F1
     """
     sorted_models = model_files_by_F1(dirpath)   # Highest-first
-    lowest_loss   = sorted_models[0][1]
-    best_models   = []
-    for model in sorted_models:
-        if model[1] == lowest_loss:
-            best_models.append(model[0])
-            
-    return random.choice(best_models)
+    best = sorted_models[0][0]
+    return best
 
     
 def model_files_by_timestamp(dirpath):
@@ -380,6 +401,26 @@ def model_files_by_timestamp(dirpath):
         models[ts] = filepath
 
     return sorted(models.items(), key=lambda x: x[0], reverse=True)  # "reverse", because we want the highest timestamps (most recent) first
+
+    
+def clear_chaff_by_pcc(dirpath, MAX=100):
+    """
+    Get a list of all models sorted by loss.  Keep MAX, and delete the rest
+    """
+    verbose = False
+
+    models = model_files_by_pcc(dirpath)   # sorted, highest PCC first
+    if len(models) > MAX:
+        try:
+            to_delete = models[MAX:]
+            for model in to_delete:
+                filepath, loss_val = model
+                if verbose:
+                    t = file_timestamp(filepath)
+                    print("rm -fr (%s):"% t, filepath)
+                shutil.rmtree(filepath)
+        except:
+            pass
 
     
 def clear_chaff_by_loss(dirpath, MAX=100):
@@ -427,6 +468,27 @@ def good_model_file_by_loss(dirpath):
     """
     try:
         models = model_files_by_loss(dirpath)   # sorted from lowest loss to highest
+        x = beta_choose(len(models))
+        filepath, val = models[x]
+        return filepath
+    except:
+        raise
+
+
+def good_model_file_by_pcc(dirpath):
+    """
+    Randomly select and retrieve a good model (based on its PCC) via a Beta distribution.  This will usually select the model correlated
+    with the lowest loss values but not always.  May help to escape from local minima.  Although the currently selected loss function is
+    convex for any given batch, since the graph is redrawn for each batch, I cannot yet confirm global convexity
+
+    Returns
+    -------
+    dict { var_name : numpy array }
+        Use these values to assign arrays to tensors
+
+    """
+    try:
+        models = model_files_by_pcc(dirpath)   # sorted from highest to lowest
         x = beta_choose(len(models))
         filepath, val = models[x]
         return filepath
