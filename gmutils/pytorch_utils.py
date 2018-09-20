@@ -315,11 +315,15 @@ def model_files_by_loss(dirpath):
     models = {}
     model_dirs = read_dir(dirpath)
     for f in model_dirs:
-        lv = re.sub(r'^L', '', f)
-        lv = re.sub(r'_E\d+_B\d+$', '', lv)
-        loss_val = float(lv)
-        modelpath = dirpath +'/'+ f
-        models[modelpath] = loss_val
+        if re.search(r'^L', f):
+            lv = re.sub(r'^L', '', f)
+            lv = re.sub(r'_E\d+_B\d+$', '', lv)
+            try:
+                loss_val = float(lv)
+                modelpath = dirpath +'/'+ f
+                models[modelpath] = loss_val
+            except:
+                pass
 
     return sorted(models.items(), key=lambda x: x[1])
 
@@ -331,14 +335,15 @@ def model_files_by_pcc(dirpath):
     models = {}
     model_dirs = read_dir(dirpath)
     for f in model_dirs:
-        lv = re.sub(r'^PCC', '', f)
-        lv = re.sub(r'_E\d+_B\d+$', '', lv)
-        try:
-            loss_val = float(lv)
-            modelpath = dirpath +'/'+ f
-            models[modelpath] = loss_val
-        except:
-            pass
+        if re.search(r'^PCC', f):
+            lv = re.sub(r'^PCC', '', f)
+            lv = re.sub(r'_E\d+_B\d+$', '', lv)
+            try:
+                loss_val = float(lv)
+                modelpath = dirpath +'/'+ f
+                models[modelpath] = loss_val
+            except:
+                pass
 
     return sorted(models.items(), key=lambda x: x[1], reverse=True)
 
@@ -350,14 +355,15 @@ def model_files_by_F1(dirpath):
     models = {}
     model_dirs = read_dir(dirpath)
     for f in model_dirs:
-        fv = re.sub(r'^F', '', f)
-        fv = re.sub(r'_E\d+_B\d+$', '', fv)
-        try:
-            F_val = float(fv)
-            modelpath = dirpath +'/'+ f
-            models[modelpath] = F_val
-        except:
-            pass
+        if re.search(r'^F', f):
+            fv = re.sub(r'^F', '', f)
+            fv = re.sub(r'_E\d+_B\d+$', '', fv)
+            try:
+                F_val = float(fv)
+                modelpath = dirpath +'/'+ f
+                models[modelpath] = F_val
+            except:
+                pass
 
     return sorted(models.items(), key=lambda x: x[1], reverse=True)
 
