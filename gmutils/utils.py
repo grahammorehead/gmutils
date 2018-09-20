@@ -931,7 +931,7 @@ def monitor(_monitor, options={}):
             _monitor['N'] += 1
         else:
             _monitor['N']  = 1
-    
+
     return _monitor
 
 
