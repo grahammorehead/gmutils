@@ -1180,7 +1180,7 @@ def concat_from_list_of_dicts(key, dicts):
     return ' '.join(out)
 
 
-def binary_F1(L, P):
+def binary_F1(L, P, verbose=True):
     """
     For a set of binary labels and predictions, compute the F1 score
     """
@@ -1199,6 +1199,9 @@ def binary_F1(L, P):
             fn += 1
             
     F1 = (2*tp) / (2*tp + fn + fp)
+
+    if verbose:
+        print("F1: %0.5f\nTP: %d\nTN: %d\nFP: %d\nFN: %d"% (F1, tp, tn, fp, fn))
     
     return F1
             
