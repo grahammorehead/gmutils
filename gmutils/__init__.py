@@ -51,7 +51,7 @@ from .sklearn_model import SklearnModel
 from .objects import Object, Options
 
 try:
-    from .lexical import damerauLevenshtein, phrase_similarity
+    from .lexical import damerauLevenshtein, phrase_similarity, string_distance
 except Exception as e: err([], {'exception':e, 'level':0})
 
 try:
