@@ -8,7 +8,7 @@ from copy import deepcopy
 import numpy as np
 import pandas as pd
 
-from sklearn.feature_extraction.text import TfidfVectorizer
+from sklearn.feature_extraction.text import TfidfVectorizer, HashingVectorizer
 from sklearn.feature_selection import SelectKBest
 from sklearn.feature_selection import mutual_info_classif, chi2
 
@@ -123,7 +123,7 @@ class Vectorizer(Object):
             self.set('stop_words', default_stop_words)
 
 
-    def fit_transform(self, input, Y=None):
+    def fit_transform(self, input, Y=None, verbose=False):
         """
         Configures the Vectorizer.
 
@@ -140,8 +140,6 @@ class Vectorizer(Object):
         Returns : matrix
             vectorized version of input
         """
-        verbose = False
-
         # Use locals so we don't lose original information
         underlying = deepcopy(self.underlying)
 
@@ -149,7 +147,7 @@ class Vectorizer(Object):
         max_df   = self.get('max_df')
         max_feat = self.get('max_feat')
         
-        parsed = get_parsed_input_for_underlying(input, underlying)
+        parsed   = get_parsed_input_for_underlying(input, underlying)
 
         # If Requested, generate a set of "enhanced" features, computed from the existing ones
         if self.get('enhanced_features'):
@@ -194,18 +192,27 @@ class Vectorizer(Object):
                 p = parsed[u]
                 try:
                     X1 = self.vectorizers[u].transform(p)   # Transform into a vector
-                    try:
-                        X1 = self.selectors[u].transform(X1)
-                    except:
-                        pass
+                    if not self.get('hashing_vectorizer'):
+                        try:
+                            X1 = self.selectors[u].transform(X1)
+                        except:
+                            raise
+                            pass
                 except:
+                    raise
                     return None
 
             # Fitting and Transforming str-based features having "words" of one kind or another.
             else:
                 if verbose:
                     sys.stderr.write("Instantiating %s Vectorizer ...\n"% u)
-                self.vectorizers[u] = TfidfVectorizer(analyzer=u'word', sublinear_tf=True, strip_accents='unicode', max_df=max_df[u], min_df=min_df[u], max_features=None, vocabulary=None, binary=False, stop_words=self.get('stop_words'), ngram_range=(1,4), norm=u'l2', use_idf=True, smooth_idf=True)
+
+                if self.get('hashing_vectorizer'):
+                    self.vectorizers[u] = HashingVectorizer(n_features=max_feat[u], lowercase=True, analyzer=u'word', strip_accents='unicode', binary=False, stop_words=self.get('stop_words'), ngram_range=(1,4), norm=u'l2')
+                    #                     HashingVectorizer( OTHER OPTIONS: alternate_sign=True, non_negative=False )
+                else:
+                    self.vectorizers[u] = TfidfVectorizer(analyzer=u'word', sublinear_tf=True, strip_accents='unicode', max_df=max_df[u], min_df=min_df[u], max_features=max_feat[u], vocabulary=None, binary=False, stop_words=self.get('stop_words'), ngram_range=(1,4), norm=u'l2', use_idf=True, smooth_idf=True)
+
                 if verbose:
                     sys.stderr.write("Fitting %s Vectorizer ...\n"% u)
                 X1 = self.vectorizers[u].fit_transform( parsed[u] )      # Compute vocabulary, idf, term-document matrix, then transform into a vector
@@ -213,7 +220,7 @@ class Vectorizer(Object):
                     sys.stderr.write("\tDone.\n")
 
                 # IF using a selector for dimensionality reduction
-                if len(Y) == len(parsed[u]):
+                if len(Y) == len(parsed[u])  and  not self.get('hashing_vectorizer'):
                     n0 = X1.shape[1]                                                              # Length of incoming vector
                     max_feat[u] = min(int(0.8 * n0), max_feat[u])                                 # Max output length
                     sys.stderr.write("\tReducing featureset %d -> %d ...\n"% (n0, max_feat[u]))
@@ -221,6 +228,7 @@ class Vectorizer(Object):
                     self.selectors[u] = SelectKBest(chi2, k=max_feat[u])           # Dimensionality reduction by selection
                     X1 = self.selectors[u].fit_transform(X1, Y)
                     sys.stderr.write("\tDone.\n")
+                    
                 else:
                     n0 = X1.shape[1]                                                              # Length of incoming vector
                     sys.stderr.write("\tFeatureset has %d features.\n"% (n0))
@@ -249,7 +257,7 @@ class Vectorizer(Object):
         return feature_names
 
             
-    def transform(self, input):
+    def transform(self, input, verbose=False):
         """
         Use vectorizer to convert a string into a vector
 
@@ -260,7 +268,11 @@ class Vectorizer(Object):
         Returns : matrix
             vectorized version of 'input'
         """
-        return self.fit_transform(input)
+        X1 = self.fit_transform(input)
+        if verbose:
+            n0 = X1.shape[1]                                                              # Length of incoming vector
+            sys.stderr.write("\tFeatureset has %d features.\n"% (n0))
+        return X1
 
 
 ################################################################################

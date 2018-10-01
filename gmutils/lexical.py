@@ -585,16 +585,15 @@ def ngrams(list):
     return out
 
 
-def string_distance(A, B, options={}):
+def string_distance(A, B, options={}, verbose=False):
     """
     Normalized Levenshtein-Damerau distance between two strings
 
     Normalized to [0,1], with values above some threshold being set to 1
     """
-    verbose = False
     len_A = len(A)
     len_B = len(B)
-    length = float( min( len_A, len_B ) )
+    length = float( max( len_A, len_B ) )
     abs_dist = damerauLevenshtein(A, B)
     
     # diff_length = abs(len_A - len_B)
@@ -807,7 +806,9 @@ def process_best_matches(A, B, closest, indices_A, indices_B, verbose=False, opt
 
             # Attempt to find a match for token_B
             distance, i_A, indices_A = find_and_rm_best_match(token_B,indices_A, A)
-            if distance > .21:
+            if verbose:
+                err(["distance: %0.5f"% distance])
+            if distance > .31:
                 unmatched_i_B.append(i_B)
                 continue  # NO suitable match was found
             
@@ -1122,7 +1123,7 @@ if __name__ == '__main__':
         
     # String Distance
     elif sys.argv[1] == '--sd':
-        dist = string_distance(sys.argv[2], sys.argv[3])
+        dist = string_distance(sys.argv[2], sys.argv[3], verbose=True)
         print ('Dist:', dist)
         
 

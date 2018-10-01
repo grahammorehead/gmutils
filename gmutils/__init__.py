@@ -9,7 +9,7 @@ try:
 except Exception as e: err([], {'exception':e, 'level':0})
 
 if verbose:  sys.stderr.write("\tLoading normalize ...\n")
-from .normalize import normalize, ascii_fold, simplify_for_distance, naked_words, clean_spaces
+from .normalize import normalize, ascii_fold, simplify_for_distance, naked_words, clean_spaces, simplify
 
 try:
     if verbose:  sys.stderr.write("\tLoading Elasticsearch ...\n")
