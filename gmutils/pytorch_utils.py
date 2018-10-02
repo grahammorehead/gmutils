@@ -9,26 +9,34 @@ import random
 import shutil
 import inspect
 import math
-import torch
-import torch.nn as nn
-import torch.nn.functional as F
-import torch.nn.modules.loss as Loss
-from torch.optim.optimizer import Optimizer
 import numpy as np
 from gmutils.utils import err, argparser, isTrue, read_dir
+try:
+    import torch
+    import torch.nn as nn
+    import torch.nn.functional as F
+    import torch.nn.modules.loss as Loss
+    from torch.optim.optimizer import Optimizer
 
-################################################################################
-# DEFAULTS
+    ################################################################################
+    # DEFAULTS
 
-torch.set_printoptions(linewidth=260)
-INF     = torch.Tensor([float("Inf")]).sum().double()
-negINF  = torch.Tensor([float("-Inf")]).sum().double()
+    torch.set_printoptions(linewidth=260)
+    INF = torch.Tensor([float("Inf")]).sum().double()
+    negINF = torch.Tensor([float("-Inf")]).sum().double()
+    TORCH_DOUBLE = torch.DoubleTensor
+    TORCH_LOSS = Loss._Loss
 
-if torch.cuda.is_available():
-    # torch.cuda.manual_seed_all(12345)
-    cuda    = torch.device('cuda')
-    INF     = INF.cuda()
-    negINF  = negINF.cuda()
+    if torch.cuda.is_available():
+        # torch.cuda.manual_seed_all(12345)
+        cuda    = torch.device('cuda')
+        INF     = INF.cuda()
+        negINF  = negINF.cuda()
+        
+except Exception as e:
+    TORCH_DOUBLE = None
+    TORCH_LOSS = object
+    err([], {'exception':e, 'level':0})
 
 ################################################################################
 # VARS to be used in this file
@@ -71,7 +79,7 @@ def print_info(T):
     print()
     
 
-def torchtensor(X, ttype=torch.DoubleTensor, requires_grad=False):
+def torchtensor(X, ttype=TORCH_DOUBLE, requires_grad=False):
     """
     Converts X into a PyTorch Tensor
 
@@ -112,7 +120,7 @@ def torchtensor(X, ttype=torch.DoubleTensor, requires_grad=False):
     return T
 
     
-def torchvar(X, ttype=torch.DoubleTensor, requires_grad=False):
+def torchvar(X, ttype=TORCH_DOUBLE, requires_grad=False):
     """
     Converts X into a PyTorch tensor, ready to be part of a computational graph
 
@@ -133,7 +141,7 @@ def torchvar(X, ttype=torch.DoubleTensor, requires_grad=False):
     return T
 
 
-def torchvar_list(X, ttype=torch.DoubleTensor, requires_grad=False):
+def torchvar_list(X, ttype=TORCH_DOUBLE, requires_grad=False):
     """
     Converts a list X of Python variables into PyTorch tensors, ready to be part of a computational graph
 
@@ -150,7 +158,7 @@ def torchvar_list(X, ttype=torch.DoubleTensor, requires_grad=False):
     return T
 
 
-def var_zeros(n, ttype=torch.DoubleTensor, requires_grad=False):
+def var_zeros(n, ttype=TORCH_DOUBLE, requires_grad=False):
     """
     Returns Variable ready for computational graph
     """
@@ -169,7 +177,7 @@ def var_zeros(n, ttype=torch.DoubleTensor, requires_grad=False):
     return T
     
 
-def var_ones(n, ttype=torch.DoubleTensor, requires_grad=False):
+def var_ones(n, ttype=TORCH_DOUBLE, requires_grad=False):
     """
     Returns Variable ready for computational graph
     """
@@ -208,7 +216,7 @@ def learning_rate_by_epoch(epoch, lr):
     float
 
     """
-    return lr * (0.8 ** (epoch-1))
+    return lr * (0.9 ** (epoch-1))
 
 
 def loss_threshold_by_epoch(epoch, lt):
@@ -845,7 +853,7 @@ def collect_garbage():
 ##############################################################################################
 # OBJECTS
 
-class PearsonLoss(Loss._Loss):
+class PearsonLoss(TORCH_LOSS):
     """
     Creates a criterion that measures the Pearson Correlation Coefficient between labels and regressed output.
 

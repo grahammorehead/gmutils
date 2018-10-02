@@ -6,17 +6,19 @@
 import os, sys, re
 from copy import deepcopy
 import numpy as np
-import pandas as pd
-
-from sklearn.feature_extraction.text import TfidfVectorizer, HashingVectorizer
-from sklearn.feature_selection import SelectKBest
-from sklearn.feature_selection import mutual_info_classif, chi2
-
 from gmutils.utils import err, argparser
 from gmutils.model import pandasize
 from gmutils.objects import Object
 from gmutils.normalize import clean_spaces
 from gmutils.document import Document
+try:
+    import pandas as pd
+except Exception as e: err([], {'exception':e, 'level':0})
+try:
+    from sklearn.feature_extraction.text import TfidfVectorizer, HashingVectorizer
+    from sklearn.feature_selection import SelectKBest
+    from sklearn.feature_selection import mutual_info_classif, chi2
+except Exception as e: err([], {'exception':e, 'level':0})
 
 ################################################################################
 ##  DEFAULTS   ###

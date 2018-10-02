@@ -13,8 +13,10 @@ from gmutils.normalize import normalize, clean_spaces, ascii_fold, ends_with_pun
 from gmutils.nlp import generate_spacy_data, tokenize, get_sentences
 from gmutils.objects import Object
 from gmutils.node import Node, iprint
-from spacy.matcher import Matcher
-from spacy.matcher import PhraseMatcher
+try:
+    from spacy.matcher import Matcher
+    from spacy.matcher import PhraseMatcher
+except Exception as e: err([], {'exception':e, 'level':0})
 try:
     import pandas as pd
 except Exception as e: err([], {'exception':e, 'level':0})

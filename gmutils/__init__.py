@@ -43,7 +43,9 @@ if verbose:  sys.stderr.write("\tLoading Model ...\n")
 from .model import Model
 try:
     from .vectorizer import Vectorizer
-except Exception as e: err([], {'exception':e, 'level':0})
+except:
+    raise
+#except Exception as e: err([], {'exception':e, 'level':0})
 
 if verbose:  sys.stderr.write("\tLoading SklearnModel ...\n")
 from .sklearn_model import SklearnModel

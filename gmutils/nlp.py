@@ -8,14 +8,16 @@ import os, re
 import numpy as np
 import itertools
 from copy import deepcopy
-import spacy
-from nltk.corpus import sentiwordnet as swn
-from nltk.corpus import wordnet
-
 from gmutils.objects import Options
 from gmutils.normalize import normalize, naked_words
 from gmutils.utils import err, argparser, read_file, read_dir, iter_file, isTrue, monitor_setup, monitor, serialize, deserialize
-
+try:
+    import spacy
+except Exception as e: err([], {'exception':e, 'level':0})
+try:
+    from nltk.corpus import sentiwordnet as swn
+    from nltk.corpus import wordnet
+except Exception as e: err([], {'exception':e, 'level':0})
 try:
     import pandas as pd
 except Exception as e: err([], {'exception':e, 'level':0})
@@ -71,9 +73,8 @@ try:
         spacy_parsing.add_pipe(spacy_parsing.create_pipe('sentencizer'), before='set_sentence_starts')
     tokenizer = spacy.tokenizer.Tokenizer(spacy_ner.vocab)
     
-except:
-    raise
-    err([], {'exception':e})
+except Exception as e:
+    err([], {'exception':e, 'level':0})
 
 ################################################################################
 
