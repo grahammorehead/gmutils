@@ -51,6 +51,8 @@ default_max_df = {                       # Maximum document frequency for each u
 
 default_stop_words = None
 
+default_ngram_range = (1,4)
+
 float_features = []
 
 int_features   = ['entity_count', 'word_count']
@@ -106,6 +108,9 @@ class Vectorizer(Object):
         self.selectors = {}
         self.vectorizers = {}
 
+        print("NS:", self.get('no_selector'))
+        exit()
+        
         ##  VECTORIZER PARAMETERS
         if self.get('underlying'):
             self.underlying = self.get('underlying')
@@ -123,6 +128,9 @@ class Vectorizer(Object):
 
         if not self.get('stop_words'):
             self.set('stop_words', default_stop_words)
+
+        if not self.get('ngram_range'):
+            self.set('ngram_range', default_ngram_range)
 
 
     def fit_transform(self, input, Y=None, verbose=False):
@@ -210,10 +218,10 @@ class Vectorizer(Object):
                     sys.stderr.write("Instantiating %s Vectorizer ...\n"% u)
 
                 if self.get('hashing_vectorizer'):
-                    self.vectorizers[u] = HashingVectorizer(n_features=max_feat[u], lowercase=True, analyzer=u'word', strip_accents='unicode', binary=False, stop_words=self.get('stop_words'), ngram_range=(1,4), norm=u'l2')
+                    self.vectorizers[u] = HashingVectorizer(n_features=max_feat[u], lowercase=True, analyzer=u'word', strip_accents='unicode', binary=False, stop_words=self.get('stop_words'), ngram_range=self.get('ngram_range'), norm=u'l2')
                     #                     HashingVectorizer( OTHER OPTIONS: alternate_sign=True, non_negative=False )
                 else:
-                    self.vectorizers[u] = TfidfVectorizer(analyzer=u'word', sublinear_tf=True, strip_accents='unicode', max_df=max_df[u], min_df=min_df[u], max_features=max_feat[u], vocabulary=None, binary=False, stop_words=self.get('stop_words'), ngram_range=(1,4), norm=u'l2', use_idf=True, smooth_idf=True)
+                    self.vectorizers[u] = TfidfVectorizer(analyzer=u'word', sublinear_tf=True, strip_accents='unicode', max_df=max_df[u], min_df=min_df[u], max_features=max_feat[u], vocabulary=None, binary=False, stop_words=self.get('stop_words'), ngram_range=self.get('ngram_range'), norm=u'l2', use_idf=True, smooth_idf=True)
 
                 if verbose:
                     sys.stderr.write("Fitting %s Vectorizer ...\n"% u)
@@ -222,7 +230,7 @@ class Vectorizer(Object):
                     sys.stderr.write("\tDone.\n")
 
                 # IF using a selector for dimensionality reduction
-                if len(Y) == len(parsed[u])  and  not self.get('hashing_vectorizer'):
+                if len(Y) == len(parsed[u])  and  not self.get('hashing_vectorizer')  and  not self.get('no_selector'):
                     n0 = X1.shape[1]                                                              # Length of incoming vector
                     max_feat[u] = min(int(0.8 * n0), max_feat[u])                                 # Max output length
                     sys.stderr.write("\tReducing featureset %d -> %d ...\n"% (n0, max_feat[u]))
