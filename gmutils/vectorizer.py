@@ -102,15 +102,11 @@ class Vectorizer(Object):
             These are used for dimensionality reduction.
             As with the vectorizers, there is one for each of 'text', 'lemmas', and 'pos'
         """
-
         # initializations
         self.set_options(options)       # For more on 'self.set_options()' see objects.py DSObject class
         self.selectors = {}
         self.vectorizers = {}
 
-        print("NS:", self.get('no_selector'))
-        exit()
-        
         ##  VECTORIZER PARAMETERS
         if self.get('underlying'):
             self.underlying = self.get('underlying')
@@ -202,7 +198,7 @@ class Vectorizer(Object):
                 p = parsed[u]
                 try:
                     X1 = self.vectorizers[u].transform(p)   # Transform into a vector
-                    if not self.get('hashing_vectorizer'):
+                    if not self.get('hashing_vectorizer')  and  not self.get('no_selector'):
                         try:
                             X1 = self.selectors[u].transform(X1)
                         except:

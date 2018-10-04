@@ -26,12 +26,14 @@ try:
     negINF = torch.Tensor([float("-Inf")]).sum().double()
     TORCH_DOUBLE = torch.DoubleTensor
     TORCH_LOSS = Loss._Loss
-
+    TORCH_DILATION = TORCH_DOUBLE([517.])
+    
     if torch.cuda.is_available():
         # torch.cuda.manual_seed_all(12345)
         cuda    = torch.device('cuda')
         INF     = INF.cuda()
         negINF  = negINF.cuda()
+        TORCH_DILATION = TORCH_DILATION.cuda()
         
 except Exception as e:
     TORCH_DOUBLE = None
@@ -41,8 +43,17 @@ except Exception as e:
 ################################################################################
 # VARS to be used in this file
 
-INF = negINF = None
+INF      = negINF = None
+L1_LOSS  = nn.L1Loss(reduction='sum')
+ONE      = TORCH_DOUBLE([1.0])
+NEG_ONE  = TORCH_DOUBLE([-1.0])
 
+if torch.cuda.is_available():
+    L1_LOSS = L1_LOSS.cuda()
+    ONE     = ONE.cuda()
+    NEG_ONE = NEG_ONE.cuda()
+
+    
 ################################################################################
 # FUNCTIONS
 
@@ -849,7 +860,77 @@ def collect_garbage():
     count_tensors()
     # print_GPU_memstats()
 
+
+def get_binary_losses(preds, labels, verbose=False):
+    """
+    For some set of preds and labels, assumed to be binary, get the overall L1 loss for each set of labels
+    """
+    # Some tensors to use
+    zeros = torch.zeros_like(labels)
+    ones  = torch.ones_like(labels)
+
+    # Mask: 1 where labels is above 0, 0 otherwise
+    mask  = torch.max(labels, zeros)   # Converts negative numbers to 0, doesn't affect others
+    mask  = torch.min(mask, ones)       # Converts numbers greater than 1 to 1.  Doesn't affect others
     
+    # Antimask: a tensor which is 1 where 'labels' is 0, and 0 otherwise
+    antimask = mask * NEG_ONE + ONE
+    antimask = torch.max(antimask, zeros)
+    
+    preds_zero  = antimask * preds
+    preds_one   = mask * preds
+    labels_zero = antimask * labels
+    labels_one  = mask * labels
+
+    if verbose:
+        print("PREDS:    ", preds.cpu().data.numpy().tolist()[100:200])
+        print("PREDS 0:  ", preds_zero.cpu().data.numpy().tolist()[100:200])
+        print("PREDS 1:  ", preds_one.cpu().data.numpy().tolist()[100:200])
+        print("LABELS:   ", labels.cpu().data.numpy().tolist()[100:200])
+        print("LABELS 0: ", labels_zero.cpu().data.numpy().tolist()[100:200])
+        print("LABELS 1: ", labels_one.cpu().data.numpy().tolist()[100:200])
+        
+    zeroloss   = L1_LOSS(preds_zero, labels_zero)
+    oneloss    = L1_LOSS(preds_one, labels_one)
+    
+    if verbose:
+        err([zeroloss, oneloss])
+    
+    return zeroloss, oneloss
+    
+    
+def get_binary_dilation(preds, labels):
+    """
+    For some set of preds and labels, assumed to be binary, get the overall L1 loss for each set of labels
+
+    Returns
+    -------
+    ratio 'loss @ label=0' to 'loss @ label=1'
+    """
+    zeroloss, oneloss = get_binary_losses(preds, labels)
+    dilation = zeroloss / oneloss
+    return dilation
+
+
+def balanced_dilate(preds, labels, verbose=False):
+    """
+    Dilate either the error at label=0, or label=1 , in order to balance them.
+    """
+    dilation = get_binary_dilation(preds, labels)           # Ratio between both kinds of loss
+    dilation = torch.unsqueeze(dilation, 0).detach()    # Must be detached!
+    mask     = dilation * labels + torch.ones_like(labels)  # All 1.0 except where vectors are being altered
+    
+    if verbose:
+        print("DILATION:", dilation)
+        print("MASK:", mask.cpu().data.numpy().tolist()[100:200])
+
+    preds  = mask * preds
+    labels = mask * labels
+    
+    return preds, labels
+
+    
+
 ##############################################################################################
 # OBJECTS
 
