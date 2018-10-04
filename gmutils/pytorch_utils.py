@@ -26,6 +26,7 @@ try:
     negINF = torch.Tensor([float("-Inf")]).sum().double()
     TORCH_DOUBLE = torch.DoubleTensor
     TORCH_LOSS = Loss._Loss
+    TORCH_TWO = TORCH_DOUBLE([2.])
     TORCH_DILATION = TORCH_DOUBLE([517.])
     
     if torch.cuda.is_available():
@@ -33,6 +34,7 @@ try:
         cuda    = torch.device('cuda')
         INF     = INF.cuda()
         negINF  = negINF.cuda()
+        TORCH_TWO = TORCH_TWO.cuda()
         TORCH_DILATION = TORCH_DILATION.cuda()
         
 except Exception as e:
@@ -868,14 +870,16 @@ def get_binary_losses(preds, labels, verbose=False):
     # Some tensors to use
     zeros = torch.zeros_like(labels)
     ones  = torch.ones_like(labels)
+    mask  = binarize(labels).detach()
+    antimask  = binarize(labels, options={'reverse':True}).detach()
 
-    # Mask: 1 where labels is above 0, 0 otherwise
-    mask  = torch.max(labels, zeros)   # Converts negative numbers to 0, doesn't affect others
-    mask  = torch.min(mask, ones)       # Converts numbers greater than 1 to 1.  Doesn't affect others
+    # Mask: 1 where labels is above .5, 0 otherwise
+    # mask  = torch.max(labels, zeros)   # Converts negative numbers to 0, doesn't affect others
+    # mask  = torch.min(mask, ones)      # Converts numbers greater than 1 to 1.  Doesn't affect others
     
     # Antimask: a tensor which is 1 where 'labels' is 0, and 0 otherwise
-    antimask = mask * NEG_ONE + ONE
-    antimask = torch.max(antimask, zeros)
+    # antimask = mask * NEG_ONE + ONE
+    # antimask = torch.max(antimask, zeros)
     
     preds_zero  = antimask * preds
     preds_one   = mask * preds
@@ -929,6 +933,39 @@ def balanced_dilate(preds, labels, verbose=False):
     
     return preds, labels
 
+
+def binarize(X, thresh=0.5, options={}):
+    """
+    Binarize a tensor without losing the ability to backpropagate
+    """
+    if options.get('reverse'):
+        X = X.masked_fill((X<thresh), 1).masked_fill((X>=thresh), 0)
+    else:
+        X = X.masked_fill((X<thresh), 0).masked_fill((X>=thresh), 1)
+        
+    if options.get('detach'):
+        X = X.detach()
+        
+    return X
+
+
+def F1(preds, labels):
+    """
+    Using only pytorch, compute an F1 on two tensors of binary values [0,1]
+    """
+    predP    = binarize(preds)
+    predN    = binarize(preds, options={'reverse':True})
+    labelP   = binarize(labels)
+    labelN   = binarize(labels, options={'reverse':True})
+    
+    TP       = torch.sum( torch.sum(labelP * predP) )
+    FP       = torch.sum( torch.sum(labelN * predP) )
+    TN       = torch.sum( torch.sum(labelN * predN) )
+    FN       = torch.sum( torch.sum(labelP * predN) )
+
+    F1 = (TORCH_TWO*TP) / (2*TP + FN + FP)
+
+    return F1, TP, TN, FP, FN
     
 
 ##############################################################################################
