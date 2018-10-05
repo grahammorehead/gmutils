@@ -868,19 +868,11 @@ def get_binary_losses(preds, labels, verbose=False):
     For some set of preds and labels, assumed to be binary, get the overall L1 loss for each set of labels
     """
     # Some tensors to use
-    zeros = torch.zeros_like(labels)
-    ones  = torch.ones_like(labels)
-    mask  = binarize(labels).detach()
-    antimask  = binarize(labels, options={'reverse':True}).detach()
+    zeros    = torch.zeros_like(labels)
+    ones     = torch.ones_like(labels)
+    mask     = binarize(labels).detach()
+    antimask = binarize(labels, options={'reverse':True}).detach()
 
-    # Mask: 1 where labels is above .5, 0 otherwise
-    # mask  = torch.max(labels, zeros)   # Converts negative numbers to 0, doesn't affect others
-    # mask  = torch.min(mask, ones)      # Converts numbers greater than 1 to 1.  Doesn't affect others
-    
-    # Antimask: a tensor which is 1 where 'labels' is 0, and 0 otherwise
-    # antimask = mask * NEG_ONE + ONE
-    # antimask = torch.max(antimask, zeros)
-    
     preds_zero  = antimask * preds
     preds_one   = mask * preds
     labels_zero = antimask * labels
