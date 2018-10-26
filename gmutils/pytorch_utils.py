@@ -26,34 +26,32 @@ try:
     negINF = torch.Tensor([float("-Inf")]).sum().double()
     TORCH_DOUBLE = torch.DoubleTensor
     TORCH_LOSS = Loss._Loss
+    L1_LOSS  = nn.L1Loss(reduction='sum')
+    TORCH_ONE = TORCH_DOUBLE([1.])
+    NEG_ONE   = TORCH_DOUBLE([-1.0])
     TORCH_TWO = TORCH_DOUBLE([2.])
+    TORCH_E   = TORCH_DOUBLE([math.exp(1.)])
     TORCH_DILATION = TORCH_DOUBLE([517.])
+    LEAKY_RELU = torch.nn.LeakyReLU(negative_slope=0.001, inplace=False)
     
     if torch.cuda.is_available():
         # torch.cuda.manual_seed_all(12345)
         cuda    = torch.device('cuda')
+        L1_LOSS = L1_LOSS.cuda()
         INF     = INF.cuda()
         negINF  = negINF.cuda()
+        TORCH_ONE = TORCH_ONE.cuda()
+        NEG_ONE   = NEG_ONE.cuda()
         TORCH_TWO = TORCH_TWO.cuda()
+        TORCH_E = TORCH_E.cuda()
         TORCH_DILATION = TORCH_DILATION.cuda()
+        LEAKY_RELU = LEAKY_RELU.cuda()
         
 except Exception as e:
     TORCH_DOUBLE = None
     TORCH_LOSS = object
+    raise
     err([], {'exception':e, 'level':0})
-
-################################################################################
-# VARS to be used in this file
-
-INF      = negINF = None
-L1_LOSS  = nn.L1Loss(reduction='sum')
-ONE      = TORCH_DOUBLE([1.0])
-NEG_ONE  = TORCH_DOUBLE([-1.0])
-
-if torch.cuda.is_available():
-    L1_LOSS = L1_LOSS.cuda()
-    ONE     = ONE.cuda()
-    NEG_ONE = NEG_ONE.cuda()
 
     
 ################################################################################
@@ -960,6 +958,56 @@ def F1(preds, labels):
     return F1, TP, TN, FP, FN
     
 
+def print_complete(T, label='T'):
+    """
+    For some tensor 'T', print values
+    """
+    print(label, ':', T.cpu().detach().numpy().tolist())
+
+
+def print_100(T, label='T'):
+    """
+    For some tensor 'T', print first 100 values
+    """
+    print(label, ':', T.cpu().detach().numpy().tolist()[:100])
+
+
+def squashed_leaky_relu(x):
+    """
+    Leaky relu up to e.  After that is squashed by log(x)
+    """
+    # Final activation should be like sigmoid if possible, but can't be susceptible to vanishing gradients
+    x = LEAKY_RELU(x)
+
+    # Masks thresholded at e
+    hi_mask = binarize(x, thresh=TORCH_E, options={'reverse':False}).detach()
+    lo_mask = binarize(x, thresh=TORCH_E, options={'reverse':True}).detach()
+
+    # Get Low and higher log-altered version of x
+    lo_x  = lo_mask * x
+    hi_x  = hi_mask * x
+    log_x = torch.log(hi_x)
+    altered_x = log_x + TORCH_E - TORCH_ONE   # For values > 2.7187, take the log, which brings it back down to 1.0, so for continuity's sake, bring it back up to 2.7187 by adding e - 1.
+
+    # Compile x where only higher values have been log-altered
+    x = lo_x + altered_x
+
+    return x
+
+
+def has_improper_values(T):
+    """
+    Whether a tensor has NaN, Inf, or -Inf
+    """
+    if torch.sum(torch.isnan(T)) > 0:
+        return True
+
+    if torch.sum(T) in [INF, negINF]:
+        return True
+
+    return False
+
+        
 ##############################################################################################
 # OBJECTS
 

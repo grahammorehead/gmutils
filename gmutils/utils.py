@@ -201,12 +201,12 @@ def err(vars=[], options={}):
     # Information about the urgency of this call
     call_level = options.get('level')
     if call_level is None:  call_level = 2    # default is 2 (more urgent than level 1)
-    os_level = 2
+    os_level = 2                              # default is 2
     try:
         os_level = int(os.environ['GM_LEVEL'])
     except:
         pass
-        
+    
     callerframerecord = inspect.stack()[1]    # 0 represents this line
                                               # 1 represents line at caller
     frame = callerframerecord[0]
@@ -242,6 +242,8 @@ def err(vars=[], options={}):
                     sys.stderr.write("ERROR: {}\n".format(arg))
                 sys.stderr.write("\n\t"+ str(sys.exc_info()[0]) +"\n")
             
+    sys.stderr.flush()
+    
     # Conditional return
     if isTrue(options, 'exit'):
         exit(1)
@@ -1286,6 +1288,27 @@ def sha256(text):
     return hashlib.sha256(text).hexdigest()
 
 
+def unique_list(X):
+    """
+    Return X having removed all repeated elements.  Order is preserved
+
+    Paramters
+    ---------
+    X : list of an indexable type
+
+    Returns
+    -------
+    list
+    """
+    output = []
+    seen = set([])
+    for x in X:
+        if x not in seen:
+            output.append(x)
+            seen.add(x)
+    return output
+    
+    
 ################################################################################
 # MAIN
 
