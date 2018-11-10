@@ -232,7 +232,6 @@ def err(vars=[], options={}):
                 for v in vars:
                     if verbose:  sys.stderr.write("err 219: " + str(v) + "\n")
                     sys.stderr.write('\tVAR  |%s|  %s\n'% (str(v), str(type(v))) )
-                sys.stderr.write('\n')
 
     # Conditional printing of the exception
     if isTrue(options, 'warning')  or  call_level+1 >= os_level:
