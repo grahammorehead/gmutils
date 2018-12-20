@@ -418,16 +418,32 @@ def close_enough(A, B):
     return False
 
 
-def naked_words(text):
+def split_words(text):
+    """
+    Easily split text into words
+    """
+    words1 = text.split(' ')
+    words2 = []
+    for w in words1:
+        words2.extend( w.split(',') )
+    words3 = []
+    for w in words2:
+        words3.extend( w.split(';') )
+    return words3
+
+
+def naked_words(text, verbose=False):
     """
     Split text into words and strip off punctuation and capitalization
     """
-    words = text.split(' ')
+    words = split_words(text)
     out   = []
     if not isinstance(words, list):
         words = [words]
     for word in words:
-        out.append( simplify_for_distance(word) )
+        if len(word):
+            out.append( simplify_for_distance(word) )
+    if verbose:  err([text, words, out])
     return out
 
 
