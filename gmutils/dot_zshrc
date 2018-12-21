@@ -1,10 +1,11 @@
-export ZSH=~/.oh-my-zsh
+# export ZSH=~/.oh-my-zsh
+export ZSH="/root/.oh-my-zsh"
 export PYTHONPATH=$PYTHONPATH:.
 alias rm="rm -i"
 alias mv="mv -i"
 alias cp="cp -i"
-alias python=python3
-alias python2=/usr/bin/python
+#alias python=python3
+#alias python2=/usr/bin/python
 ZSH_THEME="robbyrussell"
 plugins=(
   git
