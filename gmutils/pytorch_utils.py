@@ -123,7 +123,8 @@ def torchtensor(X, ttype=TORCH_DOUBLE, requires_grad=False):
             X = [X]
         if not isinstance(X, list):
             err([X])
-            exit()
+            print("Problem making tensor.")
+            print(ZZZ)
         T = ttype(X)
 
     T.requires_grad = requires_grad
@@ -1007,6 +1008,11 @@ def has_improper_values(T):
 
     return False
 
+
+def tensor_to_float(T):
+    T = T.cpu().data.numpy().tolist()
+    return T
+
         
 ##############################################################################################
 # OBJECTS
@@ -1076,6 +1082,70 @@ class PearsonLoss(TORCH_LOSS):
         """
         return 1.0 - self.pearson_coeff(X, Y)
 
+
+    def forward(self, input, target):
+        pl = self.loss(input, target)
+        return pl
+        # l1 = self.L1(input, target)
+        # return l1
+        # return max(pl, l1)
+
+    
+class SkewedL1Loss(TORCH_LOSS):
+    """
+    Creates a criterion that measures the L1 Loss but greatly increases loss with respect to the 0 value
+
+    The sum operation still operates over all the elements, and divides by the batch size.
+
+    The division by `n` can be avoided if one sets the constructor argument
+    `size_average=False`.
+
+    Args:
+        size_average (bool, optional): Deprecated (see :attr:`reduction`). By default,
+            the losses are averaged over each loss element in the batch. Note that for
+            some losses, there multiple elements per sample. If the field :attr:`size_average`
+            is set to ``False``, the losses are instead summed for each minibatch. Ignored
+            when reduce is ``False``. Default: ``True``
+        reduce (bool, optional): Deprecated (see :attr:`reduction`). By default, the
+            losses are averaged or summed over observations for each minibatch depending
+            on :attr:`size_average`. When :attr:`reduce` is ``False``, returns a loss per
+            batch element instead and ignores :attr:`size_average`. Default: ``True``
+        reduction (string, optional): Specifies the reduction to apply to the output:
+            'none' | 'elementwise_mean' | 'sum'. 'none': no reduction will be applied,
+            'elementwise_mean': the sum of the output will be divided by the number of
+            elements in the output, 'sum': the output will be summed. Note: :attr:`size_average`
+            and :attr:`reduce` are in the process of being deprecated, and in the meantime,
+            specifying either of those two args will override :attr:`reduction`. Default: 'elementwise_mean'
+
+    Shape:
+        - Input: :math:`(N, *)` where `*` means, any number of additional
+          dimensions
+        - Target: :math:`(N, *)`, same shape as the input
+        - Output: scalar. If reduce is ``False``, then
+          :math:`(N, *)`, same shape as the input
+
+    Examples::
+
+        >>> loss = nn.PearsonLoss()
+        >>> input = torch.randn(3, 5, requires_grad=True)
+        >>> target = torch.randn(3, 5)
+        >>> output = loss(input, target)
+        >>> output.backward()
+    """
+    def __init__(self, skew=100, size_average=None, reduce=None, reduction='elementwise_mean'):
+        super(SkewedL1Loss, self).__init__(size_average, reduce, reduction)
+        self.skew = skew
+        self.L1 = nn.L1Loss()
+
+ 
+    def loss(self, X, Y):
+        """
+        Loss function based on L1 but magnifying the difference when y=0
+        """
+        c = self.skew * (1 - Y)
+        L = (1 + c) * self.L1(X, Y)
+        return torch.sum(L)
+        
 
     def forward(self, input, target):
         pl = self.loss(input, target)

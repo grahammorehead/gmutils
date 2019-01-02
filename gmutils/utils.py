@@ -316,13 +316,13 @@ def read_file(file, options={}):
     return final
 
 
-def iter_file(file, options=None):
+def iter_file(filename, options=None):
     """
-    Create an iterator for 'file' to read it line by line
+    Create an iterator for 'filename' to read it line by line
 
     Parameters
     ----------
-    file : str
+    filename : str
 
     Returns
     -------
@@ -330,13 +330,34 @@ def iter_file(file, options=None):
 
     """
     if isVerbose(options):
-        sys.stderr.write("Creating iterator for file '%s' ...\n"% file)
-
-    FH = open(file, 'r')
+        sys.stderr.write("Creating iterator for filename '%s' ...\n"% filename)
+    _monitor = options.get('_monitor')
+    if _monitor:
+        skip = _monitor.get('skip')
+    if skip  and  skip > 0.0:
+        skip_val = skip / 100.0
+        N = file_length(filename)
+        skip_i = int(skip_val * N)
+        sys.stderr.write("Skipping %d lines ...   (%0.3f)\n"% (skip_i, skip))
+    else:
+        skip_i = 0
+        
+    FH = open(filename, 'r')
     iterator = iter(FH)
     for line in iterator:
+        if _monitor:
+            monitor(_monitor)
+            if _monitor['i'] < skip_i:
+                continue
         yield line.rstrip()
 
+
+def file_length(filepath):
+    """
+    Returns the number of lines
+    """
+    return len(open(filepath).readlines())
+    
 
 def file_number(filepath):
     """
