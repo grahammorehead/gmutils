@@ -316,7 +316,7 @@ def read_file(file, options={}):
     return final
 
 
-def iter_file(filename, options=None):
+def iter_file(filename, options={}):
     """
     Create an iterator for 'filename' to read it line by line
 
@@ -334,6 +334,8 @@ def iter_file(filename, options=None):
     _monitor = options.get('_monitor')
     if _monitor:
         skip = _monitor.get('skip')
+    else:
+        skip = None
     if skip  and  skip > 0.0:
         skip_val = skip / 100.0
         N = file_length(filename)

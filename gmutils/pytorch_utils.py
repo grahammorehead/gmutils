@@ -449,12 +449,10 @@ def clear_chaff_by_pcc(dirpath, MAX=100):
             pass
 
     
-def clear_chaff_by_loss(dirpath, MAX=100):
+def clear_chaff_by_loss(dirpath, MAX=100, verbose=False):
     """
     Get a list of all models sorted by loss.  Keep MAX, and delete the rest
     """
-    verbose = False
-
     models = model_files_by_loss(dirpath)   # sorted, lowest loss first
     if len(models) > MAX:
         try:
