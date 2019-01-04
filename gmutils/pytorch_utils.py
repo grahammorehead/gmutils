@@ -328,6 +328,24 @@ def squash(T, dim):
 	return T
 
 
+def loss_from_filename(filename):
+    """
+    Loss value gleaned from dirpath or filename
+    """
+    loss_val = None
+    filename = re.sub(r'^.*(L\d)', r'\1', filename)
+    if re.search(r'^L', filename):
+        lv = re.sub(r'^L', '', filename)
+        lv = re.sub(r'_E\d+_B\d+$', '', lv)
+        try:
+            loss_val = float(lv)
+        except:
+            err([lv])
+            raise
+        
+    return loss_val
+
+                
 def model_files_by_loss(dirpath):
     """
     List all available model files by loss

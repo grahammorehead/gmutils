@@ -853,6 +853,21 @@ def num_from_filename(file):
     return n
     
 
+def file_length_other_encodings(filename):
+    """
+    Because of non-standard encoding, this clunky method is easier than the normal pythonic way
+    """
+    p = subprocess.Popen(["wc", "-l", filename], stdout=subprocess.PIPE)
+    result = p.communicate()[0]
+    result = str(result)
+    result = re.sub(r"^b'", "", result)
+    result = result.split(' ')
+    result = list(filter(bool, result))   # remove empty strings
+    result = result[0]
+    num_lines = int(result)
+    return num_lines
+
+
 def monitor_setup(file, total_i=None, options={}):
     """
     To setup monitoring for the progess of a loop.  Use in conjunction with monitor()
