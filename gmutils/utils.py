@@ -2,12 +2,13 @@
 
     Helper functions
 
-"""
-import sys
 if not sys.warnoptions:
     import warnings
     warnings.filterwarnings("ignore", message="numpy.dtype size changed")
     warnings.filterwarnings("ignore", message="numpy.ufunc size changed")
+"""
+import sys
+import subprocess
 import os, re
 import hashlib
 import types
@@ -165,6 +166,7 @@ def argparser_ml(options={}):
     parser.add_argument('--model',            help='File to save the model to', required=False, type=str)
     parser.add_argument('--model_dir',        help='Directory to save the model in', required=False, type=str)
     parser.add_argument('--model_file',       help='Load a specific model file', required=False, type=str)
+    parser.add_argument('--no_reload',        help='Never reload a model.  Dance with the one you came with.', required=False, action='store_true')
     parser.add_argument('--thresh',           help='Threshold for some output label operations such as binarization', type=float, required=False)
     parser.add_argument('--train_file',       help='Training files local or GCS', required=False, type=str)
     parser.add_argument('--train_dir',        help='Directory where training data is stored', required=False, type=str)
@@ -340,6 +342,7 @@ def iter_file(filename, options={}):
         skip_val = skip / 100.0
         N = file_length(filename)
         skip_i = int(skip_val * N)
+        # err([filename, N, skip_val, skip_i])
         sys.stderr.write("Skipping %d lines ...   (%0.3f)\n"% (skip_i, skip))
     else:
         skip_i = 0
