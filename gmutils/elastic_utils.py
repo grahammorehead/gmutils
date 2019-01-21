@@ -39,6 +39,28 @@ def list_indices():
         print('\t', name)
 
 
+def create_repository(repo, name):
+    """
+    Create a snapshot of a repository
+    """
+    snapshot_body = {
+        "type": "url",
+        "settings": {
+                "url":  "http://download.elasticsearch.org/definitiveguide/sigterms_demo/"
+            }
+        }
+    es.snapshot.create_repository(repository=repo, body=snapshot_body)
+        
+
+def create_snapshot(repo, name):
+    """
+    Create a snapshot of a repository
+    """
+    es.snapshot.create(repository=repo, snapshot=name)
+        
+
+    
+
 ################################################################################
 # STORING FUNCTIONS        
 

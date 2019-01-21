@@ -422,14 +422,9 @@ def split_words(text):
     """
     Easily split text into words
     """
-    words1 = text.split(' ')
-    words2 = []
-    for w in words1:
-        words2.extend( w.split(',') )
-    words3 = []
-    for w in words2:
-        words3.extend( w.split(';') )
-    return words3
+    text = re.sub(r'[,;/]', ' ', text)
+    text = clean_spaces(text)
+    return text.split(' ')
 
 
 def naked_words(text, verbose=False):
