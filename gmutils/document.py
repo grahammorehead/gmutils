@@ -807,7 +807,8 @@ def load_vocab(file):
     Load word vectors
     """
     if file is None:
-        file = os.environ['HOME'] + '/data/ConceptNet/numberbatch_en.pkl'
+        # file = os.environ['HOME'] + '/data/ConceptNet/numberbatch_en.pkl'
+        file = '..' + '/data/ConceptNet/numberbatch_en.pkl'
     mult_vocab = deserialize(file)
     vocab = mult_vocab['en']
     return vocab
