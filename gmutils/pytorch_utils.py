@@ -127,7 +127,7 @@ def torchtensor(X, ttype=TORCH_DOUBLE, requires_grad=False):
         T = ttype(X)
 
     T.requires_grad = requires_grad
-    # print_info(T)
+
     return T
 
     
