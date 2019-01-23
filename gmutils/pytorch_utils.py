@@ -10,6 +10,8 @@ import shutil
 import inspect
 import math
 import numpy as np
+import scipy
+from scipy.sparse import coo_matrix
 from gmutils.utils import err, argparser, isTrue, read_dir
 try:
     import torch
@@ -100,6 +102,7 @@ def torchtensor(X, ttype=TORCH_DOUBLE, requires_grad=False):
 
     """
     if isinstance(X, torch.Tensor):
+        # If X is already a torch tensor, this just changes its type
         T = X
         if ttype == torch.DoubleTensor:    # float 64
             T = T.double()
@@ -121,10 +124,39 @@ def torchtensor(X, ttype=TORCH_DOUBLE, requires_grad=False):
     else:
         if isinstance(X, int)  or  isinstance(X, float):
             X = [X]
-        if not isinstance(X, list):
-            err([X])
+        if isinstance(X, list):
+            T = ttype(X)
+        elif scipy.sparse.issparse(X):
+            
+            ###  SPARSE  ##################################
+            X       = coo_matrix(X)
+            values  = X.data
+            indices = np.vstack((X.row, X.col))
+            i       = torch.LongTensor(indices)
+            v       = torch.FloatTensor(values)
+            shape   = X.shape
+            
+            if ttype == torch.DoubleTensor:    # float 64
+                T = torch.sparse.DoubleTensor(i, v, torch.Size(shape)).to_dense()
+            elif ttype == torch.FloatTensor:   # float 32
+                T = torch.sparse.FloatTensor(i, v, torch.Size(shape)).to_dense()
+            elif ttype == torch.HalfTensor:    # float 16
+                T = torch.sparse.HalfTensor(i, v, torch.Size(shape)).to_dense()
+            elif ttype == torch.ByteTensor:    # uint 8
+                T = torch.sparse.ByteTensor(i, v, torch.Size(shape)).to_dense()
+            elif ttype == torch.CharTensor:    # int 8
+                T = torch.sparse.CharTensor(i, v, torch.Size(shape)).to_dense()
+            elif ttype == torch.ShortTensor:   # int 16
+                T = torch.sparse.ShortTensor(i, v, torch.Size(shape)).to_dense()
+            elif ttype == torch.IntTensor:     # int 32
+                T = torch.sparse.IntTensor(i, v, torch.Size(shape)).to_dense()
+            elif ttype == torch.LongTensor:    # int 64
+                T = torch.sparse.LongTensor(i, v, torch.Size(shape)).to_dense()
+                
+            ################################################
+        else:
+            err()
             exit()
-        T = ttype(X)
 
     T.requires_grad = requires_grad
 
