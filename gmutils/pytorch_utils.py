@@ -1170,12 +1170,14 @@ class SkewedL1Loss(TORCH_LOSS):
     """
     def __init__(self, class_weights=[0.5, 0.5], size_average=None, reduce=None, reduction='elementwise_mean'):
         super(SkewedL1Loss, self).__init__(size_average, reduce, reduction)
-        self.class_weights = class_weights
-        self.L1 = nn.L1Loss()
-        self.zero = var_zeros(1)
-        self.one = var_ones(1)
+        self.class_weights  = class_weights
+        self.zero_bias      = class_weights[1]
+        self.one_bias       = class_weights[0]
+        self.L1             = nn.L1Loss()
+        self.zero           = var_zeros(1)
+        self.one            = var_ones(1)
 
- 
+
     def loss(self, X, Y, verbose=False):
         """
         Loss function based on L1 but magnifying or diminishing the loss based on the relative occurrences of that class
@@ -1183,21 +1185,16 @@ class SkewedL1Loss(TORCH_LOSS):
         X : tensor [float, float]  (probability of each of two classes)
         Y : tensor int (which class, 0 or 1)
         """
-        print(X)
         X                = X[:,1]
-        Yd               = Y.double()
-        if verbose: err(["Y:", Yd])
-        if verbose: err(["X:", X])
+        Yd               = Y.double()   # naturally a one-mask
         zero_mask        = torch.abs(self.one - Yd)                 # 1 for every zero element in Y
-        zero_weight      = self.class_weights[1] * zero_mask        # dilation applied to zero class
-        one_weight       = self.class_weights[0] * Yd               # dilation for class 1
+        zero_weight      = self.zero_bias * zero_mask               # dilation applied to zero class
+        one_weight       = self.one_bias * Yd                       # dilation for class 1
         weight           = zero_weight + one_weight
-        if verbose: err(["weight:", weight])
         L                = torch.abs(Y.double() - X)                # unweighted loss
-        if verbose: err(["L:", L])
         Lw               = weight * L                               # class-adjusted loss
-        if verbose: err(["Lw:", Lw])
-        Lfinal = torch.mean(Lw)
+            
+        Lfinal = torch.mean(Lw)   # + range_loss  + sum_loss
         if verbose: err(["Lfinal:", Lfinal])
 
         return Lfinal
