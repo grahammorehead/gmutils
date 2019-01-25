@@ -142,6 +142,7 @@ def argparser_ml(options={}):
     parser = argparser(options)
     
     # Boolean flags
+    parser.add_argument('--adaptive_learning_rate', help='Diminish the learning right slightly when the loss goes up', required=False, action='store_true')
     parser.add_argument('--balance_by_copies', help='Balance the data classes (training only) by simply copying some samples', required=False, action='store_true')
     parser.add_argument('--classify',         help='Use the model to classify the data in the input file, the train', required=False, action='store_true')
     parser.add_argument('--eval',             help='Separate data into train/eval sets, then evaluate a trained model', required=False, action='store_true')

@@ -127,13 +127,20 @@ def torchtensor(X, ttype=TORCH_DOUBLE, requires_grad=False):
         if isinstance(X, list):
             T = ttype(X)
         elif scipy.sparse.issparse(X):
+
+            X = X.todense().tolist()
+            T = torchtensor(X, ttype=ttype, requires_grad=requires_grad)
+            T = torch.squeeze(T)
             
+            return T
+            
+            # not using this part for now (too much of a demand on the hardware)
             ###  SPARSE  ##################################
             X       = coo_matrix(X)
             values  = X.data
             indices = np.vstack((X.row, X.col))
             i       = torch.LongTensor(indices)
-            v       = torch.FloatTensor(values)
+            v       = torch.DoubleTensor(values)
             shape   = X.shape
             
             if ttype == torch.DoubleTensor:    # float 64
@@ -152,6 +159,8 @@ def torchtensor(X, ttype=TORCH_DOUBLE, requires_grad=False):
                 T = torch.sparse.IntTensor(i, v, torch.Size(shape)).to_dense()
             elif ttype == torch.LongTensor:    # int 64
                 T = torch.sparse.LongTensor(i, v, torch.Size(shape)).to_dense()
+
+            T = torch.squeeze(T)
                 
             ################################################
         else:
@@ -1116,6 +1125,87 @@ class PearsonLoss(TORCH_LOSS):
         # return l1
         # return max(pl, l1)
 
+################################
+class SkewedL1Loss(TORCH_LOSS):
+    """
+    Creates a criterion that measures the L1 Loss but greatly increases loss with respect to the 0 value
+
+    The sum operation still operates over all the elements, and divides by the batch size.
+
+    The division by `n` can be avoided if one sets the constructor argument
+    `size_average=False`.
+
+    Args:
+        size_average (bool, optional): Deprecated (see :attr:`reduction`). By default,
+            the losses are averaged over each loss element in the batch. Note that for
+            some losses, there multiple elements per sample. If the field :attr:`size_average`
+            is set to ``False``, the losses are instead summed for each minibatch. Ignored
+            when reduce is ``False``. Default: ``True``
+        reduce (bool, optional): Deprecated (see :attr:`reduction`). By default, the
+            losses are averaged or summed over observations for each minibatch depending
+            on :attr:`size_average`. When :attr:`reduce` is ``False``, returns a loss per
+            batch element instead and ignores :attr:`size_average`. Default: ``True``
+        reduction (string, optional): Specifies the reduction to apply to the output:
+            'none' | 'elementwise_mean' | 'sum'. 'none': no reduction will be applied,
+            'elementwise_mean': the sum of the output will be divided by the number of
+            elements in the output, 'sum': the output will be summed. Note: :attr:`size_average`
+            and :attr:`reduce` are in the process of being deprecated, and in the meantime,
+            specifying either of those two args will override :attr:`reduction`. Default: 'elementwise_mean'
+
+    Shape:
+        - Input: :math:`(N, *)` where `*` means, any number of additional
+          dimensions
+        - Target: :math:`(N, *)`, same shape as the input
+        - Output: scalar. If reduce is ``False``, then
+          :math:`(N, *)`, same shape as the input
+
+    Examples::
+
+        >>> from gmutils import pytorch_utils as pu
+        >>> loss = pu.SkewedL1Loss()
+        >>> input = torch.randn(3, 5, requires_grad=True)
+        >>> target = torch.empty(3, dtype=torch.long).random_(5)
+        >>> output = loss(input, target)
+        >>> output.backward()
+    """
+    def __init__(self, class_weights=[0.5, 0.5], size_average=None, reduce=None, reduction='elementwise_mean'):
+        super(SkewedL1Loss, self).__init__(size_average, reduce, reduction)
+        self.class_weights = class_weights
+        self.L1 = nn.L1Loss()
+        self.zero = var_zeros(1)
+        self.one = var_ones(1)
+
+ 
+    def loss(self, X, Y, verbose=False):
+        """
+        Loss function based on L1 but magnifying or diminishing the loss based on the relative occurrences of that class
+
+        X : tensor [float, float]  (probability of each of two classes)
+        Y : tensor int (which class, 0 or 1)
+        """
+        print(X)
+        X                = X[:,1]
+        Yd               = Y.double()
+        if verbose: err(["Y:", Yd])
+        if verbose: err(["X:", X])
+        zero_mask        = torch.abs(self.one - Yd)                 # 1 for every zero element in Y
+        zero_weight      = self.class_weights[1] * zero_mask        # dilation applied to zero class
+        one_weight       = self.class_weights[0] * Yd               # dilation for class 1
+        weight           = zero_weight + one_weight
+        if verbose: err(["weight:", weight])
+        L                = torch.abs(Y.double() - X)                # unweighted loss
+        if verbose: err(["L:", L])
+        Lw               = weight * L                               # class-adjusted loss
+        if verbose: err(["Lw:", Lw])
+        Lfinal = torch.mean(Lw)
+        if verbose: err(["Lfinal:", Lfinal])
+
+        return Lfinal
+    
+
+    def forward(self, input, target, verbose=False):
+        return self.loss(input, target, verbose=verbose)
+
     
 ################################################################################
 # MAIN
@@ -1131,6 +1221,14 @@ if __name__ == '__main__':
             epoch = i + 1
             output = learning_rate_by_epoch(epoch, args.rate_by_epoch)
             print("E %d  Lr: %0.8f"% (epoch, output))
+
+    elif args.test:
+        loss   = SkewedL1Loss(class_weights=[.3, .7])   # for example
+        input  = torch.randn(10, 2, requires_grad=True).double()
+        input  = F.softmax(input, dim=1)
+        target = torch.empty(10, dtype=torch.long).random_(2)
+        output = loss(input, target, verbose=True)
+        output.backward()
         
 
 ################################################################################
