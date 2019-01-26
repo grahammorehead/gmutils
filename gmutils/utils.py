@@ -921,6 +921,15 @@ def monitor_setup(file, total_i=None, options={}):
        
     return _monitor
 
+
+def monitor_skip(_monitor, iterator):
+    """
+    Skip ahead to through some of the iterator's output
+    """
+    while _monitor.get('skip'):
+        next(iterator)
+        monitor(_monitor)   # This increments _monitor['i']
+    
         
 def monitor(_monitor, options={}):
     """

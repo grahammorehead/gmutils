@@ -974,20 +974,29 @@ def binarize(X, thresh=0.5, options={}):
     else:
         X = X.masked_fill((X<thresh), 0).masked_fill((X>=thresh), 1)
         
-    if options.get('detach'):
+    if options.get('detach'):   # Sometimes you just want to make a mask of something
         X = X.detach()
         
     return X
 
 
-def F1(preds, labels):
+def compute_F1(preds, labels):
     """
     Using only pytorch, compute an F1 on two tensors of binary values [0,1]
     """
     predP    = binarize(preds)
     predN    = binarize(preds, options={'reverse':True})
+
+    tt = preds.type()
+    print("tt:", tt)
+    print_info(preds)
+    print_info(labels)
+    
     labelP   = binarize(labels)
     labelN   = binarize(labels, options={'reverse':True})
+    
+    #print_info(labelP)
+    #print_info(predP)
     
     TP       = torch.sum( torch.sum(labelP * predP) )
     FP       = torch.sum( torch.sum(labelN * predP) )
@@ -1128,7 +1137,7 @@ class PearsonLoss(TORCH_LOSS):
 ################################
 class SkewedL1Loss(TORCH_LOSS):
     """
-    Creates a criterion that measures the L1 Loss but greatly increases loss with respect to the 0 value
+    Creates a criterion that measures the L1 Loss but weights the lower-occurrence class higher.
 
     The sum operation still operates over all the elements, and divides by the batch size.
 
@@ -1162,8 +1171,8 @@ class SkewedL1Loss(TORCH_LOSS):
     Examples::
 
         >>> from gmutils import pytorch_utils as pu
-        >>> loss = pu.SkewedL1Loss()
-        >>> input = torch.randn(3, 5, requires_grad=True)
+        >>> loss   = pu.SkewedL1Loss()
+        >>> input  = torch.randn(3, 5, requires_grad=True)
         >>> target = torch.empty(3, dtype=torch.long).random_(5)
         >>> output = loss(input, target)
         >>> output.backward()
@@ -1198,6 +1207,62 @@ class SkewedL1Loss(TORCH_LOSS):
         if verbose: err(["Lfinal:", Lfinal])
 
         return Lfinal
+    
+
+    def forward(self, input, target, verbose=False):
+        return self.loss(input, target, verbose=verbose)
+
+    
+################################
+class AccuracyLoss(TORCH_LOSS):
+    """
+    Creates a criterion that measures the Accuracy of a binary classifier.  The Loss function is based on: TP+TN/all
+
+    Examples::
+
+        >>> from gmutils import pytorch_utils as pu
+        >>> loss   = pu.AccuracyLoss()
+        >>> input  = torch.randn(3, 5, requires_grad=True)
+        >>> target = torch.empty(3, dtype=torch.long).random_(5)
+        >>> output = loss(input, target)
+        >>> output.backward()
+    """
+    def __init__(self, size_average=None, reduce=None, reduction='elementwise_mean'):
+        super(AccuracyLoss, self).__init__(size_average, reduce, reduction)
+        self.zero           = var_zeros(1)
+        self.one            = var_ones(1)
+
+
+    def loss(self, X, Y, verbose=False):
+        """
+        Loss function based on L1 but magnifying or diminishing the loss based on the relative occurrences of that class
+
+        X : tensor [float, float]  (probability of each of two classes)
+        Y : tensor int (which class, 0 or 1)
+        """
+        # Convert Y to same tensor type
+        tt = X.type()
+        if tt == 'torch.DoubleTensor':
+            Y = Y.double()
+        elif tt == 'torch.FloatTensor':
+            Y = Y.float()
+            
+        X   = X[:,1]                               # Take only the probability of class 1
+        X   = torch.round(X)                       # Round to give the class number
+        F1, TP, TN, FP, FN  = compute_F1(X, Y)
+        Acc = (TP + TN) / (TP + TN + FP + FN)
+        L   = self.one - Acc   # Obviously we want to maximize accuracy
+        if verbose:
+            print("X:", X)
+            print("Y:", Y)
+            print("TP:", TP)
+            print("FP:", FP)
+            print("TN:", TN)
+            print("FN:", FN)
+            print("Acc:", Acc)
+            print("L:", L)
+
+        return L.squeeze()
     
 
     def forward(self, input, target, verbose=False):
