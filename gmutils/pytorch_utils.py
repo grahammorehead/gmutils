@@ -988,15 +988,11 @@ def compute_F1(preds, labels):
     predN    = binarize(preds, options={'reverse':True})
 
     tt = preds.type()
-    print("tt:", tt)
-    print_info(preds)
-    print_info(labels)
+    if tt == 'torch.cuda.DoubleTensor':
+        labels = labels.double()
     
     labelP   = binarize(labels)
     labelN   = binarize(labels, options={'reverse':True})
-    
-    #print_info(labelP)
-    #print_info(predP)
     
     TP       = torch.sum( torch.sum(labelP * predP) )
     FP       = torch.sum( torch.sum(labelN * predP) )
