@@ -3,7 +3,8 @@
     A set of utils to make PyTorch code simpler
 
 """
-import sys, os, re, gc
+import sys
+import time, os, re, gc
 import subprocess
 import random
 import shutil
@@ -24,31 +25,28 @@ try:
     # DEFAULTS
 
     torch.set_printoptions(linewidth=260)
-    INF = torch.Tensor([float("Inf")]).sum().double()
-    negINF = torch.Tensor([float("-Inf")]).sum().double()
-    TORCH_DOUBLE = torch.DoubleTensor
-    TORCH_LOSS = Loss._Loss
-    L1_LOSS  = nn.L1Loss(reduction='sum')
-    TORCH_ONE = TORCH_DOUBLE([1.])
-    NEG_ONE   = TORCH_DOUBLE([-1.0])
-    TORCH_TWO = TORCH_DOUBLE([2.])
-    TORCH_E   = TORCH_DOUBLE([math.exp(1.)])
-    TORCH_DILATION = TORCH_DOUBLE([517.])
-    LEAKY_RELU = torch.nn.LeakyReLU(negative_slope=0.001, inplace=False)
+    
+    INF             = torch.Tensor([float("Inf")]).sum().double()
+    negINF          = torch.Tensor([float("-Inf")]).sum().double()
+    TORCH_DOUBLE    = torch.DoubleTensor
+    TORCH_LOSS      = Loss._Loss
+    L1_LOSS         = nn.L1Loss(reduction='sum')
+    TORCH_ONE       = TORCH_DOUBLE([1.])
+    NEG_ONE         = TORCH_DOUBLE([-1.0])
+    TORCH_TWO       = TORCH_DOUBLE([2.])
+    TORCH_E         = TORCH_DOUBLE([math.exp(1.)])
+    TORCH_DILATION  = TORCH_DOUBLE([517.])
+    LEAKY_RELU      = torch.nn.LeakyReLU(negative_slope=0.001, inplace=False)
     
     if torch.cuda.is_available():
         # torch.cuda.manual_seed_all(12345)
-        cuda    = torch.device('cuda')
         L1_LOSS = L1_LOSS.cuda()
-        INF     = INF.cuda()
-        negINF  = negINF.cuda()
-        TORCH_ONE = TORCH_ONE.cuda()
         NEG_ONE   = NEG_ONE.cuda()
         TORCH_TWO = TORCH_TWO.cuda()
         TORCH_E = TORCH_E.cuda()
         TORCH_DILATION = TORCH_DILATION.cuda()
         LEAKY_RELU = LEAKY_RELU.cuda()
-        
+    
 except Exception as e:
     TORCH_DOUBLE = None
     TORCH_LOSS = object
@@ -387,6 +385,20 @@ def model_files_by_loss(dirpath):
 
     return sorted(models.items(), key=lambda x: x[1])
 
+
+def loss_from_filename(filename):
+    """
+    Get the loss value stored in a file or directory name
+    """
+    if re.search(r'^L', filename):
+        lv = re.sub(r'^L', '', f)
+        lv = re.sub(r'_E\d+_B\d+$', '', lv)
+        try:
+            loss_val = float(lv)
+            return loss_val
+        except:
+            pass
+
     
 def model_files_by_pcc(dirpath):
     """
@@ -432,27 +444,36 @@ def best_model_file_by_loss(dirpath):
     """
     Return model file with lowest loss
     """
-    sorted_models = model_files_by_loss(dirpath)
-    best = sorted_models[0][0]
-    return best
-
+    try:
+        sorted_models = model_files_by_loss(dirpath)
+        best = sorted_models[0][0]
+        return best
+    except:
+        return None
+    
     
 def best_model_file_by_pcc(dirpath):
     """
     Return model file with highest PCC
     """
-    sorted_models = model_files_by_pcc(dirpath)
-    best = sorted_models[0][0]
-    return best
+    try:
+        sorted_models = model_files_by_pcc(dirpath)
+        best = sorted_models[0][0]
+        return best
+    except:
+        return None
 
     
 def best_model_file_by_F1(dirpath):
     """
     Return model file with highest F1
     """
-    sorted_models = model_files_by_F1(dirpath)   # Highest-first
-    best = sorted_models[0][0]
-    return best
+    try:
+        sorted_models = model_files_by_F1(dirpath)   # Highest-first
+        best = sorted_models[0][0]
+        return best
+    except:
+        return None
 
     
 def model_files_by_timestamp(dirpath):
@@ -466,7 +487,11 @@ def model_files_by_timestamp(dirpath):
         ts = os.path.getmtime(filepath)
         models[ts] = filepath
 
-    return sorted(models.items(), key=lambda x: x[0], reverse=True)  # "reverse", because we want the highest timestamps (most recent) first
+    try:
+        sorted_models = sorted(models.items(), key=lambda x: x[0], reverse=True)  # "reverse", because we want the highest timestamps (most recent) first
+        return sorted_models
+    except:
+        return None
 
     
 def clear_chaff_by_pcc(dirpath, MAX=100):
@@ -1022,6 +1047,11 @@ def squashed_leaky_relu(x):
     """
     Leaky relu up to e.  After that is squashed by log(x)
     """
+    if TORCH_ONE is None:
+        TORCH_ONE = TORCH_DOUBLE([1.])
+        if torch.cuda.is_available():
+            TORCH_ONE = TORCH_ONE.cuda()
+    
     # Final activation should be like sigmoid if possible, but can't be susceptible to vanishing gradients
     x = LEAKY_RELU(x)
 
@@ -1048,6 +1078,13 @@ def has_improper_values(T):
     if torch.sum(torch.isnan(T)) > 0:
         return True
 
+    if INF is None:
+        INF     = torch.Tensor([float("Inf")]).sum().double()
+        negINF  = None   # torch.Tensor([float("-Inf")]).sum().double()
+        if torch.cuda.is_available():
+            INF     = INF.cuda()
+            negINF  = negINF.cuda()
+    
     if torch.sum(T) in [INF, negINF]:
         return True
 
