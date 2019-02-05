@@ -24,8 +24,7 @@ try:
     ################################################################################
     # DEFAULTS
 
-    torch.set_printoptions(linewidth=260)
-    
+    torch.set_printoptions(linewidth=300)
     INF             = torch.Tensor([float("Inf")]).sum().double()
     negINF          = torch.Tensor([float("-Inf")]).sum().double()
     TORCH_DOUBLE    = torch.DoubleTensor
@@ -40,18 +39,231 @@ try:
     
     if torch.cuda.is_available():
         # torch.cuda.manual_seed_all(12345)
-        L1_LOSS = L1_LOSS.cuda()
-        NEG_ONE   = NEG_ONE.cuda()
-        TORCH_TWO = TORCH_TWO.cuda()
-        TORCH_E = TORCH_E.cuda()
-        TORCH_DILATION = TORCH_DILATION.cuda()
+        INF        = INF.cuda()
+        negINF     = negINF.cuda()
+        L1_LOSS    = L1_LOSS.cuda()
+        NEG_ONE    = NEG_ONE.cuda()
+        TORCH_TWO  = TORCH_TWO.cuda()
+        TORCH_E    = TORCH_E.cuda()
         LEAKY_RELU = LEAKY_RELU.cuda()
+        TORCH_DILATION = TORCH_DILATION.cuda()
     
 except Exception as e:
     TORCH_DOUBLE = None
     TORCH_LOSS = object
     raise
     err([], {'exception':e, 'level':0})
+
+    
+##############################################################################################
+# OBJECTS
+
+class PearsonLoss(TORCH_LOSS):
+    """
+    Creates a criterion that measures the Pearson Correlation Coefficient between labels and regressed output.
+
+    The sum operation still operates over all the elements, and divides by the batch size.
+
+    The division by `n` can be avoided if one sets the constructor argument
+    `size_average=False`.
+
+    Args:
+        size_average (bool, optional): Deprecated (see :attr:`reduction`). By default,
+            the losses are averaged over each loss element in the batch. Note that for
+            some losses, there multiple elements per sample. If the field :attr:`size_average`
+            is set to ``False``, the losses are instead summed for each minibatch. Ignored
+            when reduce is ``False``. Default: ``True``
+        reduce (bool, optional): Deprecated (see :attr:`reduction`). By default, the
+            losses are averaged or summed over observations for each minibatch depending
+            on :attr:`size_average`. When :attr:`reduce` is ``False``, returns a loss per
+            batch element instead and ignores :attr:`size_average`. Default: ``True``
+        reduction (string, optional): Specifies the reduction to apply to the output:
+            'none' | 'elementwise_mean' | 'sum'. 'none': no reduction will be applied,
+            'elementwise_mean': the sum of the output will be divided by the number of
+            elements in the output, 'sum': the output will be summed. Note: :attr:`size_average`
+            and :attr:`reduce` are in the process of being deprecated, and in the meantime,
+            specifying either of those two args will override :attr:`reduction`. Default: 'elementwise_mean'
+
+    Shape:
+        - Input: :math:`(N, *)` where `*` means, any number of additional
+          dimensions
+        - Target: :math:`(N, *)`, same shape as the input
+        - Output: scalar. If reduce is ``False``, then
+          :math:`(N, *)`, same shape as the input
+
+    Examples::
+
+        >>> loss = nn.PearsonLoss()
+        >>> input = torch.randn(3, 5, requires_grad=True)
+        >>> target = torch.randn(3, 5)
+        >>> output = loss(input, target)
+        >>> output.backward()
+    """
+    def __init__(self, size_average=None, reduce=None, reduction='elementwise_mean'):
+        super(PearsonLoss, self).__init__(size_average, reduce, reduction)
+        self.L1 = nn.L1Loss()
+
+ 
+    def pearson_coeff(self, X, Y):
+        """
+        The Pearson correlation coefficient is a measure of the linear correlation between two variables.
+
+        PCC = cov(X,Y)/(stdev_X * stdev_Y)
+        """
+        vx   = X - torch.mean(X)
+        vy   = Y - torch.mean(Y)
+        pcc = torch.sum(vx * vy) / (torch.sqrt(torch.sum(vx ** 2)) * torch.sqrt(torch.sum(vy ** 2)))
+
+        return pcc
+       
+        
+    def loss(self, X, Y):
+        """
+        Loss function based on the Pearson Correlation Coefficient
+        """
+        return 1.0 - self.pearson_coeff(X, Y)
+
+
+    def forward(self, input, target):
+        pl = self.loss(input, target)
+        return pl
+        # l1 = self.L1(input, target)
+        # return l1
+        # return max(pl, l1)
+
+################################
+class SkewedL1Loss(TORCH_LOSS):
+    """
+    Creates a criterion that measures the L1 Loss but weights the lower-occurrence class higher.
+
+    The sum operation still operates over all the elements, and divides by the batch size.
+
+    The division by `n` can be avoided if one sets the constructor argument
+    `size_average=False`.
+
+    Args:
+        size_average (bool, optional): Deprecated (see :attr:`reduction`). By default,
+            the losses are averaged over each loss element in the batch. Note that for
+            some losses, there multiple elements per sample. If the field :attr:`size_average`
+            is set to ``False``, the losses are instead summed for each minibatch. Ignored
+            when reduce is ``False``. Default: ``True``
+        reduce (bool, optional): Deprecated (see :attr:`reduction`). By default, the
+            losses are averaged or summed over observations for each minibatch depending
+            on :attr:`size_average`. When :attr:`reduce` is ``False``, returns a loss per
+            batch element instead and ignores :attr:`size_average`. Default: ``True``
+        reduction (string, optional): Specifies the reduction to apply to the output:
+            'none' | 'elementwise_mean' | 'sum'. 'none': no reduction will be applied,
+            'elementwise_mean': the sum of the output will be divided by the number of
+            elements in the output, 'sum': the output will be summed. Note: :attr:`size_average`
+            and :attr:`reduce` are in the process of being deprecated, and in the meantime,
+            specifying either of those two args will override :attr:`reduction`. Default: 'elementwise_mean'
+
+    Shape:
+        - Input: :math:`(N, *)` where `*` means, any number of additional
+          dimensions
+        - Target: :math:`(N, *)`, same shape as the input
+        - Output: scalar. If reduce is ``False``, then
+          :math:`(N, *)`, same shape as the input
+
+    Examples::
+
+        >>> from gmutils import pytorch_utils as pu
+        >>> loss   = pu.SkewedL1Loss()
+        >>> input  = torch.randn(3, 5, requires_grad=True)
+        >>> target = torch.empty(3, dtype=torch.long).random_(5)
+        >>> output = loss(input, target)
+        >>> output.backward()
+    """
+    def __init__(self, class_weights=[0.5, 0.5], size_average=None, reduce=None, reduction='elementwise_mean'):
+        super(SkewedL1Loss, self).__init__(size_average, reduce, reduction)
+        self.class_weights  = class_weights
+        self.zero_bias      = class_weights[1]
+        self.one_bias       = class_weights[0]
+        self.L1             = nn.L1Loss()
+        self.zero           = var_zeros(1)
+        self.one            = var_ones(1)
+
+
+    def loss(self, X, Y, verbose=False):
+        """
+        Loss function based on L1 but magnifying or diminishing the loss based on the relative occurrences of that class
+
+        X : tensor [float, float]  (probability of each of two classes)
+        Y : tensor int (which class, 0 or 1)
+        """
+        X                = X[:,1]
+        Yd               = Y.double()   # naturally a one-mask
+        zero_mask        = torch.abs(self.one - Yd)                 # 1 for every zero element in Y
+        zero_weight      = self.zero_bias * zero_mask               # dilation applied to zero class
+        one_weight       = self.one_bias * Yd                       # dilation for class 1
+        weight           = zero_weight + one_weight
+        L                = torch.abs(Y.double() - X)                # unweighted loss
+        Lw               = weight * L                               # class-adjusted loss
+            
+        Lfinal = torch.mean(Lw)   # + range_loss  + sum_loss
+        if verbose: err(["Lfinal:", Lfinal])
+
+        return Lfinal
+    
+
+    def forward(self, input, target, verbose=False):
+        return self.loss(input, target, verbose=verbose)
+
+    
+################################
+class AccuracyLoss(TORCH_LOSS):
+    """
+    Creates a criterion that measures the Accuracy of a binary classifier.  The Loss function is based on: TP+TN/all
+
+    Examples::
+
+        >>> from gmutils import pytorch_utils as pu
+        >>> loss   = pu.AccuracyLoss()
+        >>> input  = torch.randn(3, 5, requires_grad=True)
+        >>> target = torch.empty(3, dtype=torch.long).random_(5)
+        >>> output = loss(input, target)
+        >>> output.backward()
+    """
+    def __init__(self, size_average=None, reduce=None, reduction='elementwise_mean'):
+        super(AccuracyLoss, self).__init__(size_average, reduce, reduction)
+        self.zero           = var_zeros(1)
+        self.one            = var_ones(1)
+
+
+    def loss(self, X, Y, verbose=False):
+        """
+        Loss function based on L1 but magnifying or diminishing the loss based on the relative occurrences of that class
+
+        X : tensor [float, float]  (probability of each of two classes)
+        Y : tensor int (which class, 0 or 1)
+        """
+        # Convert Y to same tensor type
+        tt = X.type()
+        if tt == 'torch.DoubleTensor':
+            Y = Y.double()
+        elif tt == 'torch.FloatTensor':
+            Y = Y.float()
+            
+        X   = X[:,1]                               # Take only the probability of class 1
+        X   = torch.round(X)                       # Round to give the class number
+        F1, TP, TN, FP, FN  = compute_F1(X, Y)
+        Acc = (TP + TN) / (TP + TN + FP + FN)
+        L   = self.one - Acc   # Obviously we want to maximize accuracy
+        if verbose:
+            print("X:", X)
+            print("Y:", Y)
+            print("TP:", TP)
+            print("FP:", FP)
+            print("TN:", TN)
+            print("FN:", FN)
+            print("Acc:", Acc)
+            print("L:", L)
+
+        return L.squeeze()
+    
+
+    def forward(self, input, target, verbose=False):
+        return self.loss(input, target, verbose=verbose)
 
     
 ################################################################################
@@ -1077,229 +1289,38 @@ def has_improper_values(T):
     """
     if torch.sum(torch.isnan(T)) > 0:
         return True
-
-    if INF is None:
-        INF     = torch.Tensor([float("Inf")]).sum().double()
-        negINF  = None   # torch.Tensor([float("-Inf")]).sum().double()
-        if torch.cuda.is_available():
-            INF     = INF.cuda()
-            negINF  = negINF.cuda()
     
     if torch.sum(T) in [INF, negINF]:
         return True
 
     return False
 
-        
-##############################################################################################
-# OBJECTS
 
-class PearsonLoss(TORCH_LOSS):
+def just_data(X):
     """
-    Creates a criterion that measures the Pearson Correlation Coefficient between labels and regressed output.
-
-    The sum operation still operates over all the elements, and divides by the batch size.
-
-    The division by `n` can be avoided if one sets the constructor argument
-    `size_average=False`.
-
-    Args:
-        size_average (bool, optional): Deprecated (see :attr:`reduction`). By default,
-            the losses are averaged over each loss element in the batch. Note that for
-            some losses, there multiple elements per sample. If the field :attr:`size_average`
-            is set to ``False``, the losses are instead summed for each minibatch. Ignored
-            when reduce is ``False``. Default: ``True``
-        reduce (bool, optional): Deprecated (see :attr:`reduction`). By default, the
-            losses are averaged or summed over observations for each minibatch depending
-            on :attr:`size_average`. When :attr:`reduce` is ``False``, returns a loss per
-            batch element instead and ignores :attr:`size_average`. Default: ``True``
-        reduction (string, optional): Specifies the reduction to apply to the output:
-            'none' | 'elementwise_mean' | 'sum'. 'none': no reduction will be applied,
-            'elementwise_mean': the sum of the output will be divided by the number of
-            elements in the output, 'sum': the output will be summed. Note: :attr:`size_average`
-            and :attr:`reduce` are in the process of being deprecated, and in the meantime,
-            specifying either of those two args will override :attr:`reduction`. Default: 'elementwise_mean'
-
-    Shape:
-        - Input: :math:`(N, *)` where `*` means, any number of additional
-          dimensions
-        - Target: :math:`(N, *)`, same shape as the input
-        - Output: scalar. If reduce is ``False``, then
-          :math:`(N, *)`, same shape as the input
-
-    Examples::
-
-        >>> loss = nn.PearsonLoss()
-        >>> input = torch.randn(3, 5, requires_grad=True)
-        >>> target = torch.randn(3, 5)
-        >>> output = loss(input, target)
-        >>> output.backward()
+    Get just the data in a tensor
     """
-    def __init__(self, size_average=None, reduce=None, reduction='elementwise_mean'):
-        super(PearsonLoss, self).__init__(size_average, reduce, reduction)
-        self.L1 = nn.L1Loss()
-
- 
-    def pearson_coeff(self, X, Y):
-        """
-        The Pearson correlation coefficient is a measure of the linear correlation between two variables.
-
-        PCC = cov(X,Y)/(stdev_X * stdev_Y)
-        """
-        vx   = X - torch.mean(X)
-        vy   = Y - torch.mean(Y)
-        pcc = torch.sum(vx * vy) / (torch.sqrt(torch.sum(vx ** 2)) * torch.sqrt(torch.sum(vy ** 2)))
-
-        return pcc
-       
-        
-    def loss(self, X, Y):
-        """
-        Loss function based on the Pearson Correlation Coefficient
-        """
-        return 1.0 - self.pearson_coeff(X, Y)
-
-
-    def forward(self, input, target):
-        pl = self.loss(input, target)
-        return pl
-        # l1 = self.L1(input, target)
-        # return l1
-        # return max(pl, l1)
-
-################################
-class SkewedL1Loss(TORCH_LOSS):
-    """
-    Creates a criterion that measures the L1 Loss but weights the lower-occurrence class higher.
-
-    The sum operation still operates over all the elements, and divides by the batch size.
-
-    The division by `n` can be avoided if one sets the constructor argument
-    `size_average=False`.
-
-    Args:
-        size_average (bool, optional): Deprecated (see :attr:`reduction`). By default,
-            the losses are averaged over each loss element in the batch. Note that for
-            some losses, there multiple elements per sample. If the field :attr:`size_average`
-            is set to ``False``, the losses are instead summed for each minibatch. Ignored
-            when reduce is ``False``. Default: ``True``
-        reduce (bool, optional): Deprecated (see :attr:`reduction`). By default, the
-            losses are averaged or summed over observations for each minibatch depending
-            on :attr:`size_average`. When :attr:`reduce` is ``False``, returns a loss per
-            batch element instead and ignores :attr:`size_average`. Default: ``True``
-        reduction (string, optional): Specifies the reduction to apply to the output:
-            'none' | 'elementwise_mean' | 'sum'. 'none': no reduction will be applied,
-            'elementwise_mean': the sum of the output will be divided by the number of
-            elements in the output, 'sum': the output will be summed. Note: :attr:`size_average`
-            and :attr:`reduce` are in the process of being deprecated, and in the meantime,
-            specifying either of those two args will override :attr:`reduction`. Default: 'elementwise_mean'
-
-    Shape:
-        - Input: :math:`(N, *)` where `*` means, any number of additional
-          dimensions
-        - Target: :math:`(N, *)`, same shape as the input
-        - Output: scalar. If reduce is ``False``, then
-          :math:`(N, *)`, same shape as the input
-
-    Examples::
-
-        >>> from gmutils import pytorch_utils as pu
-        >>> loss   = pu.SkewedL1Loss()
-        >>> input  = torch.randn(3, 5, requires_grad=True)
-        >>> target = torch.empty(3, dtype=torch.long).random_(5)
-        >>> output = loss(input, target)
-        >>> output.backward()
-    """
-    def __init__(self, class_weights=[0.5, 0.5], size_average=None, reduce=None, reduction='elementwise_mean'):
-        super(SkewedL1Loss, self).__init__(size_average, reduce, reduction)
-        self.class_weights  = class_weights
-        self.zero_bias      = class_weights[1]
-        self.one_bias       = class_weights[0]
-        self.L1             = nn.L1Loss()
-        self.zero           = var_zeros(1)
-        self.one            = var_ones(1)
-
-
-    def loss(self, X, Y, verbose=False):
-        """
-        Loss function based on L1 but magnifying or diminishing the loss based on the relative occurrences of that class
-
-        X : tensor [float, float]  (probability of each of two classes)
-        Y : tensor int (which class, 0 or 1)
-        """
-        X                = X[:,1]
-        Yd               = Y.double()   # naturally a one-mask
-        zero_mask        = torch.abs(self.one - Yd)                 # 1 for every zero element in Y
-        zero_weight      = self.zero_bias * zero_mask               # dilation applied to zero class
-        one_weight       = self.one_bias * Yd                       # dilation for class 1
-        weight           = zero_weight + one_weight
-        L                = torch.abs(Y.double() - X)                # unweighted loss
-        Lw               = weight * L                               # class-adjusted loss
-            
-        Lfinal = torch.mean(Lw)   # + range_loss  + sum_loss
-        if verbose: err(["Lfinal:", Lfinal])
-
-        return Lfinal
-    
-
-    def forward(self, input, target, verbose=False):
-        return self.loss(input, target, verbose=verbose)
+    X = X.data.cpu().numpy().tolist()
+    if len(X) == 1:
+        X = X[0]
+    return X
 
     
-################################
-class AccuracyLoss(TORCH_LOSS):
+def just_data_list(X):
     """
-    Creates a criterion that measures the Accuracy of a binary classifier.  The Loss function is based on: TP+TN/all
-
-    Examples::
-
-        >>> from gmutils import pytorch_utils as pu
-        >>> loss   = pu.AccuracyLoss()
-        >>> input  = torch.randn(3, 5, requires_grad=True)
-        >>> target = torch.empty(3, dtype=torch.long).random_(5)
-        >>> output = loss(input, target)
-        >>> output.backward()
+    Get just the data in a tensor
     """
-    def __init__(self, size_average=None, reduce=None, reduction='elementwise_mean'):
-        super(AccuracyLoss, self).__init__(size_average, reduce, reduction)
-        self.zero           = var_zeros(1)
-        self.one            = var_ones(1)
+    output = []
+    for x in X:
+        output.append(just_data(x))
+    return output
 
-
-    def loss(self, X, Y, verbose=False):
-        """
-        Loss function based on L1 but magnifying or diminishing the loss based on the relative occurrences of that class
-
-        X : tensor [float, float]  (probability of each of two classes)
-        Y : tensor int (which class, 0 or 1)
-        """
-        # Convert Y to same tensor type
-        tt = X.type()
-        if tt == 'torch.DoubleTensor':
-            Y = Y.double()
-        elif tt == 'torch.FloatTensor':
-            Y = Y.float()
-            
-        X   = X[:,1]                               # Take only the probability of class 1
-        X   = torch.round(X)                       # Round to give the class number
-        F1, TP, TN, FP, FN  = compute_F1(X, Y)
-        Acc = (TP + TN) / (TP + TN + FP + FN)
-        L   = self.one - Acc   # Obviously we want to maximize accuracy
-        if verbose:
-            print("X:", X)
-            print("Y:", Y)
-            print("TP:", TP)
-            print("FP:", FP)
-            print("TN:", TN)
-            print("FN:", FN)
-            print("Acc:", Acc)
-            print("L:", L)
-
-        return L.squeeze()
     
-
-    def forward(self, input, target, verbose=False):
-        return self.loss(input, target, verbose=verbose)
+def print_data(X):
+    """
+    Print the data in a tensor
+    """
+    print("data:", X.data.cpu().numpy().tolist())
 
     
 ################################################################################
