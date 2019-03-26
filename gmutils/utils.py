@@ -6,6 +6,7 @@ if not sys.warnoptions:
     import warnings
     warnings.filterwarnings("ignore", message="numpy.dtype size changed")
     warnings.filterwarnings("ignore", message="numpy.ufunc size changed")
+
 """
 import sys
 import subprocess
@@ -927,8 +928,11 @@ def monitor_skip(_monitor, iterator):
     Skip ahead to through some of the iterator's output
     """
     while _monitor.get('skip'):
+        _monitor['ignore'] = True   # Ignore as much as possible for the sake of speed
         next(iterator)
         monitor(_monitor)   # This increments _monitor['i']
+        
+    _monitor['ignore'] = False
     
         
 def monitor(_monitor, options={}):

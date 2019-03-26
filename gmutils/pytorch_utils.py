@@ -14,6 +14,7 @@ import numpy as np
 import scipy
 from scipy.sparse import coo_matrix
 from gmutils.utils import err, argparser, isTrue, read_dir
+from gmutils.objects import Object
 try:
     import torch
     import torch.nn as nn
@@ -58,6 +59,68 @@ except Exception as e:
 ##############################################################################################
 # OBJECTS
 
+class PyTorchModule(nn.Module, Object):
+    """
+    Basic nn.Module, with memory-efficient saving/loading
+    """
+
+    def save(self, dirpath, name='model'):
+        """
+        Save the model weights to disk
+        """
+        torch.save(self.state_dict(),  dirpath+'/%s.pth'% name)
+        
+        
+    def load(self, dirpath, name='model'):
+        """
+        Load model weights from disk
+        """
+        try:
+            state_dict = torch.load(dirpath+'/%s.pth'% name, map_location=lambda storage, loc: storage)
+            self.load_state_dict(state_dict)
+        except:
+            pass
+
+
+    def get_parameters(self):
+        """
+        Return parameters to be used by the optimizer, saved to disk, etc.
+        """
+        return self.parameters()
+
+
+    def set_train(self):
+        """
+        Set object for training
+        """
+        self.training  = True
+        self.train()
+        
+    
+    def set_eval(self):
+        """
+        Set object for evaluation
+        """
+        self.training  = False
+        self.eval()
+
+        
+    def get_zeros(self):
+        """
+        Get a zeros tensor with the right type and shape
+        """
+        return var_zeros(self.dim, ttype=self.get('ttype'))
+        
+        
+    def print_parameters(self):
+        """
+        Print info about the parameters
+        """
+        for name, param in self.named_parameters():
+            print("\t", name, "  size:", param.size())
+
+        
+##############################    
 class PearsonLoss(TORCH_LOSS):
     """
     Creates a criterion that measures the Pearson Correlation Coefficient between labels and regressed output.
@@ -266,6 +329,61 @@ class AccuracyLoss(TORCH_LOSS):
         return self.loss(input, target, verbose=verbose)
 
     
+################################
+class DualLogLoss(TORCH_LOSS):
+    """
+    Creates a Loss criterion that using euclidean distance and two different log functions to ameliorate vanishing gradients.
+
+    NOTE: Meant for use with binary output after softmax (values between 0 and 1)
+
+    Examples::
+
+        >>> from gmutils import pytorch_utils as pu
+        >>> loss   = pu.DualLogLoss()
+        >>> input  = torch.randn(7, requires_grad=True)
+        >>> target = torch.randn(7, requires_grad=True)
+        >>> output = loss(input, target)
+        >>> output.backward()
+    """
+    def __init__(self, size_average=None, reduce=None, reduction='elementwise_mean'):
+        super(DualLogLoss, self).__init__(size_average, reduce, reduction)
+        self.zero           = var_zeros(1)
+        self.one            = var_ones(1)
+
+
+    def dual_log_loss(self, x, y, verbose=False):
+        """
+        Euclidean distance and two different log functions to ameliorate vanishing gradients.
+
+        x : tensor float
+        y : tensor float
+        """
+        diff = torch.abs(x - y)
+        p    = math.exp(-diff)
+        l1   = math.log(1 - p)
+        l2   = math.log(p)
+
+        return l1 - l2
+
+        
+    def loss(self, X, Y, verbose=False):
+        """
+        Loss function based on euclidean distance and two different log functions to ameliorate vanishing gradients.
+
+        X : tensor floats (1-dimensional, any length)
+        Y : tensor floats (same shape as X)
+        """
+        L = self.zero
+        for i, x in enumerate(X.split(1)):
+            y = Y[i]
+        L += self.dual_log_loss(x, y)
+        
+        return L
+
+    def forward(self, input, target, verbose=False):
+        return self.loss(input, target, verbose=verbose)
+
+    
 ################################################################################
 # FUNCTIONS
 
@@ -300,7 +418,7 @@ def print_info(T):
     sys.stderr.write("\tGrad Fn: %s\n"% grad_fn)
     sys.stderr.write("\tRequires grad: %s\n"% requires_grad)
     print()
-    
+
 
 def torchtensor(X, ttype=TORCH_DOUBLE, requires_grad=False):
     """
@@ -375,9 +493,12 @@ def torchtensor(X, ttype=TORCH_DOUBLE, requires_grad=False):
             ################################################
         else:
             err()
-            exit()
+            print(zzz)
 
-    T.requires_grad = requires_grad
+    try:
+        T.requires_grad = requires_grad
+    except:
+        pass
 
     return T
 
@@ -1322,7 +1443,18 @@ def print_data(X):
     """
     print("data:", X.data.cpu().numpy().tolist())
 
-    
+
+def reinitialize(m):
+    """
+    Reinitialize a parameter
+    """
+    if isinstance(m, nn.Module):
+        if isinstance(m, nn.Conv2d):
+            nn.init.kaiming_normal_(m.weight, mode='fan_out', nonlinearity='relu')
+        else:  # elif isinstance(m, nn.BatchNorm2d):
+            nn.init.constant_(m.weight, 1)
+            nn.init.constant_(m.bias, 0)
+        
 ################################################################################
 # MAIN
 
