@@ -85,6 +85,8 @@ class PyTorchModule(nn.Module, Object):
     def get_parameters(self):
         """
         Return parameters to be used by the optimizer, saved to disk, etc.
+
+        May need to be overridden in a subclass without overriding 'parameters()', thus the need for this method.
         """
         return self.parameters()
 
