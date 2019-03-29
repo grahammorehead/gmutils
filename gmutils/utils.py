@@ -28,7 +28,8 @@ import csv
 import math
 import numpy as np
 import scipy
-
+from sklearn.metrics import roc_auc_score
+from sklearn.metrics import confusion_matrix
 from scipy import spatial
 
 np.set_printoptions(linewidth=260)
@@ -1256,6 +1257,29 @@ def binary_F1(L, P, verbose=True):
     
     return F1
             
+
+def compute_F1(TP, TN, FP, FN):
+    """
+    Return the F1 score
+    """
+    numer = 2 * TP
+    denom = 2 * TP + FN + FP
+    F1 = numer/denom
+    Acc = 100. * (TP + TN) / (TP + TN + FP + FN)
+    
+    return F1, Acc
+
+
+def analyze_binary_predictions(Y, preds):
+    """
+    For some set of predictions against a binary model, compute accuracy, F1, etc.
+    """
+    AUC = roc_auc_score(Y, preds)
+    tn, fp, fn, tp = confusion_matrix(y_true, y_pred).ravel()
+    F1, Acc = compute_F1(tp, tn, fp, fn)
+
+    return Acc, F1, AUC
+    
 
 def iter_next(iterator, N=1):
     """
