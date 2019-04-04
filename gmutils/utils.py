@@ -159,6 +159,7 @@ def argparser_ml(options={}):
     parser.add_argument('--data_dir',         help='Directory where data is stored', required=False, type=str)
     parser.add_argument('--dataset_file',     help='Load a specific dataset file', required=False, type=str)
     parser.add_argument('--device',           help='Device, e.g. cuda:2', required=False, type=str)
+    parser.add_argument('--dim',              help='Dimensionality of the vectors', required=False, type=int)
     parser.add_argument('--epoch',            help='Epochs to begin at for training', required=False, type=int)
     parser.add_argument('--epochs',           help='Number of total epochs for training', required=False, type=int)
     parser.add_argument('--eval_file',        help='Evaluation files local or GCS', required=False, type=str)

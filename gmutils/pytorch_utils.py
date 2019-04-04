@@ -63,20 +63,37 @@ class PyTorchModule(nn.Module, Object):
     """
     Basic nn.Module, with memory-efficient saving/loading
     """
+    def __init__(self, options={}):
+        """
+        Instantiate the object
+        """
+        super(PyTorchModule, self).__init__()
+        self.relu     = torch.nn.LeakyReLU(negative_slope=0.001, inplace=False)
+        self.training = False    # Set to True when training
 
-    def save(self, dirpath, name='model'):
-        """
-        Save the model weights to disk
-        """
-        torch.save(self.state_dict(),  dirpath+'/%s.pth'% name)
         
-        
-    def load(self, dirpath, name='model'):
+    def save(self, dirpath, name=None):
         """
-        Load model weights from disk
+        Save the current state of the model
         """
+        if name is None:
+            name = self.get_type()
         try:
-            state_dict = torch.load(dirpath+'/%s.pth'% name, map_location=lambda storage, loc: storage)
+            filepath = dirpath +'/'+ name + '.pth'
+            torch.save(self.state_dict(), filepath)
+        except:
+            raise
+
+
+    def load(self, dirpath, name=None):
+        """
+        Load the models from a specified directory.  Toss exceptions because models won't exist on the first run.
+        """
+        if name is None:
+            name = self.get_type()
+        try:
+            filepath = dirpath +'/'+ name + '.pth'
+            state_dict = torch.load(filepath, map_location=lambda storage, loc: storage)
             self.load_state_dict(state_dict)
         except:
             pass
@@ -107,19 +124,93 @@ class PyTorchModule(nn.Module, Object):
         self.eval()
 
         
+    def initialize_weights(self):
+        """
+        Initialize the model weights
+        """
+        def init_w(m):
+            if isinstance(m, torch.nn.Linear):
+                # torch.nn.init.xavier_uniform_(m.weight.data)
+                # torch.nn.init.normal_(m.weight.data)
+                # torch.nn.init.kaiming_uniform_(m.weight, a=math.sqrt(5)) 
+                torch.nn.init.eye_(m.weight.data)
+        self.apply(init_w)
+
+        
     def get_zeros(self):
         """
         Get a zeros tensor with the right type and shape
         """
-        return var_zeros(self.dim, ttype=self.get('ttype'))
+        return var_zeros(self.get('dim'), ttype=self.get('ttype'))
         
         
+    def torchvar(self, x):
+        """
+        Convert a list of things to torch tensors of the needed type
+        """
+        t = pu.torchvar(x, ttype=self.get('ttype'))
+        return t
+
+
+    def torchvar_list(self, X):
+        """
+        Convert a list of things to torch tensors of the needed type
+        """
+        output = []
+        for x in X:
+            v = pu.torchvar(x, ttype=self.get('ttype'))
+            output.append(v)
+        return output
+
+
     def print_parameters(self):
         """
         Print info about the parameters
         """
         for name, param in self.named_parameters():
             print("\t", name, "  size:", param.size())
+
+            
+    def load_good(self):
+        """
+        Load a model with a low loss (stochastically).  This function effectuates a Poisson-beam search.
+        """
+        try:
+            good = pu.good_model_file_by_loss(self.get('model_dir'))
+            self.load(good)
+        except:
+            pass   # Before a model has been saved, this would raise an exception
+
+
+    def load_best(self):
+        """
+        Load a model with a low loss (stochastically).  This function effectuates a Poisson-beam search.
+        """
+        try:
+            best = pu.best_model_file_by_loss(self.get('model_dir'))
+            self.load(best)
+        except:
+            raise
+
+
+    def reload(self):
+        """
+        Load a better or another model for a more effective beam search
+        """
+        try:                          # uncomment below as desired
+            # self.load_good()        # Load a "good" model (maybe not the best-- effectively a Poisson-beam search)
+            self.load_best()          # Load the best model (Lowest validation loss)
+            self.clear_chaff()        # Get rid of bad/old models
+        except:
+            raise   # Raises an exception the first time-- before any model file yet exists
+
+        
+    def clear_chaff(self):
+        """
+        Remove some model files having higher loss.  Keep the best.
+        """
+        pu.clear_chaff_by_loss(self.get('model_dir'), MAX=20)
+        
 
         
 ##############################    

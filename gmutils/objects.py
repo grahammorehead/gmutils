@@ -250,6 +250,18 @@ class Object(object):
         caller = sys._getframe(1).f_code.co_name   # name of the function in which 'done()' was called
         tracker = '_DONE_' + caller                # name of stored key to track how many times 'caller' has been called for this object
         self.set(tracker, 0)
+
+
+    def get_type(self):
+        """
+        Returns a string with just the name of the instantiated class
+        """
+        T = str(type(self))
+        T = re.sub(r"^<class '", "", T)
+        T = re.sub(r"'>$", "", T)
+        _, T = T.split('.')
+        
+        return T
         
 
 class Options(Object):
