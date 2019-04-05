@@ -68,6 +68,7 @@ class PyTorchModule(nn.Module, Object):
         Instantiate the object
         """
         super(PyTorchModule, self).__init__()
+        Object.__init__(self)
         self.relu     = torch.nn.LeakyReLU(negative_slope=0.001, inplace=False)
         self.training = False    # Set to True when training
 
@@ -141,7 +142,11 @@ class PyTorchModule(nn.Module, Object):
         """
         Get a zeros tensor with the right type and shape
         """
-        return var_zeros(self.get('dim'), ttype=self.get('ttype'))
+        try:
+            dim = self.dim
+        except:
+            dim = self.get('dim')
+        return var_zeros(dim, ttype=self.get('ttype'))
         
         
     def torchvar(self, x):
