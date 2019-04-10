@@ -13,7 +13,7 @@ import math
 import numpy as np
 import scipy
 from scipy.sparse import coo_matrix
-from gmutils.utils import err, argparser, isTrue, read_dir
+from gmutils.utils import err, argparser, isTrue, read_dir, mkdir
 from gmutils.objects import Object
 try:
     import torch
@@ -77,6 +77,7 @@ class PyTorchModule(nn.Module, Object):
         """
         Save the current state of the model
         """
+        mkdir(dirpath)
         if name is None:
             name = self.get_type()
         try:
@@ -153,7 +154,7 @@ class PyTorchModule(nn.Module, Object):
         """
         Convert a list of things to torch tensors of the needed type
         """
-        t = pu.torchvar(x, ttype=self.get('ttype'))
+        t = torchvar(x, ttype=self.get('ttype'))
         return t
 
 
@@ -163,7 +164,7 @@ class PyTorchModule(nn.Module, Object):
         """
         output = []
         for x in X:
-            v = pu.torchvar(x, ttype=self.get('ttype'))
+            v = torchvar(x, ttype=self.get('ttype'))
             output.append(v)
         return output
 
@@ -181,7 +182,7 @@ class PyTorchModule(nn.Module, Object):
         Load a model with a low loss (stochastically).  This function effectuates a Poisson-beam search.
         """
         try:
-            good = pu.good_model_file_by_loss(self.get('model_dir'))
+            good = good_model_file_by_loss(self.get('model_dir'))
             self.load(good)
         except:
             pass   # Before a model has been saved, this would raise an exception
@@ -192,7 +193,7 @@ class PyTorchModule(nn.Module, Object):
         Load a model with a low loss (stochastically).  This function effectuates a Poisson-beam search.
         """
         try:
-            best = pu.best_model_file_by_loss(self.get('model_dir'))
+            best = best_model_file_by_loss(self.get('model_dir'))
             self.load(best)
         except:
             raise
@@ -214,7 +215,7 @@ class PyTorchModule(nn.Module, Object):
         """
         Remove some model files having higher loss.  Keep the best.
         """
-        pu.clear_chaff_by_loss(self.get('model_dir'), MAX=20)
+        clear_chaff_by_loss(self.get('model_dir'), MAX=20)
         
 
         
@@ -329,7 +330,7 @@ class SkewedL1Loss(TORCH_LOSS):
     Examples::
 
         >>> from gmutils import pytorch_utils as pu
-        >>> loss   = pu.SkewedL1Loss()
+        >>> loss   = SkewedL1Loss()
         >>> input  = torch.randn(3, 5, requires_grad=True)
         >>> target = torch.empty(3, dtype=torch.long).random_(5)
         >>> output = loss(input, target)
@@ -379,7 +380,7 @@ class AccuracyLoss(TORCH_LOSS):
     Examples::
 
         >>> from gmutils import pytorch_utils as pu
-        >>> loss   = pu.AccuracyLoss()
+        >>> loss   = AccuracyLoss()
         >>> input  = torch.randn(3, 5, requires_grad=True)
         >>> target = torch.empty(3, dtype=torch.long).random_(5)
         >>> output = loss(input, target)
@@ -437,7 +438,7 @@ class DualLogLoss(TORCH_LOSS):
     Examples::
 
         >>> from gmutils import pytorch_utils as pu
-        >>> loss   = pu.DualLogLoss()
+        >>> loss   = DualLogLoss()
         >>> input  = torch.randn(7, requires_grad=True)
         >>> target = torch.randn(7, requires_grad=True)
         >>> output = loss(input, target)
