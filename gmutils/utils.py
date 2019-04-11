@@ -470,6 +470,13 @@ def read_dir(path, options={}):
     return out
 
 
+def dir_length(path, options={}):
+    """
+    Return the number of items in a directory
+    """
+    return len(read_dir(path, options=options))
+
+
 def serialize_and_save_conceptnet_vectorfile(vectorfile, pklfile):
     """
     Read vocab and embedding from file and serialize to disk
