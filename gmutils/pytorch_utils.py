@@ -698,7 +698,7 @@ def learning_rate_by_epoch(epoch, lr):
     float
 
     """
-    return lr * (0.9 ** (epoch-1))
+    return lr * (0.95 ** (epoch-1))
 
 
 def loss_threshold_by_epoch(epoch, lt):
