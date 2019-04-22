@@ -685,7 +685,7 @@ def empty():
     return var_zeros(0)
 
 
-def learning_rate_by_epoch(epoch, lr):
+def learning_rate_by_epoch(epoch, lr, factor=.95):
     """
     To compute a new learning rate for each epoch (lower each time, of course)
 
@@ -698,7 +698,7 @@ def learning_rate_by_epoch(epoch, lr):
     float
 
     """
-    return lr * (0.95 ** (epoch-1))
+    return lr * (factor ** (epoch-1))
 
 
 def loss_threshold_by_epoch(epoch, lt):
