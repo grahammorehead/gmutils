@@ -1278,13 +1278,15 @@ def compute_F1(TP, TN, FP, FN):
     return F1, Acc
 
 
-def analyze_binary_predictions(Y, preds):
+def analyze_binary_predictions(Y, preds, verbose=False):
     """
     For some set of predictions against a binary model, compute accuracy, F1, etc.
     """
     AUC   = roc_auc_score(Y, preds)
     preds = preds.round()
     tn, fp, fn, tp = confusion_matrix(Y, preds).ravel()
+    if verbose:
+        err([Y, preds, tp, tn, fp, fn])
     F1, Acc = compute_F1(tp, tn, fp, fn)
 
     return Acc, F1, AUC
