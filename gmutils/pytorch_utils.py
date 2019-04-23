@@ -73,7 +73,7 @@ class PyTorchModule(nn.Module, Object):
         self.training = False    # Set to True when training
 
         
-    def save(self, dirpath, name=None):
+    def save(self, dirpath, name=None, verbose=False):
         """
         Save the current state of the model
         """
@@ -82,6 +82,9 @@ class PyTorchModule(nn.Module, Object):
             name = self.get_type()
         try:
             filepath = dirpath +'/'+ name + '.pth'
+            if verbose:
+                print("Saving:")
+                self.print_parameters()
             torch.save(self.state_dict(), filepath)
         except:
             raise
@@ -98,7 +101,7 @@ class PyTorchModule(nn.Module, Object):
             state_dict = torch.load(filepath, map_location=lambda storage, loc: storage)
             self.load_state_dict(state_dict)
         except:
-            pass
+            raise
 
 
     def get_parameters(self):
@@ -169,12 +172,14 @@ class PyTorchModule(nn.Module, Object):
         return output
 
 
-    def print_parameters(self):
+    def print_parameters(self, verbose=False):
         """
         Print info about the parameters
         """
         for name, param in self.named_parameters():
             print("\t", name, "  size:", param.size())
+            if verbose:
+                print("\t\t", param)
 
             
     def load_good(self):
