@@ -1278,12 +1278,35 @@ def compute_F1(TP, TN, FP, FN):
     return F1, Acc
 
 
+def binarize_func(x):
+    if x > 0:
+        x = 1
+    else:
+        x = 0
+    return x
+
+vbinarize_func = np.vectorize(binarize_func)
+
+
+def binarize(X):
+    """
+    Round and binarize an array X
+
+    Parameters
+    ----------
+    X : numpy array
+    """
+    X = X.round()
+    return vbinarize_func(X)
+    
+
 def analyze_binary_predictions(Y, preds, verbose=False):
     """
     For some set of predictions against a binary model, compute accuracy, F1, etc.
     """
     AUC   = roc_auc_score(Y, preds)
-    preds = preds.round()
+    preds = binarize(preds)
+    
     tn, fp, fn, tp = confusion_matrix(Y, preds).ravel()
     if verbose:
         err([Y, preds, tp, tn, fp, fn])
