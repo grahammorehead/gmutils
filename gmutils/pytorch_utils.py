@@ -703,10 +703,10 @@ def learning_rate_by_epoch(epoch, lr, factor=.95):
     float
 
     """
-    return lr * (factor ** (epoch-1))
+    return lr * (factor ** (epoch))
 
 
-def loss_threshold_by_epoch(epoch, lt):
+def loss_threshold_by_epoch(epoch, lt, factor=.90):
     """
     To compute a new learning rate for each epoch (lower each time, of course)
 
@@ -719,7 +719,7 @@ def loss_threshold_by_epoch(epoch, lt):
     float
 
     """
-    return lt * (0.9 ** (epoch-1))
+    return lt * (factor ** (epoch))
 
 
 def hasnan(T):
