@@ -101,7 +101,7 @@ class PyTorchModule(nn.Module, Object):
             state_dict = torch.load(filepath, map_location=lambda storage, loc: storage)
             self.load_state_dict(state_dict)
         except:
-            raise
+            pass
 
 
     def get_parameters(self):
@@ -1000,7 +1000,7 @@ def good_model_file_by_loss(dirpath):
         filepath, val = models[x]
         return filepath
     except:
-        raise
+        pass
 
 
 def good_model_file_by_pcc(dirpath):
