@@ -63,14 +63,19 @@ install_ubuntu1:
 	# sudo chsh -s /usr/bin/zsh ubuntu
 	# zsh
 	# sudo sh -c "$(curl -fsSL https://raw.github.com/robbyrussell/oh-my-zsh/master/tools/install.sh)"
-	# sudo apt-get upgrade  (if prompted, select "Package maintainer's version")
+	# sudo apt-get upgrade -y  (if prompted, select "Package maintainer's version")
 	# (might need) add contents of /etc/hostname to localhost line of /etc/hosts
+	# (might need) add z resource dot file
 	# reboot
 	mkdir envs
 	mkdir downloads
+<<<<<<< HEAD
 	sudo apt-get install -y mosh
 	sudo apt-get install -y python3-dev python3-tk python3-venv
 	sudo apt-get install -y emacs
+=======
+	sudo apt-get install -y mosh python3-dev python3-tk python3-venv emacs
+>>>>>>> 8fb1a83b906dffdfc2c7f11185df1c9aaff0cdd7
 
 
 # Latest Elastic Search as of this writing:
@@ -89,6 +94,7 @@ install_ubuntu2:
 	pip install -r requirements.txt
 	pip install awscli
 	pip install nltk
+	pip install hug
 	pip install pip-review
 	pip-review --local --interactive
 	python -m spacy download en_core_web_lg
