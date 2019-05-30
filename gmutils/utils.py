@@ -1296,6 +1296,7 @@ def binarize(X):
     ----------
     X : numpy array
     """
+    X = np.array(X)
     X = X.round()
     return vbinarize_func(X)
     

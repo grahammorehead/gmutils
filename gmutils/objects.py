@@ -56,12 +56,13 @@ class Object(object):
         except:
             self._value_ = {}
 
-        self.options = options
-        
+        # self.options = options
         if options is not None:
 
             if isinstance(options, dict):
                 for key,val in options.items():
+                    if val is None:
+                        continue
                     if not key == 'input':
                         if verbose:  sys.stderr.write("key, val = { %s : %s }\n"% (str(key), str(val)))
                         self.set(key, val)
@@ -73,6 +74,8 @@ class Object(object):
                     if re.search('^_', key):
                         continue
                     if key == 'input'  or  key == 'options':
+                        continue
+                    if val is None:
                         continue
                     if isinstance(val, types.MethodType):
                         continue
@@ -88,6 +91,8 @@ class Object(object):
                     if key == 'input'  or  key == 'options':
                         continue
                     val = getattr(options, key)
+                    if val is None:
+                        continue
                     if isinstance(val, types.MethodType):
                         continue
                     
