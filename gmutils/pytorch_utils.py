@@ -690,9 +690,9 @@ def empty():
     return var_zeros(0)
 
 
-def learning_rate_by_epoch(epoch, lr, factor=.95):
+def reduce_rate_by_epoch(epoch, lr, factor=.9):
     """
-    To compute a new learning rate for each epoch (lower each time, of course)
+    To compute a new learning rate (or other) for each epoch (lower each time, of course)
 
     Parameters
     ----------
@@ -704,22 +704,6 @@ def learning_rate_by_epoch(epoch, lr, factor=.95):
 
     """
     return lr * (factor ** (epoch))
-
-
-def loss_threshold_by_epoch(epoch, lt, factor=.90):
-    """
-    To compute a new learning rate for each epoch (lower each time, of course)
-
-    Parameters
-    ----------
-    epoch : int
-
-    Returns
-    -------
-    float
-
-    """
-    return lt * (factor ** (epoch))
 
 
 def hasnan(T):

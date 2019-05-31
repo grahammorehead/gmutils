@@ -455,18 +455,24 @@ def read_dir(path, options={}):
 
     # Add full path to files
     if isTrue(options, 'fullpath'):
-        filtered = []
+        fullfiles = []
         for file in files:
-            filtered.append(dirpath +'/'+ file)
-        files = filtered
+            fullfiles.append(dirpath +'/'+ file)
+        files = fullfiles
+        fullfolders = []
+        for folder in folders:
+            fullfolders.append(dirpath +'/'+ folder)
+        folders = fullfolders
 
     if isTrue(options, 'files'):
         return files
     elif isTrue(options, 'folders'):
         return folders
+
+    # default
     out = folders
     out.extend(files)
-
+    
     return out
 
 

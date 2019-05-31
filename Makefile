@@ -69,13 +69,7 @@ install_ubuntu1:
 	# reboot
 	mkdir envs
 	mkdir downloads
-<<<<<<< HEAD
-	sudo apt-get install -y mosh
-	sudo apt-get install -y python3-dev python3-tk python3-venv
-	sudo apt-get install -y emacs
-=======
 	sudo apt-get install -y mosh python3-dev python3-tk python3-venv emacs
->>>>>>> 8fb1a83b906dffdfc2c7f11185df1c9aaff0cdd7
 
 
 # Latest Elastic Search as of this writing:
