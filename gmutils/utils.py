@@ -30,6 +30,7 @@ import numpy as np
 import scipy
 from sklearn.metrics import roc_auc_score
 from sklearn.metrics import confusion_matrix
+from sklearn import metrics
 from scipy import spatial
 
 np.set_printoptions(linewidth=260)
@@ -1284,17 +1285,7 @@ def compute_F1(TP, TN, FP, FN):
     return F1, Acc
 
 
-def binarize_func(x):
-    if x > 0:
-        x = 1
-    else:
-        x = 0
-    return x
-
-vbinarize_func = np.vectorize(binarize_func)
-
-
-def binarize(X):
+def binarize(X, thresh=0.5):
     """
     Round and binarize an array X
 
@@ -1302,17 +1293,25 @@ def binarize(X):
     ----------
     X : numpy array
     """
-    X = np.array(X)
-    X = X.round()
-    return vbinarize_func(X)
-    
+    output = []
+    for x in X:
+        if x > thresh:
+            output.append(1)
+        else:
+            output.append(0)
+    return output
+
 
 def analyze_binary_predictions(Y, preds, verbose=False):
     """
     For some set of predictions against a binary model, compute accuracy, F1, etc.
     """
+    fpr, tpr, thresholds = metrics.roc_curve(Y, preds)
+    optimal_idx          = np.argmax(tpr - fpr)
+    optimal_threshold    = thresholds[optimal_idx]
+
     AUC   = roc_auc_score(Y, preds)
-    preds = binarize(preds)
+    preds = binarize(preds, optimal_threshold)
     
     tn, fp, fn, tp = confusion_matrix(Y, preds).ravel()
     if verbose:
