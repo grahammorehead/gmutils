@@ -1118,7 +1118,7 @@ if __name__ == '__main__':
 
     # Phase Similarity
     elif sys.argv[1] == '--ps':
-        score = phrase_similarity(sys.argv[2], sys.argv[3], verbose=True)
+        score = phrase_similarity(sys.argv[2], sys.argv[3], verbose=False)
         print ('Score:', score)
         
     # String Distance

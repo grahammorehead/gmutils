@@ -32,9 +32,15 @@ force:
 # Configure
 
 install_mac1:
+	# install Chrome, Karabiner Elements
+	# Configure keyboard shortcuts
+	# Configure fingerprint
+	/usr/bin/ruby -e "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/master/install)"
 	# Suggested version of Python 3 as of this writing:
-	brew install https://raw.githubusercontent.com/Homebrew/homebrew-core/ec545d45d4512ace3570782283df4ecda6bb0044/Formula/python3.rb
-	wget https://bootstrap.pypa.io/get-pip.py
+	# brew install https://raw.githubusercontent.com/Homebrew/homebrew-core/ec545d45d4512ace3570782283df4ecda6bb0044/Formula/python3.rb
+	brew install zsh
+	brew install python
+	# wget https://bootstrap.pypa.io/get-pip.py
 	pip install --upgrade pip
 	# By hand: (Using Python 3)
 	# python -m venv ~/envs/sample
@@ -53,12 +59,13 @@ install_mac2:
 	python -m spacy download 'en_core_web_lg'
 	defaults write -g InitialKeyRepeat -int 12 # normal minimum is 15 (225 ms)
 	defaults write -g KeyRepeat -int 2 # normal minimum is 2 (30 ms)
+	defaults write com.apple.finder AppleShowAllFiles YES
 
 
 install_ubuntu1:
 	# By hand:
 	# sudo apt-get update
-	# sudo apt-get install -y build-essential cython python-numpy
+	# sudo apt-get install -y build-essential libssl-dev libffi-dev python-dev cython python-numpy mosh python3-dev python3-tk python3-venv emacs
 	# sudo apt-get install -y zsh
 	# sudo chsh -s /usr/bin/zsh ubuntu
 	# zsh
@@ -68,9 +75,6 @@ install_ubuntu1:
 	# reboot
 	mkdir envs
 	mkdir downloads
-	sudo apt-get install -y mosh
-	sudo apt-get install -y python3-dev python3-tk python3-venv
-	sudo apt-get install -y emacs
 
 
 # Latest Elastic Search as of this writing:

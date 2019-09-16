@@ -53,7 +53,8 @@ def set_sentence_starts(doc):
 spacy_parsing = spacy_ner = None
 
 try:
-    spacy_ner     = spacy.load('en_core_web_lg')    # download separately: https://spacy.io/models/
+    spacy_ner     = spacy.load('en_pytt_xlnetbasecased_lg')    
+    # spacy_ner     = spacy.load('en_core_web_lg')    # download separately: https://spacy.io/models/
     if not os.environ.get('GM_NERONLY'):
         spacy_parsing = spacy.load('en_core_web_lg')
         

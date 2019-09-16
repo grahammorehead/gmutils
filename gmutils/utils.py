@@ -754,11 +754,15 @@ def deserialize(file=None, directory=None, options={}):
         sys.stderr.write("Deserializing %s ...\n"% file)
 
     if isTrue(options, 'joblib'):
+        err()
+        exit()
+        """
         try:
             from sklearn.externals import joblib
         except Exception as e: err([], {'exception':e, 'level':0})
         thing = joblib.load(file)
         return thing
+        """
     elif isTrue(options, 'dill'):
         with open(file,'rb') as FH:
             try:
