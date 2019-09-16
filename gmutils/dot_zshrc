@@ -1,5 +1,8 @@
 export ZSH=~/.oh-my-zsh
 # export ZSH="/root/.oh-my-zsh"
+typeset -U path
+path=(. ~/bin $path)
+export path
 export PYTHONPATH=$PYTHONPATH:.
 alias rm="rm -i"
 alias mv="mv -i"
