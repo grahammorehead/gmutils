@@ -39,7 +39,7 @@ pathlib==1.0.1
 pip==19.1.1
 pip-review==1.0
 plac==1.0.0
-protobuf==3.7.1
+protobuf==3.18.3
 pyasn1==0.4.5
 pydot==1.4.1
 pyparsing==2.4.0
